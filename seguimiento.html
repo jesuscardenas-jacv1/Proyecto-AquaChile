@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaChile | Seguimiento de Evaluaciones</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container container-wide header-inner">
+      <div class="brand">
+        <span class="brand-logo">A</span>
+        <span class="brand-name">AquaChile</span>
+      </div>
+      <nav class="header-nav">
+        <a class="header-link" href="index.html">Nueva Solicitud</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container container-wide main">
+    <section class="card">
+      <div class="card-header">
+        <h1>Panel de Seguimiento</h1>
+        <p>Puede arrastrar las tarjetas entre columnas, o usar el botón <strong>Avanzar</strong> para actualizar su estado.</p>
+      </div>
+
+      <div class="kanban" id="kanban" hidden>
+        <div class="kanban-column" data-estado="Solicitudes">
+          <div class="kanban-col-header">
+            <h2>Solicitudes</h2>
+            <span class="kanban-count" data-count="Solicitudes">0</span>
+          </div>
+          <div class="kanban-cards"></div>
+        </div>
+
+        <div class="kanban-column" data-estado="En Proceso">
+          <div class="kanban-col-header">
+            <h2>En Proceso</h2>
+            <span class="kanban-count" data-count="En Proceso">0</span>
+          </div>
+          <div class="kanban-cards"></div>
+        </div>
+
+        <div class="kanban-column" data-estado="Completado">
+          <div class="kanban-col-header">
+            <h2>Completado</h2>
+            <span class="kanban-count" data-count="Completado">0</span>
+          </div>
+          <div class="kanban-cards"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="carpetaModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="carpetaModalTitulo">Carpeta</h2>
+        <button type="button" class="modal-close" id="carpetaModalCerrarX" aria-label="Cerrar">&times;</button>
+      </div>
+      <div class="modal-body" id="carpetaModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="carpetaModalCerrar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <span>&copy; <span id="anio"></span> AquaChile. Proyecto de automatización de evaluación psicolaboral.</span>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/seguimiento.js"></script>
+</body>
+</html>

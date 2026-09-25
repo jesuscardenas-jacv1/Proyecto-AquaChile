@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaChile | Evaluación Psicolaboral</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-logo">A</span>
+        <span class="brand-name">AquaChile</span>
+      </div>
+      <span class="brand-tag">Automatización Evaluación Psicolaboral</span>
+      <nav class="header-nav">
+        <a class="header-link" href="seguimiento.html">Ver Seguimiento</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container main">
+    <section class="card">
+      <div class="card-header">
+        <h1>Nueva Solicitud de Evaluación</h1>
+        <p>Complete el formulario para solicitar la evaluación psicolaboral de un candidato.</p>
+      </div>
+
+      <form id="solicitudForm" novalidate>
+        <div class="form-group">
+          <label for="nombre">Nombre del candidato</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Ej: María González" autocomplete="off">
+          <small class="error-msg" id="error-nombre"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="familia">Familia de cargo</label>
+          <select id="familia" name="familia">
+            <option value="">Seleccione una familia de cargo</option>
+            <option value="Operaciones">Operaciones</option>
+            <option value="Administración">Administración</option>
+            <option value="Gerencia">Gerencia</option>
+          </select>
+          <small class="error-msg" id="error-familia"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="cargo">Nombre del cargo</label>
+          <input type="text" id="cargo" name="cargo" placeholder="Ej: Técnico de Planta" autocomplete="off">
+          <small class="error-msg" id="error-cargo"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="cv">CV del candidato <span class="hint">(solo se simula la selección)</span></label>
+          <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx">
+          <small class="error-msg" id="error-cv"></small>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btnLimpiar">Limpiar formulario</button>
+          <button type="submit" class="btn btn-primary">Enviar Solicitud</button>
+        </div>
+      </form>
+
+      <div class="toast" id="toast" hidden></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span>&copy; <span id="anio"></span> AquaChile. Proyecto de automatización de evaluación psicolaboral.</span>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
