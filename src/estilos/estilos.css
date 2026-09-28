@@ -1,0 +1,29 @@
+:root {
+  --aqua-primario: #005b96;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.navbar-brand small {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card-header.bg-white {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.progress {
+  height: 1.1rem;
+}
+
+.progress-bar {
+  font-size: 0.75rem;
+}
