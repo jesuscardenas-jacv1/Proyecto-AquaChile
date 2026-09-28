@@ -86,6 +86,73 @@ describe('Dashboard', () => {
     expect(screen.getByText('Aún no hay datos para mostrar.')).toBeInTheDocument();
   });
 
+  it('muestra el detalle de una tarjeta al presionarla y lo oculta al presionarla de nuevo', async () => {
+    const usuario = userEvent.setup();
+    const navegar = vi.fn();
+    useNavigate.mockReturnValue(navegar);
+    renderDashboard();
+
+    const tarjeta = screen.getByRole('button', { name: /pendientes/i });
+    expect(tarjeta).toHaveAttribute('aria-expanded', 'false');
+
+    await usuario.click(tarjeta);
+    expect(tarjeta).toHaveAttribute('aria-expanded', 'true');
+    const detalle = screen.getByRole('region', { name: 'Detalle: Solicitudes pendientes' });
+    expect(within(detalle).getByText('1 de 3 solicitudes')).toBeInTheDocument();
+    expect(within(detalle).getByText('Por profesional responsable')).toBeInTheDocument();
+    expect(within(detalle).getByText('Sin asignar')).toBeInTheDocument();
+
+    await usuario.click(within(detalle).getByRole('button', { name: /ver solicitudes pendientes/i }));
+    expect(navegar).toHaveBeenCalledWith('/solicitudes?estado=Pendiente');
+
+    await usuario.click(within(detalle).getByRole('button', { name: /maría gonzález/i }));
+    expect(navegar).toHaveBeenCalledWith('/solicitudes/3');
+
+    await usuario.click(tarjeta);
+    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
+  });
+
+  it('muestra los resultados y el tiempo de respuesta en el detalle de evaluaciones', async () => {
+    const usuario = userEvent.setup();
+    useDatos.mockReturnValue({
+      ...datosSimulados,
+      evaluaciones: [
+        { ...datosSimulados.evaluaciones[0], diasRespuesta: 4 },
+        { id: 2, solicitudId: 2, resultado: 'No recomendado', estado: 'Realizada', diasRespuesta: 7 },
+      ],
+    });
+    renderDashboard();
+
+    await usuario.click(screen.getByRole('button', { name: /evaluaciones/i }));
+    const detalle = screen.getByRole('region', { name: 'Detalle: Evaluaciones' });
+    expect(within(detalle).getByText(/promedio: 5\.5 días hábiles/)).toBeInTheDocument();
+    expect(within(detalle).getByText('Recomendado')).toBeInTheDocument();
+    expect(within(detalle).getByText('No recomendado')).toBeInTheDocument();
+  });
+
+  it('cambia el detalle al presionar otra tarjeta y lo cierra con el botón', async () => {
+    const usuario = userEvent.setup();
+    useDatos.mockReturnValue({
+      ...datosSimulados,
+      candidatos: datosSimulados.candidatos.map((candidato, indice) => ({
+        ...candidato,
+        origen: indice === 0 ? 'Interno' : 'Externo',
+      })),
+    });
+    renderDashboard();
+
+    await usuario.click(screen.getByRole('button', { name: /solicitudes totales/i }));
+    expect(screen.getByRole('region', { name: 'Detalle: Solicitudes totales' })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /candidatos registrados/i }));
+    const detalle = screen.getByRole('region', { name: 'Detalle: Candidatos registrados' });
+    expect(within(detalle).getByText('Por origen')).toBeInTheDocument();
+    expect(within(detalle).getByText('Interno')).toBeInTheDocument();
+
+    await usuario.click(within(detalle).getByRole('button', { name: 'Cerrar detalle' }));
+    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
+  });
+
   it('navega a la creación de solicitud', async () => {
     const usuario = userEvent.setup();
     const navegar = vi.fn();

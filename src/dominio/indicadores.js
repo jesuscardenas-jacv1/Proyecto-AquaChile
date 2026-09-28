@@ -54,3 +54,31 @@ export function estadoSolicitudDesdeEvaluacion(evaluacion) {
   if (!evaluacion) return 'En proceso';
   return evaluacion.resultado ? 'Finalizada' : 'En proceso';
 }
+
+/**
+ * Cuenta elementos agrupados por una clave y los ordena de mayor a menor.
+ * @param {Array} items
+ * @param {Function} obtenerClave función que devuelve la etiqueta de cada elemento
+ * @param {string} sinDato etiqueta para los elementos sin valor
+ */
+export function contarPor(items = [], obtenerClave, sinDato = 'Sin dato') {
+  const conteo = items.reduce((acumulado, item) => {
+    const clave = obtenerClave(item) || sinDato;
+    acumulado[clave] = (acumulado[clave] ?? 0) + 1;
+    return acumulado;
+  }, {});
+
+  return Object.entries(conteo)
+    .map(([etiqueta, total]) => ({ etiqueta, total }))
+    .sort((a, b) => b.total - a.total || a.etiqueta.localeCompare(b.etiqueta));
+}
+
+/** Promedio de días hábiles de respuesta (null si ninguna evaluación lo registra). */
+export function promedioDiasRespuesta(evaluaciones = []) {
+  const dias = evaluaciones
+    .map((evaluacion) => evaluacion.diasRespuesta)
+    .filter((valor) => Number.isFinite(valor));
+  if (dias.length === 0) return null;
+  const suma = dias.reduce((total, valor) => total + valor, 0);
+  return Math.round((suma / dias.length) * 10) / 10;
+}

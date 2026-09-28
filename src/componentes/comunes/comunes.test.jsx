@@ -88,4 +88,23 @@ describe('TarjetaIndicador', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ver listado' }));
     expect(alNavegar).toHaveBeenCalled();
   });
+
+  it('se comporta como botón desplegable cuando recibe alSeleccionar', async () => {
+    const alSeleccionar = vi.fn();
+    render(
+      <TarjetaIndicador
+        titulo="Pendientes"
+        valor={3}
+        alSeleccionar={alSeleccionar}
+        seleccionada
+        controla="detalle"
+      />,
+    );
+    const tarjeta = screen.getByRole('button', { name: /pendientes/i });
+    expect(tarjeta).toHaveAttribute('aria-expanded', 'true');
+    expect(tarjeta).toHaveAttribute('aria-controls', 'detalle');
+
+    await userEvent.click(tarjeta);
+    expect(alSeleccionar).toHaveBeenCalled();
+  });
 });

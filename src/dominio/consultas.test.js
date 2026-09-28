@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { filtrarCandidatos, filtrarSolicitudes, ordenarPorFecha } from './consultas';
 import {
+  contarPor,
   estadoSolicitudDesdeEvaluacion,
+  promedioDiasRespuesta,
   resumenSolicitudes,
   solicitudesPorFamilia,
   solicitudesRecientes,
@@ -76,5 +78,31 @@ describe('indicadores', () => {
     expect(estadoSolicitudDesdeEvaluacion({ resultado: 'Recomendado' })).toBe('Finalizada');
     expect(estadoSolicitudDesdeEvaluacion({ resultado: '' })).toBe('En proceso');
     expect(estadoSolicitudDesdeEvaluacion(null)).toBe('En proceso');
+  });
+});
+
+describe('contarPor', () => {
+  it('agrupa, ordena de mayor a menor y usa una etiqueta para valores vacíos', () => {
+    const items = [{ origen: 'Interno' }, { origen: 'Externo' }, { origen: 'Interno' }, {}];
+    expect(contarPor(items, (item) => item.origen, 'Sin dato')).toEqual([
+      { etiqueta: 'Interno', total: 2 },
+      { etiqueta: 'Externo', total: 1 },
+      { etiqueta: 'Sin dato', total: 1 },
+    ]);
+  });
+
+  it('devuelve una lista vacía cuando no hay elementos', () => {
+    expect(contarPor([], (item) => item.origen)).toEqual([]);
+  });
+});
+
+describe('promedioDiasRespuesta', () => {
+  it('promedia solo las evaluaciones con días de respuesta', () => {
+    expect(promedioDiasRespuesta([{ diasRespuesta: 4 }, { diasRespuesta: 5 }, {}])).toBe(4.5);
+  });
+
+  it('devuelve null cuando no hay datos', () => {
+    expect(promedioDiasRespuesta([{}])).toBeNull();
+    expect(promedioDiasRespuesta()).toBeNull();
   });
 });

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import {
+  contarPor,
+  promedioDiasRespuesta,
   resumenSolicitudes,
   solicitudesPorFamilia,
   solicitudesRecientes,
@@ -9,11 +12,22 @@ import { formatearFecha } from '../dominio/formateo';
 import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import EstadoVacio from '../componentes/comunes/EstadoVacio';
 import TarjetaIndicador from '../componentes/comunes/TarjetaIndicador';
+import DetalleIndicador from '../componentes/dashboard/DetalleIndicador';
+
+const ID_DETALLE = 'detalle-indicador';
+
+/** Texto en plural de cada estado para los títulos del detalle. */
+const PLURAL_ESTADO = {
+  Pendiente: 'pendientes',
+  'En proceso': 'en proceso',
+  Finalizada: 'finalizadas',
+};
 
 /** Dashboard con indicadores simples del proceso de evaluación. */
 export default function Dashboard() {
   const { solicitudes, candidatos, evaluaciones } = useDatos();
   const navegar = useNavigate();
+  const [seleccionada, setSeleccionada] = useState(null);
 
   const resumen = resumenSolicitudes(solicitudes);
   const porFamilia = solicitudesPorFamilia(solicitudes);
@@ -21,6 +35,90 @@ export default function Dashboard() {
   const nombreCandidato = (id) =>
     candidatos.find((candidato) => candidato.id === Number(id))?.nombre ?? 'Sin candidato';
   const totalSolicitudes = Math.max(resumen.total, 1);
+
+  const conNombre = (lista) =>
+    solicitudesRecientes(lista, 5).map((solicitud) => ({
+      ...solicitud,
+      nombreCandidato: nombreCandidato(solicitud.candidatoId),
+    }));
+  const porProfesional = (lista) =>
+    contarPor(lista, (solicitud) => solicitud.profesionalResponsable, 'Sin asignar');
+  const porFamiliaCargo = (lista) => contarPor(lista, (item) => item.familiaCargo, 'Sin familia');
+
+  const detalleDeEstado = (estado) => {
+    const filtradas = solicitudes.filter((solicitud) => solicitud.estado === estado);
+    const plural = PLURAL_ESTADO[estado] ?? estado.toLowerCase();
+    return {
+      titulo: `Solicitudes ${plural}`,
+      resumen: `${filtradas.length} de ${resumen.total} solicitudes`,
+      grupos: [
+        { titulo: 'Por profesional responsable', filas: porProfesional(filtradas) },
+        { titulo: 'Por familia de cargo', filas: porFamiliaCargo(filtradas) },
+      ],
+      solicitudes: conNombre(filtradas),
+      textoListado: `Ver solicitudes ${plural}`,
+      ruta: `/solicitudes?estado=${encodeURIComponent(estado)}`,
+    };
+  };
+
+  const construirDetalle = (clave) => {
+    switch (clave) {
+      case 'candidatos':
+        return {
+          titulo: 'Candidatos registrados',
+          resumen: `${candidatos.length} candidatos en la base de datos`,
+          grupos: [
+            { titulo: 'Por origen', filas: contarPor(candidatos, (candidato) => candidato.origen) },
+            { titulo: 'Por familia de cargo', filas: porFamiliaCargo(candidatos) },
+          ],
+          textoListado: 'Ver candidatos',
+          ruta: '/candidatos',
+        };
+      case 'solicitudes':
+        return {
+          titulo: 'Solicitudes totales',
+          resumen: `${resumen.total} solicitudes en el histórico`,
+          grupos: [
+            { titulo: 'Por estado', filas: contarPor(solicitudes, (solicitud) => solicitud.estado) },
+            { titulo: 'Por profesional responsable', filas: porProfesional(solicitudes) },
+          ],
+          solicitudes: conNombre(solicitudes),
+          textoListado: 'Ver todas las solicitudes',
+          ruta: '/solicitudes',
+        };
+      case 'evaluaciones': {
+        const promedio = promedioDiasRespuesta(evaluaciones);
+        return {
+          titulo: 'Evaluaciones',
+          resumen:
+            promedio === null
+              ? `${evaluaciones.length} evaluaciones registradas`
+              : `${evaluaciones.length} evaluaciones · tiempo de respuesta promedio: ${promedio} días hábiles`,
+          grupos: [
+            {
+              titulo: 'Por resultado',
+              filas: contarPor(evaluaciones, (evaluacion) => evaluacion.resultado, 'Sin resultado'),
+            },
+            {
+              titulo: 'Por estado de la evaluación',
+              filas: contarPor(evaluaciones, (evaluacion) => evaluacion.estado),
+            },
+          ],
+          textoListado: 'Ver solicitudes finalizadas',
+          ruta: `/solicitudes?estado=${encodeURIComponent('Finalizada')}`,
+        };
+      }
+      default:
+        return detalleDeEstado(clave);
+    }
+  };
+
+  const detalle = seleccionada ? construirDetalle(seleccionada) : null;
+  const propsSeleccion = (clave) => ({
+    alSeleccionar: () => setSeleccionada((actual) => (actual === clave ? null : clave)),
+    seleccionada: seleccionada === clave,
+    controla: ID_DETALLE,
+  });
 
   return (
     <div className="d-flex flex-column gap-4">
@@ -48,6 +146,7 @@ export default function Dashboard() {
           descripcion="En la base de datos"
           icono="bi-people"
           variante="primary"
+          {...propsSeleccion('candidatos')}
         />
         <TarjetaIndicador
           titulo="Solicitudes totales"
@@ -55,6 +154,7 @@ export default function Dashboard() {
           descripcion="Histórico completo"
           icono="bi-file-earmark-text"
           variante="info"
+          {...propsSeleccion('solicitudes')}
         />
         <TarjetaIndicador
           titulo="Pendientes"
@@ -62,6 +162,7 @@ export default function Dashboard() {
           descripcion="Sin profesional asignado"
           icono="bi-hourglass-split"
           variante="secondary"
+          {...propsSeleccion('Pendiente')}
         />
         <TarjetaIndicador
           titulo="En proceso"
@@ -69,6 +170,7 @@ export default function Dashboard() {
           descripcion="En evaluación"
           icono="bi-arrow-repeat"
           variante="warning"
+          {...propsSeleccion('En proceso')}
         />
         <TarjetaIndicador
           titulo="Finalizadas"
@@ -76,6 +178,7 @@ export default function Dashboard() {
           descripcion={`${resumen.porcentajeFinalizadas}% del total`}
           icono="bi-check2-circle"
           variante="success"
+          {...propsSeleccion('Finalizada')}
         />
         <TarjetaIndicador
           titulo="Evaluaciones"
@@ -83,8 +186,23 @@ export default function Dashboard() {
           descripcion="Registros de evaluación"
           icono="bi-clipboard-check"
           variante="dark"
+          {...propsSeleccion('evaluaciones')}
         />
       </div>
+
+      {detalle ? (
+        <DetalleIndicador
+          id={ID_DETALLE}
+          titulo={detalle.titulo}
+          resumen={detalle.resumen}
+          grupos={detalle.grupos}
+          solicitudes={detalle.solicitudes}
+          textoListado={detalle.textoListado}
+          alVerListado={() => navegar(detalle.ruta)}
+          alAbrirSolicitud={(solicitud) => navegar(`/solicitudes/${solicitud.id}`)}
+          alCerrar={() => setSeleccionada(null)}
+        />
+      ) : null}
 
       <div className="row g-3">
         <div className="col-12 col-lg-7">
