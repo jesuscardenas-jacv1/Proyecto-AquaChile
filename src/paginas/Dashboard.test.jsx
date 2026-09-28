@@ -18,16 +18,16 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 const datosSimulados = {
   candidatos: [
-    { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico', familiaCargo: 'Operaciones' },
-    { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista', familiaCargo: 'Tecnología' },
+    { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico', familiaCargo: 'Técnico B C' },
+    { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista', familiaCargo: 'Profesional A' },
   ],
   solicitudes: [
-    { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Camila Rojas', observaciones: '' },
-    { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Tecnología', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
-    { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
+    { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Carolina Muñoz', observaciones: '' },
+    { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
+    { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
   ],
   evaluaciones: [
-    { id: 1, solicitudId: 1, fechaEvaluacion: '2026-08-10', resultado: 'Aprobado', observaciones: 'Perfil estable.', estado: 'Realizada' },
+    { id: 1, solicitudId: 1, fechaEvaluacion: '2026-08-10', resultado: 'Recomendado', observaciones: 'Perfil estable.', estado: 'Realizada' },
   ],
 };
 
@@ -75,8 +75,8 @@ describe('Dashboard', () => {
   it('muestra la distribución por familia de cargo', () => {
     renderDashboard();
     expect(screen.getByText('Distribución por familia de cargo')).toBeInTheDocument();
-    expect(screen.getByText('Operaciones')).toBeInTheDocument();
-    expect(screen.getByText('Tecnología')).toBeInTheDocument();
+    expect(screen.getByText('Técnico B C')).toBeInTheDocument();
+    expect(screen.getByText('Profesional A')).toBeInTheDocument();
   });
 
   it('muestra el estado vacío cuando no hay solicitudes', () => {

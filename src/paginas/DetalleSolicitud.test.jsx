@@ -65,7 +65,7 @@ describe('DetalleSolicitud', () => {
     renderDetalle('2');
 
     expect(screen.getByRole('button', { name: /registrar evaluación/i })).toBeInTheDocument();
-    await usuario.click(screen.getByRole('radio', { name: 'Aprobado' }));
+    await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
   });
 
   it('permite volver al listado de solicitudes', async () => {

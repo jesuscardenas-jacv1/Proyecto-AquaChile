@@ -8,14 +8,14 @@ import {
 } from './indicadores';
 
 const candidatos = [
-  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', cargo: 'Técnico', familiaCargo: 'Operaciones' },
-  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', cargo: 'Analista', familiaCargo: 'Tecnología' },
+  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', cargo: 'Técnico', familiaCargo: 'Técnico B C' },
+  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', cargo: 'Analista', familiaCargo: 'Profesional A' },
 ];
 
 const solicitudes = [
-  { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Camila Rojas', observaciones: '' },
-  { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Tecnología', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
-  { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
+  { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Carolina Muñoz', observaciones: '' },
+  { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
+  { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
 ];
 
 describe('filtrarSolicitudes', () => {
@@ -28,7 +28,7 @@ describe('filtrarSolicitudes', () => {
   it('filtra por estado y familia de cargo', () => {
     expect(filtrarSolicitudes(solicitudes, { estado: 'Pendiente' }, candidatos)).toHaveLength(1);
     expect(
-      filtrarSolicitudes(solicitudes, { familiaCargo: 'Operaciones' }, candidatos),
+      filtrarSolicitudes(solicitudes, { familiaCargo: 'Técnico B C' }, candidatos),
     ).toHaveLength(2);
   });
 
@@ -40,7 +40,7 @@ describe('filtrarSolicitudes', () => {
 describe('filtrarCandidatos', () => {
   it('busca sin distinguir mayúsculas ni tildes', () => {
     expect(filtrarCandidatos(candidatos, 'MARIA')).toHaveLength(1);
-    expect(filtrarCandidatos(candidatos, 'tecnolog')).toHaveLength(1);
+    expect(filtrarCandidatos(candidatos, 'ANALISTA')).toHaveLength(1);
   });
 
   it('devuelve la lista completa si la búsqueda está vacía', () => {
@@ -62,8 +62,8 @@ describe('indicadores', () => {
 
   it('agrupa por familia de cargo de mayor a menor', () => {
     expect(solicitudesPorFamilia(solicitudes)).toEqual([
-      { familia: 'Operaciones', total: 2 },
-      { familia: 'Tecnología', total: 1 },
+      { familia: 'Técnico B C', total: 2 },
+      { familia: 'Profesional A', total: 1 },
     ]);
   });
 
@@ -73,7 +73,7 @@ describe('indicadores', () => {
   });
 
   it('finaliza la solicitud cuando la evaluación tiene resultado', () => {
-    expect(estadoSolicitudDesdeEvaluacion({ resultado: 'Aprobado' })).toBe('Finalizada');
+    expect(estadoSolicitudDesdeEvaluacion({ resultado: 'Recomendado' })).toBe('Finalizada');
     expect(estadoSolicitudDesdeEvaluacion({ resultado: '' })).toBe('En proceso');
     expect(estadoSolicitudDesdeEvaluacion(null)).toBe('En proceso');
   });

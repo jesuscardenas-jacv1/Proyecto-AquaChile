@@ -8,7 +8,7 @@ const solicitud = {
   id: 3,
   candidatoId: 1,
   cargo: 'Técnico de Planta',
-  familiaCargo: 'Operaciones',
+  familiaCargo: 'Técnico B C',
   fechaSolicitud: '2026-09-01',
   estado: 'Pendiente',
   profesionalResponsable: '',
@@ -49,8 +49,8 @@ describe('PanelGestion', () => {
     await usuario.selectOptions(screen.getByLabelText(/^estado$/i), 'En proceso');
     expect(alCambiarEstado).toHaveBeenCalledWith('En proceso');
 
-    await usuario.selectOptions(screen.getByLabelText(/profesional responsable/i), 'Camila Rojas');
-    expect(alAsignarProfesional).toHaveBeenCalledWith('Camila Rojas');
+    await usuario.selectOptions(screen.getByLabelText(/profesional responsable/i), 'Carolina Muñoz');
+    expect(alAsignarProfesional).toHaveBeenCalledWith('Carolina Muñoz');
   });
 
   it('entrega los cambios al guardar', async () => {

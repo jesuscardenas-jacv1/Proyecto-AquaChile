@@ -1,6 +1,6 @@
 import { datosSemilla } from './semilla';
 
-export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v1';
+export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v2';
 
 const COLECCIONES = ['candidatos', 'solicitudes', 'evaluaciones'];
 

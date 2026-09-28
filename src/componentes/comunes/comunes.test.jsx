@@ -18,8 +18,8 @@ describe('EtiquetaEstado', () => {
   });
 
   it('colorea el resultado de la evaluación', () => {
-    render(<EtiquetaEstado valor="Reprobado" contexto="resultado" />);
-    expect(screen.getByText('Reprobado')).toHaveClass('bg-danger');
+    render(<EtiquetaEstado valor="No recomendado" contexto="resultado" />);
+    expect(screen.getByText('No recomendado')).toHaveClass('bg-danger');
   });
 
   it('usa un color por defecto para estados desconocidos', () => {

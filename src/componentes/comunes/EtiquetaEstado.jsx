@@ -10,9 +10,9 @@ const COLOR_ESTADO_EVALUACION = {
 };
 
 const COLOR_RESULTADO = {
-  Aprobado: 'bg-success',
-  Reprobado: 'bg-danger',
-  'No concluyente': 'bg-secondary',
+  Recomendado: 'bg-success',
+  'Recomendado con observaciones': 'bg-warning text-dark',
+  'No recomendado': 'bg-danger',
 };
 
 const coloresPorContexto = {

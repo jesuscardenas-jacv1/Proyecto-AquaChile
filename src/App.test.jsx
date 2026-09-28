@@ -48,7 +48,7 @@ describe('App (enrutado)', () => {
   it('muestra el detalle de la solicitud solicitada', () => {
     renderApp('/solicitudes/1');
     expect(screen.getByRole('heading', { name: /solicitud #1/i })).toBeInTheDocument();
-    expect(screen.getAllByText('Aprobado').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Recomendado').length).toBeGreaterThan(0);
   });
 
   it('muestra la página 404 para rutas desconocidas', () => {
