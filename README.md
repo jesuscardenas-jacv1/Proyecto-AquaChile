@@ -32,6 +32,18 @@ npm run importar:bd   # regenera los datos semilla desde el Excel de bd/
 
 El reporte de cobertura se genera en `cobertura/index.html` (abrir en el navegador).
 
+## Publicación en GitHub Pages
+
+El workflow `.github/workflows/pages.yml` ejecuta las pruebas, construye la app y la publica en
+GitHub Pages en cada push a `main` (también se puede lanzar a mano desde la pestaña *Actions*).
+Queda disponible en `https://<usuario>.github.io/<repositorio>/`.
+
+Requisito (una sola vez, lo hace quien administra el repositorio):
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+La app usa como base la ruta del repositorio (`--base=/<repositorio>/`) y se copia `index.html`
+como `404.html` para que las rutas de React Router funcionen al recargar la página.
+
 ## Modelo de datos
 
 ```js
