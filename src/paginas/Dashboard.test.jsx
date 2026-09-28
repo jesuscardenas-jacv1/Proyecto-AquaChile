@@ -18,16 +18,16 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 const datosSimulados = {
   candidatos: [
-    { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico', familiaCargo: 'Operaciones' },
-    { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista', familiaCargo: 'Tecnología' },
+    { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico', familiaCargo: 'Técnico B C' },
+    { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista', familiaCargo: 'Profesional A' },
   ],
   solicitudes: [
-    { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Camila Rojas', observaciones: '' },
-    { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Tecnología', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
-    { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Operaciones', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
+    { id: 1, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Carolina Muñoz', observaciones: '' },
+    { id: 2, candidatoId: 2, cargo: 'Analista', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: '', observaciones: '' },
+    { id: 3, candidatoId: 1, cargo: 'Técnico', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
   ],
   evaluaciones: [
-    { id: 1, solicitudId: 1, fechaEvaluacion: '2026-08-10', resultado: 'Aprobado', observaciones: 'Perfil estable.', estado: 'Realizada' },
+    { id: 1, solicitudId: 1, fechaEvaluacion: '2026-08-10', resultado: 'Recomendado', observaciones: 'Perfil estable.', estado: 'Realizada' },
   ],
 };
 
@@ -75,8 +75,8 @@ describe('Dashboard', () => {
   it('muestra la distribución por familia de cargo', () => {
     renderDashboard();
     expect(screen.getByText('Distribución por familia de cargo')).toBeInTheDocument();
-    expect(screen.getByText('Operaciones')).toBeInTheDocument();
-    expect(screen.getByText('Tecnología')).toBeInTheDocument();
+    expect(screen.getByText('Técnico B C')).toBeInTheDocument();
+    expect(screen.getByText('Profesional A')).toBeInTheDocument();
   });
 
   it('muestra el estado vacío cuando no hay solicitudes', () => {
@@ -84,6 +84,73 @@ describe('Dashboard', () => {
     renderDashboard();
     expect(screen.getAllByText('Sin solicitudes').length).toBeGreaterThan(0);
     expect(screen.getByText('Aún no hay datos para mostrar.')).toBeInTheDocument();
+  });
+
+  it('muestra el detalle de una tarjeta al presionarla y lo oculta al presionarla de nuevo', async () => {
+    const usuario = userEvent.setup();
+    const navegar = vi.fn();
+    useNavigate.mockReturnValue(navegar);
+    renderDashboard();
+
+    const tarjeta = screen.getByRole('button', { name: /pendientes/i });
+    expect(tarjeta).toHaveAttribute('aria-expanded', 'false');
+
+    await usuario.click(tarjeta);
+    expect(tarjeta).toHaveAttribute('aria-expanded', 'true');
+    const detalle = screen.getByRole('region', { name: 'Detalle: Solicitudes pendientes' });
+    expect(within(detalle).getByText('1 de 3 solicitudes')).toBeInTheDocument();
+    expect(within(detalle).getByText('Por profesional responsable')).toBeInTheDocument();
+    expect(within(detalle).getByText('Sin asignar')).toBeInTheDocument();
+
+    await usuario.click(within(detalle).getByRole('button', { name: /ver solicitudes pendientes/i }));
+    expect(navegar).toHaveBeenCalledWith('/solicitudes?estado=Pendiente');
+
+    await usuario.click(within(detalle).getByRole('button', { name: /maría gonzález/i }));
+    expect(navegar).toHaveBeenCalledWith('/solicitudes/3');
+
+    await usuario.click(tarjeta);
+    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
+  });
+
+  it('muestra los resultados y el tiempo de respuesta en el detalle de evaluaciones', async () => {
+    const usuario = userEvent.setup();
+    useDatos.mockReturnValue({
+      ...datosSimulados,
+      evaluaciones: [
+        { ...datosSimulados.evaluaciones[0], diasRespuesta: 4 },
+        { id: 2, solicitudId: 2, resultado: 'No recomendado', estado: 'Realizada', diasRespuesta: 7 },
+      ],
+    });
+    renderDashboard();
+
+    await usuario.click(screen.getByRole('button', { name: /evaluaciones/i }));
+    const detalle = screen.getByRole('region', { name: 'Detalle: Evaluaciones' });
+    expect(within(detalle).getByText(/promedio: 5\.5 días hábiles/)).toBeInTheDocument();
+    expect(within(detalle).getByText('Recomendado')).toBeInTheDocument();
+    expect(within(detalle).getByText('No recomendado')).toBeInTheDocument();
+  });
+
+  it('cambia el detalle al presionar otra tarjeta y lo cierra con el botón', async () => {
+    const usuario = userEvent.setup();
+    useDatos.mockReturnValue({
+      ...datosSimulados,
+      candidatos: datosSimulados.candidatos.map((candidato, indice) => ({
+        ...candidato,
+        origen: indice === 0 ? 'Interno' : 'Externo',
+      })),
+    });
+    renderDashboard();
+
+    await usuario.click(screen.getByRole('button', { name: /solicitudes totales/i }));
+    expect(screen.getByRole('region', { name: 'Detalle: Solicitudes totales' })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /candidatos registrados/i }));
+    const detalle = screen.getByRole('region', { name: 'Detalle: Candidatos registrados' });
+    expect(within(detalle).getByText('Por origen')).toBeInTheDocument();
+    expect(within(detalle).getByText('Interno')).toBeInTheDocument();
+
+    await usuario.click(within(detalle).getByRole('button', { name: 'Cerrar detalle' }));
+    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
   });
 
   it('navega a la creación de solicitud', async () => {

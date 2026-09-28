@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import FormularioSolicitud from './FormularioSolicitud';
 
 const candidatos = [
-  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Operaciones' },
+  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C' },
 ];
 
 const renderFormulario = (props = {}) =>
@@ -32,7 +32,7 @@ describe('FormularioSolicitud', () => {
     await usuario.selectOptions(screen.getByLabelText(/candidato/i), '1');
 
     expect(screen.getByLabelText(/cargo evaluado/i)).toHaveValue('Técnico de Planta');
-    expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue('Operaciones');
+    expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue('Técnico B C');
   });
 
   it('no acepta una fecha futura', async () => {
@@ -57,7 +57,7 @@ describe('FormularioSolicitud', () => {
     renderFormulario({ alGuardar });
 
     await usuario.selectOptions(screen.getByLabelText(/candidato/i), '1');
-    await usuario.selectOptions(screen.getByLabelText(/profesional responsable/i), 'Camila Rojas');
+    await usuario.selectOptions(screen.getByLabelText(/profesional responsable/i), 'Carolina Muñoz');
     await usuario.type(screen.getByLabelText(/observaciones/i), 'Requiere turno noche');
     await usuario.click(screen.getByRole('button', { name: /crear solicitud/i }));
 
@@ -65,8 +65,8 @@ describe('FormularioSolicitud', () => {
       expect.objectContaining({
         candidatoId: '1',
         cargo: 'Técnico de Planta',
-        familiaCargo: 'Operaciones',
-        profesionalResponsable: 'Camila Rojas',
+        familiaCargo: 'Técnico B C',
+        profesionalResponsable: 'Carolina Muñoz',
         observaciones: 'Requiere turno noche',
       }),
     );

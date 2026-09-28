@@ -9,7 +9,7 @@ import { ProveedorDatos } from './datos/DatosContext';
 
 createRoot(document.getElementById('raiz')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ProveedorDatos>
         <App />
       </ProveedorDatos>

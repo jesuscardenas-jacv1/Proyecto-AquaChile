@@ -1,89 +1,12 @@
+import bdSimulada from './bdSimulada.json';
+
+/**
+ * Datos semilla: base de datos simulada de AquaChile (abr-2025 a mar-2026).
+ * Se genera desde bd/BD_Simulada_Evaluaciones_Psicolaborales_AquaChile.xlsx
+ * con `npm run importar:bd`; no editar bdSimulada.json a mano.
+ */
 export const datosSemilla = {
-  candidatos: [
-    {
-      id: 1,
-      nombre: 'María González',
-      correo: 'maria.gonzalez@correo.cl',
-      telefono: '+56912345678',
-      cargo: 'Técnico de Planta',
-      familiaCargo: 'Operaciones',
-    },
-    {
-      id: 2,
-      nombre: 'Juan Pérez',
-      correo: 'juan.perez@correo.cl',
-      telefono: '+56987654321',
-      cargo: 'Analista de Datos',
-      familiaCargo: 'Tecnología',
-    },
-    {
-      id: 3,
-      nombre: 'Carla Fuentes',
-      correo: 'carla.fuentes@correo.cl',
-      telefono: '+56955667788',
-      cargo: 'Asistente Administrativa',
-      familiaCargo: 'Administración',
-    },
-    {
-      id: 4,
-      nombre: 'Diego Navarro',
-      correo: 'diego.navarro@correo.cl',
-      telefono: '+56933445566',
-      cargo: 'Supervisor de Turno',
-      familiaCargo: 'Operaciones',
-    },
-  ],
-  solicitudes: [
-    {
-      id: 1,
-      candidatoId: 1,
-      cargo: 'Técnico de Planta',
-      familiaCargo: 'Operaciones',
-      fechaSolicitud: '2026-08-03',
-      estado: 'Finalizada',
-      profesionalResponsable: 'Camila Rojas',
-      observaciones: 'Perfil orientado a trabajo en turnos rotativos.',
-    },
-    {
-      id: 2,
-      candidatoId: 2,
-      cargo: 'Analista de Datos',
-      familiaCargo: 'Tecnología',
-      fechaSolicitud: '2026-08-17',
-      estado: 'En proceso',
-      profesionalResponsable: 'Sebastián Muñoz',
-      observaciones: 'Entrevista inicial aprobada, falta prueba técnica.',
-    },
-    {
-      id: 3,
-      candidatoId: 3,
-      cargo: 'Asistente Administrativa',
-      familiaCargo: 'Administración',
-      fechaSolicitud: '2026-08-24',
-      estado: 'Pendiente',
-      profesionalResponsable: '',
-      observaciones: '',
-    },
-    {
-      id: 4,
-      candidatoId: 4,
-      cargo: 'Supervisor de Turno',
-      familiaCargo: 'Operaciones',
-      fechaSolicitud: '2026-09-01',
-      estado: 'Pendiente',
-      profesionalResponsable: '',
-      observaciones: '',
-    },
-  ],
-  evaluaciones: [
-    {
-      id: 1,
-      solicitudId: 1,
-      fechaEvaluacion: '2026-08-10',
-      resultado: 'Aprobado',
-      observaciones:
-        'Perfil estable, buena capacidad de trabajo en equipo y adaptación a horarios de turnada.',
-      estado: 'Realizada',
-    },
-  ],
+  candidatos: bdSimulada.candidatos,
+  solicitudes: bdSimulada.solicitudes,
+  evaluaciones: bdSimulada.evaluaciones,
 };

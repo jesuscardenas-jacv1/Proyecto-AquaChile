@@ -1,12 +1,16 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { ESTADOS_SOLICITUD } from '../datos/constantes';
 import ListaSolicitudes from '../componentes/solicitudes/ListaSolicitudes';
 
-/** Listado de solicitudes con búsqueda y filtros. */
+/** Listado de solicitudes con búsqueda y filtros (acepta ?estado= en la URL). */
 export default function Solicitudes() {
   const { solicitudes, candidatos } = useDatos();
   const navegar = useNavigate();
+  const [parametros] = useSearchParams();
   const total = solicitudes.length;
+  const estadoUrl = parametros.get('estado');
+  const estadoInicial = ESTADOS_SOLICITUD.includes(estadoUrl) ? estadoUrl : '';
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -28,6 +32,8 @@ export default function Solicitudes() {
       </header>
 
       <ListaSolicitudes
+        key={estadoInicial}
+        estadoInicial={estadoInicial}
         solicitudes={solicitudes}
         candidatos={candidatos}
         alAbrir={(solicitud) => navegar(`/solicitudes/${solicitud.id}`)}

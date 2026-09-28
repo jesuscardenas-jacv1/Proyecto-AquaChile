@@ -8,9 +8,14 @@ import EtiquetaEstado from '../comunes/EtiquetaEstado';
 /**
  * Listado de solicitudes con búsqueda por texto y filtros por estado y familia.
  */
-export default function ListaSolicitudes({ solicitudes = [], candidatos = [], alAbrir }) {
+export default function ListaSolicitudes({
+  solicitudes = [],
+  candidatos = [],
+  alAbrir,
+  estadoInicial = '',
+}) {
   const [texto, setTexto] = useState('');
-  const [estado, setEstado] = useState('');
+  const [estado, setEstado] = useState(estadoInicial);
   const [familiaCargo, setFamiliaCargo] = useState('');
 
   const visibles = filtrarSolicitudes(solicitudes, { texto, estado, familiaCargo }, candidatos);

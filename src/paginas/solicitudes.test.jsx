@@ -25,9 +25,9 @@ const renderNueva = (datosIniciales) =>
     </MemoryRouter>,
   );
 
-const renderListado = (datosIniciales = datosDePrueba) =>
+const renderListado = (datosIniciales = datosDePrueba, ruta = '/solicitudes') =>
   render(
-    <MemoryRouter initialEntries={['/solicitudes']}>
+    <MemoryRouter initialEntries={[ruta]}>
       <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
         <Routes>
           <Route path="/solicitudes" element={<Solicitudes />} />
@@ -83,5 +83,15 @@ describe('Solicitudes', () => {
     expect(
       screen.getByRole('heading', { name: /formulario nueva solicitud/i }),
     ).toBeInTheDocument();
+  });
+
+  it('aplica el filtro de estado recibido en la URL', () => {
+    renderListado(datosDePrueba, '/solicitudes?estado=En%20proceso');
+    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('En proceso');
+  });
+
+  it('ignora un estado desconocido en la URL', () => {
+    renderListado(datosDePrueba, '/solicitudes?estado=Inventado');
+    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('');
   });
 });

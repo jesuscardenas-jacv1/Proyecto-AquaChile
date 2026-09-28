@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useDatos } from './DatosContext';
 import { CLAVE_ALMACEN, obtenerSemilla } from './almacen';
-import { crearWrapper } from '../pruebas/utilidades';
+import { crearWrapper, datosDemo } from '../pruebas/utilidades';
 
 describe('DatosContext', () => {
   it('carga los datos semilla cuando no hay almacenamiento previo', () => {
@@ -12,7 +12,7 @@ describe('DatosContext', () => {
   });
 
   it('registra un candidato con id correlativo y datos normalizados', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.agregarCandidato({
@@ -20,7 +20,7 @@ describe('DatosContext', () => {
         correo: 'ANA.Torres@Correo.CL',
         telefono: ' +56911112222 ',
         cargo: ' Operario ',
-        familiaCargo: 'Operaciones',
+        familiaCargo: 'Técnico B C',
       });
     });
 
@@ -31,7 +31,7 @@ describe('DatosContext', () => {
   });
 
   it('persiste los cambios en localStorage', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.agregarCandidato({
@@ -39,7 +39,7 @@ describe('DatosContext', () => {
         correo: 'ana@correo.cl',
         telefono: '+56911112222',
         cargo: 'Operario',
-        familiaCargo: 'Operaciones',
+        familiaCargo: 'Técnico B C',
       });
     });
 
@@ -48,7 +48,7 @@ describe('DatosContext', () => {
   });
 
   it('actualiza un candidato existente', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.actualizarCandidato(1, {
@@ -56,7 +56,7 @@ describe('DatosContext', () => {
         correo: 'maria@correo.cl',
         telefono: '+56912345678',
         cargo: 'Técnico',
-        familiaCargo: 'Operaciones',
+        familiaCargo: 'Técnico B C',
       });
     });
 
@@ -65,7 +65,7 @@ describe('DatosContext', () => {
   });
 
   it('elimina un candidato', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.eliminarCandidato(1);
@@ -75,13 +75,13 @@ describe('DatosContext', () => {
   });
 
   it('crea una solicitud en estado Pendiente y la recupera por id', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.agregarSolicitud({
         candidatoId: 1,
         cargo: 'Técnico de Planta',
-        familiaCargo: 'Operaciones',
+        familiaCargo: 'Técnico B C',
         fechaSolicitud: '2026-09-10',
         observaciones: '  Nota  ',
       });
@@ -94,7 +94,7 @@ describe('DatosContext', () => {
   });
 
   it('asigna el profesional responsable', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.asignarProfesional(3, 'Javiera Soto');
@@ -104,37 +104,37 @@ describe('DatosContext', () => {
   });
 
   it('registra la evaluación y finaliza la solicitud', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.registrarEvaluacion(3, {
         fechaEvaluacion: '2026-09-12',
-        resultado: 'Aprobado',
+        resultado: 'Recomendado',
         observaciones: 'Cumple con el perfil requerido.',
       });
     });
 
-    expect(result.current.obtenerEvaluacionDeSolicitud(3).resultado).toBe('Aprobado');
+    expect(result.current.obtenerEvaluacionDeSolicitud(3).resultado).toBe('Recomendado');
     expect(result.current.obtenerSolicitud(3).estado).toBe('Finalizada');
   });
 
   it('actualiza la evaluación existente en lugar de duplicarla', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.registrarEvaluacion(1, {
         fechaEvaluacion: '2026-08-15',
-        resultado: 'No concluyente',
+        resultado: 'Recomendado con observaciones',
         observaciones: 'Se requiere una segunda entrevista.',
       });
     });
 
     expect(result.current.evaluaciones).toHaveLength(1);
-    expect(result.current.obtenerEvaluacionDeSolicitud(1).resultado).toBe('No concluyente');
+    expect(result.current.obtenerEvaluacionDeSolicitud(1).resultado).toBe('Recomendado con observaciones');
   });
 
   it('deja la solicitud en proceso si el registro no tiene resultado', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
       result.current.registrarEvaluacion(4, {
@@ -148,17 +148,18 @@ describe('DatosContext', () => {
   });
 
   it('restaura los datos semilla', () => {
+    const totalSemilla = obtenerSemilla().candidatos.length;
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
 
     act(() => {
       result.current.eliminarCandidato(1);
     });
-    expect(result.current.candidatos).toHaveLength(3);
+    expect(result.current.candidatos).toHaveLength(totalSemilla - 1);
 
     act(() => {
       result.current.reiniciarDatos();
     });
-    expect(result.current.candidatos).toHaveLength(4);
+    expect(result.current.candidatos).toHaveLength(totalSemilla);
   });
 
   it('falla si el hook se usa fuera del proveedor', () => {
