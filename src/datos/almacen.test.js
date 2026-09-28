@@ -16,8 +16,8 @@ describe('almacen', () => {
 
   it('no comparte la referencia con la semilla original', () => {
     const semilla = obtenerSemilla();
-    semilla.candidatos.push({ id: 99 });
-    expect(obtenerSemilla().candidatos.some((c) => c.id === 99)).toBe(false);
+    semilla.candidatos.push({ id: 9999 });
+    expect(obtenerSemilla().candidatos.some((c) => c.id === 9999)).toBe(false);
   });
 
   it('usa la semilla si el contenido guardado está corrupto', () => {

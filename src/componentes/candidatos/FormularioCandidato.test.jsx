@@ -9,7 +9,7 @@ const candidatoExistente = {
   correo: 'maria.gonzalez@correo.cl',
   telefono: '+56912345678',
   cargo: 'Técnico de Planta',
-  familiaCargo: 'Operaciones',
+  familiaCargo: 'Técnico B C',
 };
 
 const completarFormulario = async (usuario) => {
@@ -17,7 +17,7 @@ const completarFormulario = async (usuario) => {
   await usuario.type(screen.getByLabelText(/correo electrónico/i), 'ana.torres@correo.cl');
   await usuario.type(screen.getByLabelText(/teléfono/i), '+56911112222');
   await usuario.type(screen.getByLabelText(/^cargo/i), 'Operario');
-  await usuario.selectOptions(screen.getByLabelText(/familia de cargo/i), 'Operaciones');
+  await usuario.selectOptions(screen.getByLabelText(/familia de cargo/i), 'Técnico B C');
 };
 
 describe('FormularioCandidato', () => {
@@ -66,7 +66,7 @@ describe('FormularioCandidato', () => {
       correo: 'ana.torres@correo.cl',
       telefono: '+56911112222',
       cargo: 'Operario',
-      familiaCargo: 'Operaciones',
+      familiaCargo: 'Técnico B C',
     });
   });
 
@@ -74,7 +74,7 @@ describe('FormularioCandidato', () => {
     render(<FormularioCandidato candidato={candidatoExistente} titulo="Editar" alGuardar={vi.fn()} />);
 
     expect(screen.getByLabelText(/nombre completo/i)).toHaveValue('María González');
-    expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue('Operaciones');
+    expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue('Técnico B C');
     expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeInTheDocument();
   });
 

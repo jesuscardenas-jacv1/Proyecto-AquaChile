@@ -23,7 +23,7 @@ const completarYEnviar = async (usuario) => {
   await usuario.type(screen.getByLabelText(/correo electrónico/i), 'ana.torres@correo.cl');
   await usuario.type(screen.getByLabelText(/teléfono/i), '+56911112222');
   await usuario.type(screen.getByLabelText(/^cargo/i), 'Operario');
-  await usuario.selectOptions(screen.getByLabelText(/familia de cargo/i), 'Operaciones');
+  await usuario.selectOptions(screen.getByLabelText(/familia de cargo/i), 'Técnico B C');
   await usuario.click(screen.getByRole('button', { name: /registrar candidato/i }));
 };
 

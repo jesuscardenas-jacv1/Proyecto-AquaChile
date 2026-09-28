@@ -5,8 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import ListaCandidatos from './ListaCandidatos';
 
 const candidatos = [
-  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Operaciones' },
-  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista de Datos', familiaCargo: 'Tecnología' },
+  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C' },
+  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista de Datos', familiaCargo: 'Profesional A' },
 ];
 
 const renderLista = (props = {}) =>
@@ -32,7 +32,7 @@ describe('ListaCandidatos', () => {
     renderLista();
     const tabla = within(screen.getByRole('table'));
 
-    await usuario.type(screen.getByLabelText(/buscar candidato/i), 'tecnolog');
+    await usuario.type(screen.getByLabelText(/buscar candidato/i), 'analista');
     expect(tabla.queryByText('maria@correo.cl')).toBeNull();
     expect(tabla.getByText('juan@correo.cl')).toBeInTheDocument();
   });

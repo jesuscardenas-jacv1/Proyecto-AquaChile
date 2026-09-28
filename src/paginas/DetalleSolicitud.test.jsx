@@ -65,7 +65,22 @@ describe('DetalleSolicitud', () => {
     renderDetalle('2');
 
     expect(screen.getByRole('button', { name: /registrar evaluación/i })).toBeInTheDocument();
-    await usuario.click(screen.getByRole('radio', { name: 'Aprobado' }));
+    await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
+  });
+
+  it('muestra la solicitud como Finalizada tras registrar la evaluación', async () => {
+    const usuario = userEvent.setup();
+    renderDetalle('2');
+
+    await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
+    await usuario.type(
+      screen.getByLabelText(/^observaciones/i),
+      'Perfil adecuado para el cargo evaluado.',
+    );
+    await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
+
+    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
+    expect(screen.queryByRole('button', { name: /guardar cambios/i })).toBeNull();
   });
 
   it('permite volver al listado de solicitudes', async () => {

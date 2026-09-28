@@ -6,7 +6,7 @@ const candidatoValido = {
   correo: 'maria.gonzalez@correo.cl',
   telefono: '+56912345678',
   cargo: 'Técnico de Planta',
-  familiaCargo: 'Operaciones',
+  familiaCargo: 'Técnico B C',
 };
 
 describe('validarCandidato', () => {
@@ -41,7 +41,7 @@ describe('validarSolicitud', () => {
   const solicitudValida = {
     candidatoId: 1,
     cargo: 'Técnico de Planta',
-    familiaCargo: 'Operaciones',
+    familiaCargo: 'Técnico B C',
     fechaSolicitud: '2026-01-10',
   };
 
@@ -68,7 +68,7 @@ describe('validarSolicitud', () => {
 describe('validarEvaluacion', () => {
   const evaluacionValida = {
     fechaEvaluacion: '2026-02-01',
-    resultado: 'Aprobado',
+    resultado: 'Recomendado',
     observaciones: 'Perfil estable para el cargo evaluado.',
   };
 

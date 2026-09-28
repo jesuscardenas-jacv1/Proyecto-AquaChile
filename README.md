@@ -27,9 +27,22 @@ npm run preview       # previsualizar el build
 npm test              # ejecutar las pruebas una vez
 npm run test:watch    # pruebas en modo watch
 npm run test:coverage # pruebas + reporte de cobertura
+npm run importar:bd   # regenera los datos semilla desde el Excel de bd/
 ```
 
 El reporte de cobertura se genera en `cobertura/index.html` (abrir en el navegador).
+
+## Publicación en GitHub Pages
+
+El workflow `.github/workflows/pages.yml` ejecuta las pruebas, construye la app y la publica en
+GitHub Pages en cada push a `main` (también se puede lanzar a mano desde la pestaña *Actions*).
+Queda disponible en `https://<usuario>.github.io/<repositorio>/`.
+
+Requisito (una sola vez, lo hace quien administra el repositorio):
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+La app usa como base la ruta del repositorio (`--base=/<repositorio>/`) y se copia `index.html`
+como `404.html` para que las rutas de React Router funcionen al recargar la página.
 
 ## Modelo de datos
 
@@ -41,13 +54,36 @@ Solicitud  { id, candidatoId, cargo, familiaCargo, fechaSolicitud,
 // estado: Pendiente | En proceso | Finalizada
 
 Evaluacion { id, solicitudId, fechaEvaluacion, resultado, observaciones, estado }
-// resultado: Aprobado | Reprobado | No concluyente
+// resultado: Recomendado | Recomendado con observaciones | No recomendado
 // estado: Pendiente | Realizada
 ```
 
 Los datos se administran con `ProveedorDatos` (React Context) y se guardan en `localStorage`
-bajo la clave `aquachile_psicodelivery_v1`. En la primera visita se carga un conjunto de datos
-semilla (4 candidatos, 4 solicitudes, 1 evaluación) para poder demostrar el flujo de inmediato.
+bajo la clave `aquachile_psicodelivery_v2`. En la primera visita se carga un conjunto de datos
+semilla con la **base de datos simulada** de AquaChile (100 evaluaciones, abr-2025 a mar-2026).
+
+### Base de datos simulada
+
+La fuente es `bd/BD_Simulada_Evaluaciones_Psicolaborales_AquaChile.xlsx` (hoja `Candidatos`).
+El script `scripts/importar-bd-simulada.mjs` la convierte en `src/datos/bdSimulada.json`, que
+`semilla.js` usa como datos iniciales. Si se modifica el Excel, basta con ejecutar `npm run importar:bd`.
+
+| Excel | Aplicación |
+| --- | --- |
+| Nombre del Candidato/a, Origen | `Candidato.nombre`, `Candidato.origen` |
+| Nombre / Familia del Cargo | `cargo`, `familiaCargo` (candidato y solicitud) |
+| Fecha de petición | `Solicitud.fechaSolicitud` |
+| Reclutador/a | `Solicitud.profesionalResponsable` |
+| Aspectos a indagar | `Solicitud.observaciones` |
+| EV IN - EX, Ubicación, Unidad, CECO, Requiere Referencias, CV, Descriptor | campos extra de `Solicitud` |
+| Fecha entrevista | `Evaluacion.fechaEvaluacion` |
+| Categoría del evaluado | `Evaluacion.resultado` |
+| Fecha de envío informe, Referencias | `Evaluacion.fechaInforme`, `diasRespuesta` (días hábiles) y `observaciones` |
+
+Los catálogos de familias de cargo, resultados y reclutadoras (`constantes.js`) son los del Excel.
+El Excel no incluye correo ni teléfono, así que el script genera valores ficticios.
+Al cambiar el formato de los datos se subió la clave de `localStorage` a `v2`, para que los
+navegadores con datos antiguos carguen la nueva semilla.
 
 ## Estructura del proyecto
 
@@ -58,7 +94,8 @@ src/
 ├── estilos/estilos.css            # estilos menores sobre Bootstrap
 ├── datos/
 │   ├── constantes.js              # catálogos (estados, familias, profesionales)
-│   ├── semilla.js                 # datos semilla
+│   ├── bdSimulada.json            # BD simulada generada desde el Excel (no editar)
+│   ├── semilla.js                 # datos semilla (usa bdSimulada.json)
 │   ├── almacen.js                 # lectura/escritura en localStorage (funciones puras)
 │   ├── DatosContext.jsx           # estado global y acciones de negocio
 │   └── DatosContext.test.jsx
@@ -112,7 +149,7 @@ src/
 
 ## Pruebas y cobertura
 
-**127 pruebas en 19 archivos** (Vitest + React Testing Library), que cubren lógica, comportamiento de
+**131 pruebas en 20 archivos** (Vitest + React Testing Library), que cubren lógica, comportamiento de
 componentes y manipulación del DOM, con mocks del contexto de datos y de `useNavigate`.
 
 | Área | Qué se prueba |

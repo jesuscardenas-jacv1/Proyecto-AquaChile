@@ -7,7 +7,7 @@ const evaluacionExistente = {
   id: 1,
   solicitudId: 1,
   fechaEvaluacion: '2026-08-10',
-  resultado: 'Aprobado',
+  resultado: 'Recomendado',
   observaciones: 'Perfil estable para el cargo evaluado.',
   estado: 'Realizada',
 };
@@ -32,8 +32,8 @@ describe('FormularioEvaluacion', () => {
     const alGuardar = vi.fn();
     renderFormulario({ alGuardar });
 
-    await usuario.click(screen.getByRole('radio', { name: 'Aprobado' }));
-    await usuario.type(screen.getByLabelText(/observaciones/i), 'ok');
+    await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
+    await usuario.type(screen.getByLabelText(/^observaciones/i), 'ok');
     await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
 
     expect(screen.getByText(/al menos 10 caracteres/i)).toBeInTheDocument();
@@ -47,16 +47,16 @@ describe('FormularioEvaluacion', () => {
 
     await usuario.clear(screen.getByLabelText(/fecha de evaluación/i));
     await usuario.type(screen.getByLabelText(/fecha de evaluación/i), '2026-03-05');
-    await usuario.click(screen.getByRole('radio', { name: 'Reprobado' }));
+    await usuario.click(screen.getByRole('radio', { name: 'No recomendado' }));
     await usuario.type(
-      screen.getByLabelText(/observaciones/i),
+      screen.getByLabelText(/^observaciones/i),
       'No cumple con los requisitos del cargo.',
     );
     await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
 
     expect(alGuardar).toHaveBeenCalledWith({
       fechaEvaluacion: '2026-03-05',
-      resultado: 'Reprobado',
+      resultado: 'No recomendado',
       observaciones: 'No cumple con los requisitos del cargo.',
       estado: 'Realizada',
     });
@@ -66,13 +66,13 @@ describe('FormularioEvaluacion', () => {
     renderFormulario({ evaluacion: evaluacionExistente });
 
     expect(screen.getByLabelText(/fecha de evaluación/i)).toHaveValue('2026-08-10');
-    expect(screen.getByRole('radio', { name: 'Aprobado' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Recomendado' })).toBeChecked();
     expect(screen.getByRole('button', { name: /actualizar evaluación/i })).toBeInTheDocument();
   });
 
   it('exige los tres resultados disponibles', () => {
     renderFormulario();
-    ['Aprobado', 'Reprobado', 'No concluyente'].forEach((resultado) => {
+    ['Recomendado', 'No recomendado', 'Recomendado con observaciones'].forEach((resultado) => {
       expect(screen.getByRole('radio', { name: resultado })).toBeInTheDocument();
     });
   });

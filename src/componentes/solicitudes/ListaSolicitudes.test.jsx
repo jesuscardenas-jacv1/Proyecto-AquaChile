@@ -4,14 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import ListaSolicitudes from './ListaSolicitudes';
 
 const candidatos = [
-  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Operaciones' },
-  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista de Datos', familiaCargo: 'Tecnología' },
+  { id: 1, nombre: 'María González', correo: 'maria@correo.cl', telefono: '+56912345678', cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C' },
+  { id: 2, nombre: 'Juan Pérez', correo: 'juan@correo.cl', telefono: '+56987654321', cargo: 'Analista de Datos', familiaCargo: 'Profesional A' },
 ];
 
 const solicitudes = [
-  { id: 1, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Operaciones', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Camila Rojas', observaciones: '' },
-  { id: 2, candidatoId: 2, cargo: 'Analista de Datos', familiaCargo: 'Tecnología', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: 'Sebastián Muñoz', observaciones: '' },
-  { id: 3, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Operaciones', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
+  { id: 1, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Carolina Muñoz', observaciones: '' },
+  { id: 2, candidatoId: 2, cargo: 'Analista de Datos', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: 'Macarena Vidal', observaciones: '' },
+  { id: 3, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
 ];
 
 const renderLista = (props = {}) =>
@@ -44,7 +44,7 @@ describe('ListaSolicitudes', () => {
     const usuario = userEvent.setup();
     renderLista();
 
-    await usuario.selectOptions(screen.getByLabelText(/familia/i), 'Tecnología');
+    await usuario.selectOptions(screen.getByLabelText(/familia/i), 'Profesional A');
     expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
     expect(screen.queryByText('03-08-2026')).toBeNull();
   });

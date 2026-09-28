@@ -109,7 +109,6 @@ export default function DetalleSolicitud() {
         <div className="col-12 col-lg-7">
           <PanelGestion
             solicitud={solicitud}
-            alGuardar={(cambios) => actualizarSolicitud(solicitud.id, cambios)}
             alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
             alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
           />
