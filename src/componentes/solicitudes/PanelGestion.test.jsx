@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { renderConContexto, datosVacios, datosDePrueba } from '../../pruebas/utilidades';
+import { renderConContexto, datosVacios } from '../../pruebas/utilidades';
 import PanelGestion from './PanelGestion';
 
 const solicitud = {
@@ -20,7 +20,6 @@ describe('PanelGestion', () => {
     renderConContexto(
       <PanelGestion
         solicitud={solicitud}
-        alGuardar={vi.fn()}
         alAsignarProfesional={vi.fn()}
         alCambiarEstado={vi.fn()}
       />,
@@ -39,7 +38,6 @@ describe('PanelGestion', () => {
     renderConContexto(
       <PanelGestion
         solicitud={solicitud}
-        alGuardar={vi.fn()}
         alAsignarProfesional={alAsignarProfesional}
         alCambiarEstado={alCambiarEstado}
       />,
@@ -53,35 +51,31 @@ describe('PanelGestion', () => {
     expect(alAsignarProfesional).toHaveBeenCalledWith('Carolina Muñoz');
   });
 
-  it('entrega los cambios al guardar', async () => {
-    const usuario = userEvent.setup();
-    const alGuardar = vi.fn();
-
-    renderConContexto(
+  it('refleja el estado actual de la solicitud cuando cambia desde fuera', () => {
+    const { rerender } = render(
       <PanelGestion
         solicitud={solicitud}
-        alGuardar={alGuardar}
         alAsignarProfesional={vi.fn()}
         alCambiarEstado={vi.fn()}
       />,
-      { datosIniciales: datosDePrueba },
     );
 
-    await usuario.selectOptions(screen.getByLabelText(/^estado$/i), 'Finalizada');
-    await usuario.click(screen.getByRole('button', { name: /guardar cambios/i }));
+    rerender(
+      <PanelGestion
+        solicitud={{ ...solicitud, estado: 'Finalizada', profesionalResponsable: 'Javiera Soto' }}
+        alAsignarProfesional={vi.fn()}
+        alCambiarEstado={vi.fn()}
+      />,
+    );
 
-    expect(alGuardar).toHaveBeenCalledWith({
-      estado: 'Finalizada',
-      profesionalResponsable: '',
-      observaciones: '',
-    });
+    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
+    expect(screen.getByLabelText(/profesional responsable/i)).toHaveValue('Javiera Soto');
   });
 
   it('ofrece los tres estados del flujo de trabajo', () => {
     renderConContexto(
       <PanelGestion
         solicitud={solicitud}
-        alGuardar={vi.fn()}
         alAsignarProfesional={vi.fn()}
         alCambiarEstado={vi.fn()}
       />,
