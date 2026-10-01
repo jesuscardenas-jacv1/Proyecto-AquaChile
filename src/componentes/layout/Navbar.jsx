@@ -22,7 +22,7 @@ export default function Navbar() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
       <div className="container">
         <NavLink className="navbar-brand d-flex align-items-center gap-2" to="/">
-          <span className="badge bg-light text-primary fw-bold">A</span>
+          <span className="badge bg-acento text-white fw-bold">A</span>
           <span>
             AquaChile
             <small className="d-none d-md-block text-white-50">Gestión Psicolaboral</small>
