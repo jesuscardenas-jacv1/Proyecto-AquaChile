@@ -5,7 +5,6 @@ import {
   contarPor,
   promedioDiasRespuesta,
   resumenSolicitudes,
-  solicitudesPorFamilia,
   solicitudesRecientes,
 } from '../dominio/indicadores';
 import { formatearFecha } from '../dominio/formateo';
@@ -13,6 +12,7 @@ import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import EstadoVacio from '../componentes/comunes/EstadoVacio';
 import TarjetaIndicador from '../componentes/comunes/TarjetaIndicador';
 import DetalleIndicador from '../componentes/dashboard/DetalleIndicador';
+import PanelEvaluaciones from '../componentes/dashboard/PanelEvaluaciones';
 
 const ID_DETALLE = 'detalle-indicador';
 
@@ -30,11 +30,9 @@ export default function Dashboard() {
   const [seleccionada, setSeleccionada] = useState(null);
 
   const resumen = resumenSolicitudes(solicitudes);
-  const porFamilia = solicitudesPorFamilia(solicitudes);
   const recientes = solicitudesRecientes(solicitudes, 5);
   const nombreCandidato = (id) =>
     candidatos.find((candidato) => candidato.id === Number(id))?.nombre ?? 'Sin candidato';
-  const totalSolicitudes = Math.max(resumen.total, 1);
 
   const conNombre = (lista) =>
     solicitudesRecientes(lista, 5).map((solicitud) => ({
@@ -204,91 +202,52 @@ export default function Dashboard() {
         />
       ) : null}
 
-      <div className="row g-3">
-        <div className="col-12 col-lg-7">
-          <section className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white d-flex justify-content-between align-items-center">
-              <h2 className="h6 mb-0">Solicitudes recientes</h2>
-              <button
-                type="button"
-                className="btn btn-link btn-sm"
-                onClick={() => navegar('/solicitudes')}
-              >
-                Ver todas
-              </button>
-            </div>
-            {recientes.length === 0 ? (
-              <EstadoVacio
-                titulo="Sin solicitudes"
-                descripcion="Crea la primera solicitud de evaluación."
-                icono="bi-file-earmark-text"
-              />
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th scope="col">Candidato</th>
-                      <th scope="col">Cargo</th>
-                      <th scope="col">Fecha</th>
-                      <th scope="col">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recientes.map((solicitud) => (
-                      <tr key={solicitud.id}>
-                        <td className="fw-semibold">{nombreCandidato(solicitud.candidatoId)}</td>
-                        <td>{solicitud.cargo}</td>
-                        <td>{formatearFecha(solicitud.fechaSolicitud)}</td>
-                        <td>
-                          <EtiquetaEstado valor={solicitud.estado} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </div>
+      <PanelEvaluaciones solicitudes={solicitudes} evaluaciones={evaluaciones} />
 
-        <div className="col-12 col-lg-5">
-          <section className="card border-0 shadow-sm h-100">
-            <div className="card-header bg-white">
-              <h2 className="h6 mb-0">Distribución por familia de cargo</h2>
-            </div>
-            <div className="card-body">
-              {porFamilia.length === 0 ? (
-                <p className="text-secondary mb-0">Aún no hay datos para mostrar.</p>
-              ) : (
-                porFamilia.map(({ familia, total }) => (
-                  <div key={familia} className="mb-3">
-                    <div className="d-flex justify-content-between small mb-1">
-                      <span>{familia}</span>
-                      <span className="text-secondary">{total}</span>
-                    </div>
-                    <div
-                      className="progress"
-                      role="progressbar"
-                      aria-label={`Solicitudes de ${familia}`}
-                      aria-valuenow={total}
-                      aria-valuemin={0}
-                      aria-valuemax={totalSolicitudes}
-                    >
-                      <div
-                        className="progress-bar bg-primary"
-                        style={{ width: `${(total / totalSolicitudes) * 100}%` }}
-                      >
-                        {total}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
+      <section className="card border-0 shadow-sm">
+        <div className="card-header bg-white d-flex justify-content-between align-items-center">
+          <h2 className="h6 mb-0">Solicitudes recientes</h2>
+          <button
+            type="button"
+            className="btn btn-link btn-sm"
+            onClick={() => navegar('/solicitudes')}
+          >
+            Ver todas
+          </button>
         </div>
-      </div>
+        {recientes.length === 0 ? (
+          <EstadoVacio
+            titulo="Sin solicitudes"
+            descripcion="Crea la primera solicitud de evaluación."
+            icono="bi-file-earmark-text"
+          />
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th scope="col">Candidato</th>
+                  <th scope="col">Cargo</th>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recientes.map((solicitud) => (
+                  <tr key={solicitud.id}>
+                    <td className="fw-semibold">{nombreCandidato(solicitud.candidatoId)}</td>
+                    <td>{solicitud.cargo}</td>
+                    <td>{formatearFecha(solicitud.fechaSolicitud)}</td>
+                    <td>
+                      <EtiquetaEstado valor={solicitud.estado} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
