@@ -173,3 +173,225 @@ h1, h2, h3, h4, h5, h6,
 .progress-delgada {
   height: 0.35rem;
 }
+
+/* ---------------------------- Gráficos del dashboard ---------------------------- */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico-muestra {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 3px;
+}
+
+.grafico-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 10rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--aqua-primario-oscuro);
+  background: #fff;
+  border: 1px solid var(--aqua-gris-calido-borde);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+}
+
+.grafico-dona {
+  width: 100%;
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.grafico-dona path,
+.grafico-dona circle {
+  cursor: pointer;
+}
+
+.grafico-dona-total {
+  font-family: var(--aqua-fuente-titulos);
+  font-size: 28px;
+  font-weight: 600;
+  fill: var(--aqua-primario-oscuro);
+}
+
+.grafico-dona-etiqueta,
+.grafico-medidor-escala {
+  font-size: 12px;
+  fill: var(--aqua-gris-calido-texto);
+}
+
+.grafico-porcentaje {
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+/* Barras horizontales apiladas */
+.grafico-barras-fila {
+  display: grid;
+  grid-template-columns: minmax(6rem, 9rem) 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.2rem 0;
+  border-radius: 0.25rem;
+  outline-offset: 2px;
+}
+
+.grafico-barras-fila:not(.grafico-eje-x):hover {
+  background: var(--aqua-gris-calido-claro);
+}
+
+.grafico-barras-etiqueta {
+  text-align: right;
+  color: var(--aqua-gris-calido-texto);
+}
+
+.grafico-barras-pista {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 2.5rem;
+}
+
+.grafico-barras-barra {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  min-width: 2px;
+}
+
+.grafico-barras-barra .grafico-segmento:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.grafico-barras-valor {
+  color: var(--aqua-primario-oscuro);
+}
+
+.grafico-eje-x .grafico-barras-pista {
+  height: 1.25rem;
+  border-top: 1px solid #e9e4df;
+}
+
+.grafico-eje-x-marca {
+  position: absolute;
+  top: 0.15rem;
+  transform: translateX(-50%);
+}
+
+.grafico-segmento {
+  display: block;
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+/* Columnas apiladas */
+.grafico-columnas {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  grid-template-rows: 200px auto;
+}
+
+.grafico-columnas-eje-y {
+  position: relative;
+}
+
+.grafico-columnas-eje-y span {
+  position: absolute;
+  right: 0.5rem;
+  transform: translateY(50%);
+}
+
+.grafico-columnas-area {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 2px;
+  border-bottom: 1px solid #d7d2cb;
+}
+
+.grafico-columnas-grilla {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.grafico-columnas-columna {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  border-radius: 0.25rem;
+  outline-offset: 2px;
+}
+
+.grafico-columnas-columna:hover {
+  background: rgba(var(--aqua-primario-rgb), 0.06);
+}
+
+.grafico-columnas-pila {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(24px, 70%);
+  min-height: 2px;
+}
+
+.grafico-columnas-pila .grafico-segmento:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.grafico-columnas-eje-x {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-around;
+  gap: 2px;
+  padding-top: 0.35rem;
+}
+
+.grafico-columnas-eje-x span {
+  flex: 1;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  text-align: center;
+  word-spacing: 100vw;
+}
+
+/* Medidor */
+.grafico-medidor {
+  width: 100%;
+  max-width: 240px;
+}
+
+.grafico-medidor-valor {
+  font-family: var(--aqua-fuente-titulos);
+  font-size: 40px;
+  font-weight: 600;
+  fill: var(--aqua-primario-oscuro);
+}
+
+.tabla-reclutadores {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.tabla-reclutadores tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+}
+
+.grafico-columnas-desplazable {
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}

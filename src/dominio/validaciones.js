@@ -78,6 +78,57 @@ export function validarSolicitud(solicitud = {}, candidatos = []) {
   return errores;
 }
 
+const CECO_VALIDO = /^[A-Z]\d{9}$/i;
+
+/**
+ * Valida el formulario de solicitud de evaluación (réplica del Microsoft Forms).
+ * Si el candidato no está registrado (`candidatoId` vacío), exige sus datos de contacto
+ * para registrarlo junto con la solicitud.
+ */
+export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
+  const { candidatoId, ...resto } = validarSolicitud(formulario, candidatos);
+  const errores = { ...resto };
+  const nombreCandidato = limpiar(formulario.nombreCandidato);
+  const ceco = limpiar(formulario.ceco);
+
+  if (!limpiar(formulario.profesionalResponsable)) {
+    errores.profesionalResponsable = 'Debe seleccionar el reclutador/a.';
+  }
+
+  if (formulario.candidatoId) {
+    if (candidatoId) errores.nombreCandidato = candidatoId;
+  } else {
+    const { nombre, correo, telefono } = validarCandidato({
+      nombre: nombreCandidato,
+      correo: formulario.correo,
+      telefono: formulario.telefono,
+    });
+    if (nombre) errores.nombreCandidato = nombre;
+    if (correo) errores.correo = correo;
+    if (telefono) errores.telefono = telefono;
+  }
+
+  if (!limpiar(formulario.origen)) {
+    errores.origen = 'Debe indicar el origen del candidato/a.';
+  }
+
+  if (!limpiar(formulario.ubicacion)) {
+    errores.ubicacion = 'La ubicación del cargo es obligatoria.';
+  }
+
+  if (!limpiar(formulario.requiereReferencias)) {
+    errores.requiereReferencias = 'Debe indicar si requiere referencias.';
+  }
+
+  if (!ceco) {
+    errores.ceco = 'El CECO es obligatorio.';
+  } else if (!CECO_VALIDO.test(ceco)) {
+    errores.ceco = 'El CECO debe tener una letra seguida de 9 dígitos (ej: A170010311).';
+  }
+
+  return errores;
+}
+
 /**
  * Valida los datos de una evaluación psicolaboral.
  */

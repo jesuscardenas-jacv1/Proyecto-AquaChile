@@ -11,6 +11,8 @@ const normalizarCandidato = (datos) => ({
   telefono: datos.telefono.trim(),
   cargo: datos.cargo.trim(),
   familiaCargo: datos.familiaCargo,
+  // El origen solo se informa al crear la solicitud; al editar se conserva el existente.
+  ...(datos.origen ? { origen: datos.origen } : {}),
 });
 
 /**
@@ -66,6 +68,14 @@ export function ProveedorDatos({ children, datosIniciales }) {
         estado: 'Pendiente',
         profesionalResponsable: nueva.profesionalResponsable ?? '',
         observaciones: nueva.observaciones?.trim() ?? '',
+        tipoEvaluacion: nueva.tipoEvaluacion ?? '',
+        ubicacion: nueva.ubicacion?.trim() ?? '',
+        unidad: nueva.unidad ?? '',
+        ceco: nueva.ceco ?? '',
+        requiereReferencias: Boolean(nueva.requiereReferencias),
+        referido: nueva.referido ?? null,
+        cv: nueva.cv ?? '',
+        descriptorCargo: nueva.descriptorCargo ?? '',
       };
       setDatos((actual) => ({
         ...actual,

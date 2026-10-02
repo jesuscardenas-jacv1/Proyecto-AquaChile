@@ -1,13 +1,28 @@
-/** Catálogos alineados con la base de datos simulada de AquaChile (bd/*.xlsx). */
+/** Familias de cargo del formulario de solicitud (Microsoft Forms original + BD simulada). */
 export const FAMILIAS_CARGO = [
-  'Jefatura',
-  'Profesional A',
-  'Profesional B C',
-  'Supervisor B',
-  'Técnico A',
-  'Técnico B C',
+  'Operario',
   'Operario Calificado',
+  'Operario Calificado AM',
+  'Administrativo',
+  'Técnico B C',
+  'Técnico A',
+  'Profesional B C',
+  'Profesional A',
+  'Supervisor B',
+  'Supervisor A',
+  'Jefatura',
 ];
+
+export const ORIGENES_CANDIDATO = ['Externo', 'Interno'];
+
+export const OPCIONES_SI_NO = ['Sí', 'No'];
+
+/** Restricciones de los archivos adjuntos (CV y descriptor de cargo), iguales al Forms. */
+export const ARCHIVOS_PERMITIDOS = {
+  extensiones: '.doc,.docx,.xls,.xlsx,.ppt,.pptx,.pdf,image/*,video/*,audio/*',
+  descripcion: 'Word, Excel, PPT, PDF, imagen, video o audio',
+  tamanoMaximoMb: 10,
+};
 
 export const ESTADOS_SOLICITUD = ['Pendiente', 'En proceso', 'Finalizada'];
 
@@ -19,7 +34,7 @@ export const RESULTADOS_EVALUACION = [
   'No recomendado',
 ];
 
-/** Reclutadoras responsables de las evaluaciones. */
+/** Reclutadores/as que solicitan las evaluaciones (columna "Reclutador/a" de la BD). */
 export const PROFESIONALES = [
   'Carolina Muñoz',
   'Daniela Contreras',
