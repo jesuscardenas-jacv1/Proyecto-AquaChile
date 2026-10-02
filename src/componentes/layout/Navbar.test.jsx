@@ -20,7 +20,7 @@ const renderNavbar = (ruta = '/') =>
 describe('Navbar', () => {
   it('muestra el nombre de la empresa y los enlaces de navegación', () => {
     renderNavbar();
-    expect(screen.getByText('AquaChile')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'AquaChile' })).toBeInTheDocument();
     ENLACES.forEach(({ nombre }) => expect(screen.getByRole('link', { name: nombre })).toBeInTheDocument());
   });
 
