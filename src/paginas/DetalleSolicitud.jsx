@@ -45,6 +45,13 @@ export default function DetalleSolicitud() {
   const candidato = obtenerCandidato(solicitud.candidatoId);
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
   const puedeEvaluar = ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado);
+  const datosSolicitud = [
+    ['Ubicación', [solicitud.ubicacion, solicitud.unidad].filter(Boolean).join(' · ')],
+    ['CECO', solicitud.ceco],
+    ['Requiere referencias', solicitud.requiereReferencias ? 'Sí' : 'No'],
+    ['CV', solicitud.cv],
+    ['Descriptor de cargo', solicitud.descriptorCargo],
+  ];
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -96,6 +103,15 @@ export default function DetalleSolicitud() {
                   <dd className="col-7">{candidato.cargo}</dd>
                   <dt className="col-5 text-secondary">Familia</dt>
                   <dd className="col-7">{candidato.familiaCargo}</dd>
+                  {candidato.origen ? (
+                    <>
+                      <dt className="col-5 text-secondary">Origen</dt>
+                      <dd className="col-7">
+                        {candidato.origen}
+                        {solicitud.referido === true ? ' · Referido/a' : ''}
+                      </dd>
+                    </>
+                  ) : null}
                 </dl>
               ) : (
                 <p className="text-secondary mb-0">
@@ -115,16 +131,27 @@ export default function DetalleSolicitud() {
         </div>
       </div>
 
-      {solicitud.observaciones ? (
-        <section className="card border-0 shadow-sm">
-          <div className="card-header bg-white">
-            <h2 className="h6 mb-0">Observaciones de la solicitud</h2>
-          </div>
-          <div className="card-body">
-            <p className="mb-0">{solicitud.observaciones}</p>
-          </div>
-        </section>
-      ) : null}
+      <section className="card border-0 shadow-sm">
+        <div className="card-header bg-white">
+          <h2 className="h6 mb-0">Datos de la solicitud</h2>
+        </div>
+        <div className="card-body">
+          <dl className="row mb-0 small">
+            {datosSolicitud.map(([etiqueta, valor]) => (
+              <div key={etiqueta} className="col-12 col-sm-6 col-lg-4 mb-2">
+                <dt className="text-secondary fw-normal">{etiqueta}</dt>
+                <dd className="mb-0 text-break">{valor || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+          {solicitud.observaciones ? (
+            <div className="mt-3">
+              <h3 className="h6 text-secondary small mb-1">Aspectos a indagar</h3>
+              <p className="mb-0">{solicitud.observaciones}</p>
+            </div>
+          ) : null}
+        </div>
+      </section>
 
       <section className="card border-0 shadow-sm">
         <div className="card-header bg-white d-flex flex-wrap justify-content-between gap-2 align-items-center">

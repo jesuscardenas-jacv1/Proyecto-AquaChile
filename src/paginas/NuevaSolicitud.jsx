@@ -1,24 +1,32 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
-import Mensaje from '../componentes/comunes/Mensaje';
 
-/** Página de creación de solicitud de evaluación. */
+/**
+ * Página de creación de solicitud de evaluación.
+ * Si el candidato/a no está registrado/a, se registra junto con la solicitud.
+ */
 export default function NuevaSolicitud() {
-  const { candidatos, agregarSolicitud } = useDatos();
+  const { candidatos, agregarCandidato, agregarSolicitud } = useDatos();
   const navegar = useNavigate();
-  const [error, setError] = useState('');
 
-  const guardar = (datos) => {
-    if (candidatos.length === 0) {
-      setError('Debes registrar un candidato antes de crear una solicitud.');
-      return;
-    }
-    const solicitud = agregarSolicitud(datos);
+  const guardar = ({ nombreCandidato, correo, telefono, ...datos }) => {
+    const candidatoId =
+      datos.candidatoId ||
+      agregarCandidato({
+        nombre: nombreCandidato,
+        correo,
+        telefono,
+        cargo: datos.cargo,
+        familiaCargo: datos.familiaCargo,
+        origen: datos.origen,
+      }).id;
+    const solicitud = agregarSolicitud({ ...datos, candidatoId });
     navegar(`/solicitudes/${solicitud.id}`, {
       state: {
-        mensaje: 'Solicitud creada correctamente. Puedes asignar un profesional y evaluarla.',
+        mensaje: datos.candidatoId
+          ? 'Solicitud enviada correctamente. Queda pendiente de agendar la entrevista.'
+          : 'Solicitud enviada y candidato/a registrado/a correctamente.',
         tipo: 'success',
       },
     });
@@ -27,31 +35,14 @@ export default function NuevaSolicitud() {
   return (
     <div className="d-flex flex-column gap-3">
       <header>
-        <h1 className="h4 mb-1">Nueva solicitud de evaluación</h1>
+        <h1 className="h4 mb-1">Solicitud de evaluación psicolaboral</h1>
         <p className="text-secondary mb-0">
-          Selecciona el candidato y completa los datos de la evaluación que se solicitara.
+          Completa los datos del candidato/a y del cargo para solicitar su evaluación.
         </p>
       </header>
 
-      {candidatos.length === 0 ? (
-        <Mensaje tipo="warning" titulo="Sin candidatos registrados">
-          Primero debes registrar al menos un candidato.
-          <div className="mt-2">
-            <button
-              type="button"
-              className="btn btn-sm btn-primary"
-              onClick={() => navegar('/candidatos/nuevo')}
-            >
-              Registrar candidato
-            </button>
-          </div>
-        </Mensaje>
-      ) : null}
-
-      {error ? <Mensaje tipo="danger">{error}</Mensaje> : null}
-
       <div className="row">
-        <div className="col-12 col-lg-9">
+        <div className="col-12 col-xl-10">
           <FormularioSolicitud
             candidatos={candidatos}
             alGuardar={guardar}
