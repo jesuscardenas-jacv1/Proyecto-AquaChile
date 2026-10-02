@@ -153,7 +153,7 @@ export default function Dashboard() {
           valor={resumen.total}
           descripcion="Histórico completo"
           icono="bi-file-earmark-text"
-          variante="info"
+          variante="acento"
           {...propsSeleccion('solicitudes')}
         />
         <TarjetaIndicador
