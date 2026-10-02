@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 
 const ENLACES = [
   { ruta: '/', etiqueta: 'Dashboard', exacto: true },
@@ -21,12 +22,9 @@ export default function Navbar() {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
       <div className="container">
-        <NavLink className="navbar-brand d-flex align-items-center gap-2" to="/">
-          <span className="badge bg-acento text-white fw-bold">A</span>
-          <span>
-            AquaChile
-            <small className="d-none d-md-block text-white-50">Gestión Psicolaboral</small>
-          </span>
+        <NavLink className="navbar-brand d-flex align-items-center gap-3" to="/">
+          <img src={logoAquaChile} alt="AquaChile" className="navbar-logo" />
+          <small className="navbar-modulo d-none d-sm-block text-white-50">Gestión Psicolaboral</small>
         </NavLink>
 
         <button
