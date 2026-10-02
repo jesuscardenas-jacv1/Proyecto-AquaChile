@@ -115,7 +115,7 @@ export default function Dashboard() {
 
   const detalle = seleccionada ? construirDetalle(seleccionada) : null;
   const propsSeleccion = (clave) => ({
-    alSeleccionar: () => setSeleccionada((actual) => (actual === clave ? null : clave)),
+    alSeleccionar: () => setSeleccionada(clave),
     seleccionada: seleccionada === clave,
     controla: ID_DETALLE,
   });

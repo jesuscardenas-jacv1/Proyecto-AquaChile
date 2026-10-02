@@ -1,6 +1,6 @@
 /**
  * Tarjeta de indicador del dashboard (Bootstrap card + grilla responsive).
- * Si recibe `alSeleccionar`, la tarjeta completa es un botón que despliega su detalle.
+ * Si recibe `alSeleccionar`, la tarjeta completa es un botón que abre su detalle en una ventana emergente.
  */
 export default function TarjetaIndicador({
   titulo,
@@ -26,10 +26,7 @@ export default function TarjetaIndicador({
         {descripcion ? <small className="text-secondary">{descripcion}</small> : null}
       </span>
       {alSeleccionar ? (
-        <i
-          className={`bi ${seleccionada ? 'bi-chevron-up' : 'bi-chevron-down'} text-secondary`}
-          aria-hidden="true"
-        />
+        <i className="bi bi-box-arrow-up-right text-secondary" aria-hidden="true" />
       ) : null}
     </span>
   );
@@ -42,8 +39,9 @@ export default function TarjetaIndicador({
           className={`${clasesTarjeta} tarjeta-indicador text-start w-100 ${
             seleccionada ? 'tarjeta-indicador-activa' : ''
           }`.trim()}
+          aria-haspopup="dialog"
           aria-expanded={seleccionada}
-          aria-controls={controla}
+          aria-controls={seleccionada ? controla : undefined}
           onClick={alSeleccionar}
         >
           {contenido}

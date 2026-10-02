@@ -86,7 +86,7 @@ describe('Dashboard', () => {
     expect(screen.getByText('Aún no hay datos para mostrar.')).toBeInTheDocument();
   });
 
-  it('muestra el detalle de una tarjeta al presionarla y lo oculta al presionarla de nuevo', async () => {
+  it('abre el detalle de una tarjeta en una ventana emergente y lo cierra con Escape', async () => {
     const usuario = userEvent.setup();
     const navegar = vi.fn();
     useNavigate.mockReturnValue(navegar);
@@ -97,7 +97,9 @@ describe('Dashboard', () => {
 
     await usuario.click(tarjeta);
     expect(tarjeta).toHaveAttribute('aria-expanded', 'true');
-    const detalle = screen.getByRole('region', { name: 'Detalle: Solicitudes pendientes' });
+    const detalle = screen.getByRole('dialog', { name: 'Detalle: Solicitudes pendientes' });
+    expect(detalle).toHaveAttribute('aria-modal', 'true');
+    expect(document.body).toHaveClass('modal-open');
     expect(within(detalle).getByText('1 de 3 solicitudes')).toBeInTheDocument();
     expect(within(detalle).getByText('Por profesional responsable')).toBeInTheDocument();
     expect(within(detalle).getByText('Sin asignar')).toBeInTheDocument();
@@ -108,8 +110,23 @@ describe('Dashboard', () => {
     await usuario.click(within(detalle).getByRole('button', { name: /maría gonzález/i }));
     expect(navegar).toHaveBeenCalledWith('/solicitudes/3');
 
-    await usuario.click(tarjeta);
-    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
+    await usuario.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.body).not.toHaveClass('modal-open');
+    expect(tarjeta).toHaveFocus();
+  });
+
+  it('cierra la ventana emergente al hacer clic fuera del contenido', async () => {
+    const usuario = userEvent.setup();
+    renderDashboard();
+
+    await usuario.click(screen.getByRole('button', { name: /en proceso/i }));
+    const detalle = screen.getByRole('dialog', { name: 'Detalle: Solicitudes en proceso' });
+    await usuario.click(within(detalle).getByText('Por familia de cargo'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await usuario.click(detalle);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('muestra los resultados y el tiempo de respuesta en el detalle de evaluaciones', async () => {
@@ -124,13 +141,13 @@ describe('Dashboard', () => {
     renderDashboard();
 
     await usuario.click(screen.getByRole('button', { name: /evaluaciones/i }));
-    const detalle = screen.getByRole('region', { name: 'Detalle: Evaluaciones' });
+    const detalle = screen.getByRole('dialog', { name: 'Detalle: Evaluaciones' });
     expect(within(detalle).getByText(/promedio: 5\.5 días hábiles/)).toBeInTheDocument();
     expect(within(detalle).getByText('Recomendado')).toBeInTheDocument();
     expect(within(detalle).getByText('No recomendado')).toBeInTheDocument();
   });
 
-  it('cambia el detalle al presionar otra tarjeta y lo cierra con el botón', async () => {
+  it('muestra el detalle de otra tarjeta y lo cierra con el botón', async () => {
     const usuario = userEvent.setup();
     useDatos.mockReturnValue({
       ...datosSimulados,
@@ -142,15 +159,16 @@ describe('Dashboard', () => {
     renderDashboard();
 
     await usuario.click(screen.getByRole('button', { name: /solicitudes totales/i }));
-    expect(screen.getByRole('region', { name: 'Detalle: Solicitudes totales' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Detalle: Solicitudes totales' })).toBeInTheDocument();
+    await usuario.keyboard('{Escape}');
 
     await usuario.click(screen.getByRole('button', { name: /candidatos registrados/i }));
-    const detalle = screen.getByRole('region', { name: 'Detalle: Candidatos registrados' });
+    const detalle = screen.getByRole('dialog', { name: 'Detalle: Candidatos registrados' });
     expect(within(detalle).getByText('Por origen')).toBeInTheDocument();
     expect(within(detalle).getByText('Interno')).toBeInTheDocument();
 
     await usuario.click(within(detalle).getByRole('button', { name: 'Cerrar detalle' }));
-    expect(screen.queryByRole('region', { name: /detalle:/i })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('navega a la creación de solicitud', async () => {
