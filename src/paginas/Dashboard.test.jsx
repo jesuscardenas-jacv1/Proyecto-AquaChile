@@ -66,24 +66,28 @@ describe('Dashboard', () => {
 
   it('lista las solicitudes recientes ordenadas por fecha', () => {
     renderDashboard();
-    const filas = screen.getAllByRole('row');
+    const recientes = screen.getByRole('heading', { name: 'Solicitudes recientes' }).closest('.card');
+    const filas = within(recientes).getAllByRole('row');
     // encabezado + 3 solicitudes
     expect(filas).toHaveLength(4);
     expect(filas[1]).toHaveTextContent('01-09-2026');
   });
 
-  it('muestra la distribución por familia de cargo', () => {
+  it('muestra los indicadores de candidatos evaluados', () => {
     renderDashboard();
-    expect(screen.getByText('Distribución por familia de cargo')).toBeInTheDocument();
-    expect(screen.getByText('Técnico B C')).toBeInTheDocument();
-    expect(screen.getByText('Profesional A')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Candidatos evaluados' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Recuento de candidatos evaluados por familia de cargo' }),
+    ).toBeInTheDocument();
   });
 
   it('muestra el estado vacío cuando no hay solicitudes', () => {
-    useDatos.mockReturnValue({ ...datosSimulados, solicitudes: [] });
+    useDatos.mockReturnValue({ ...datosSimulados, solicitudes: [], evaluaciones: [] });
     renderDashboard();
     expect(screen.getAllByText('Sin solicitudes').length).toBeGreaterThan(0);
-    expect(screen.getByText('Aún no hay datos para mostrar.')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Sin evaluaciones para los filtros seleccionados.').length,
+    ).toBeGreaterThan(0);
   });
 
   it('abre el detalle de una tarjeta en una ventana emergente y lo cierra con Escape', async () => {
