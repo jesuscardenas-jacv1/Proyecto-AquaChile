@@ -1,9 +1,137 @@
+/*
+ * Paleta corporativa AquaChile (tomada de la presentación oficial de la marca):
+ * - Principal: Pantone 7545 C (#425563) y su variante oscura (#2E3D48)
+ * - Acento: naranjo Pantone 021 C (#FE5000)
+ * - Fondos y bordes: grises cálidos (#EEE9E4, #F5F3F0, Warm Gray 1 C #D7D2CB)
+ * - Texto secundario: Warm Gray 11 C (#6E6259)
+ * Tipografía: Montserrat (títulos) y Open Sans (texto).
+ * Se sobrescriben las variables de Bootstrap para que todos los componentes
+ * (bg-primary, btn-primary, text-primary, etc.) usen los colores de marca.
+ */
 :root {
-  --aqua-primario: #005b96;
+  --aqua-primario: #425563;
+  --aqua-primario-rgb: 66, 85, 99;
+  --aqua-primario-oscuro: #2e3d48;
+  --aqua-primario-oscuro-rgb: 46, 61, 72;
+  --aqua-primario-profundo: #24303a;
+  --aqua-acento: #fe5000;
+  --aqua-acento-rgb: 254, 80, 0;
+  --aqua-acento-oscuro: #c93f00;
+  --aqua-gris-calido: #eee9e4;
+  --aqua-gris-calido-claro: #f5f3f0;
+  --aqua-gris-calido-borde: #d7d2cb;
+  --aqua-gris-calido-texto: #6e6259;
+  --aqua-gris-calido-texto-rgb: 110, 98, 89;
+
+  --aqua-fuente-titulos: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --aqua-fuente-texto: 'Open Sans', 'Segoe UI', system-ui, sans-serif;
+
+  --bs-body-font-family: var(--aqua-fuente-texto);
+  --bs-body-color: var(--aqua-primario-oscuro);
+  --bs-body-color-rgb: var(--aqua-primario-oscuro-rgb);
+  --bs-emphasis-color: var(--aqua-primario-oscuro);
+  --bs-heading-color: var(--aqua-primario-oscuro);
+  --bs-secondary-rgb: var(--aqua-gris-calido-texto-rgb);
+  --bs-secondary-color: var(--aqua-gris-calido-texto);
+  --bs-border-color: var(--aqua-gris-calido-borde);
+  --bs-primary: var(--aqua-primario);
+  --bs-primary-rgb: var(--aqua-primario-rgb);
+  --bs-primary-text-emphasis: var(--aqua-primario-oscuro);
+  --bs-primary-bg-subtle: #d9dde0;
+  --bs-primary-border-subtle: #b3bbc1;
+  --bs-link-color: var(--aqua-primario);
+  --bs-link-color-rgb: var(--aqua-primario-rgb);
+  --bs-link-hover-color: var(--aqua-acento-oscuro);
+  --bs-link-hover-color-rgb: 201, 63, 0;
+  --bs-tertiary-bg: var(--aqua-gris-calido);
+  --bs-tertiary-bg-rgb: 238, 233, 228;
+  --bs-focus-ring-color: rgba(var(--aqua-primario-rgb), 0.25);
+}
+
+/* Botones primarios */
+.btn-primary {
+  --bs-btn-bg: var(--aqua-primario);
+  --bs-btn-border-color: var(--aqua-primario);
+  --bs-btn-hover-bg: var(--aqua-primario-oscuro);
+  --bs-btn-hover-border-color: var(--aqua-primario-oscuro);
+  --bs-btn-focus-shadow-rgb: var(--aqua-primario-rgb);
+  --bs-btn-active-bg: var(--aqua-primario-profundo);
+  --bs-btn-active-border-color: var(--aqua-primario-profundo);
+  --bs-btn-disabled-bg: var(--aqua-primario);
+  --bs-btn-disabled-border-color: var(--aqua-primario);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--aqua-primario);
+  --bs-btn-border-color: var(--aqua-primario);
+  --bs-btn-hover-bg: var(--aqua-primario);
+  --bs-btn-hover-border-color: var(--aqua-primario);
+  --bs-btn-focus-shadow-rgb: var(--aqua-primario-rgb);
+  --bs-btn-active-bg: var(--aqua-primario-oscuro);
+  --bs-btn-active-border-color: var(--aqua-primario-oscuro);
+  --bs-btn-disabled-color: var(--aqua-primario);
+  --bs-btn-disabled-border-color: var(--aqua-primario);
+}
+
+/* Formularios: foco con el color principal */
+.form-control:focus,
+.form-select:focus {
+  border-color: #a1aab1;
+  box-shadow: 0 0 0 0.25rem rgba(var(--aqua-primario-rgb), 0.25);
+}
+
+.form-check-input:checked {
+  background-color: var(--aqua-primario);
+  border-color: var(--aqua-primario);
+}
+
+.progress {
+  --bs-progress-bg: var(--aqua-gris-calido);
+  --bs-progress-bar-bg: var(--aqua-primario);
+}
+
+.table-light {
+  --bs-table-bg: var(--aqua-gris-calido-claro);
+  --bs-table-border-color: var(--aqua-gris-calido-borde);
+}
+
+/* Acento naranjo */
+.bg-acento {
+  background-color: rgba(var(--aqua-acento-rgb), var(--bs-bg-opacity, 1)) !important;
+}
+
+.text-acento {
+  color: var(--aqua-acento-oscuro) !important;
+}
+
+.border-acento {
+  border-color: var(--aqua-acento) !important;
+}
+
+.navbar.bg-primary {
+  border-bottom: 3px solid var(--aqua-acento);
+}
+
+.navbar-dark .nav-link.active {
+  box-shadow: inset 0 -2px 0 var(--aqua-acento);
+}
+
+.pie-pagina {
+  background-color: var(--aqua-primario-oscuro);
+  border-top: 3px solid var(--aqua-acento);
 }
 
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--aqua-fuente-texto);
+  background-color: var(--aqua-gris-calido-claro);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.navbar-brand,
+.card-title {
+  font-family: var(--aqua-fuente-titulos);
+  font-weight: 600;
 }
 
 .navbar-brand small {
