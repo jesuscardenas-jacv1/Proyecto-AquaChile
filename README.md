@@ -127,6 +127,7 @@ src/
 | `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
 | `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
 | `/solicitudes/:id` | Ficha, panel de gestión y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
+| `/solicitudes/:id/informe` | Informe Psicolaboral Oficial imprimible (PDF) | Analista y Evaluador (con membrete oficial y firmas) |
 | `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
 
 ## Usuarios de demostración (AquaChile)

@@ -7,6 +7,7 @@ import EditarCandidato from './paginas/EditarCandidato';
 import Solicitudes from './paginas/Solicitudes';
 import NuevaSolicitud from './paginas/NuevaSolicitud';
 import DetalleSolicitud from './paginas/DetalleSolicitud';
+import InformePsicolaboral from './paginas/InformePsicolaboral';
 import Login from './paginas/Login';
 import NoEncontrada from './paginas/NoEncontrada';
 import RutaProtegida from './componentes/comunes/RutaProtegida';
@@ -47,6 +48,7 @@ export default function App() {
             }
           />
           <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
+          <Route path="/solicitudes/:id/informe" element={<InformePsicolaboral />} />
           <Route path="/candidatos-inexistente" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NoEncontrada />} />
         </Route>

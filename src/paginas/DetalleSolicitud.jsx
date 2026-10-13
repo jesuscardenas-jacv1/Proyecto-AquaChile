@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { ESTADOS_QUE_PERMITEN_EVALUAR } from '../datos/constantes';
@@ -159,7 +159,15 @@ export default function DetalleSolicitud() {
         <div className="card-header bg-white d-flex flex-wrap justify-content-between gap-2 align-items-center">
           <h2 className="h6 mb-0">Evaluación psicolaboral</h2>
           {evaluacion ? (
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <Link
+                to={`/solicitudes/${solicitud.id}/informe`}
+                className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                title="Generar e imprimir informe oficial de la evaluación"
+              >
+                <i className="bi bi-printer" aria-hidden="true" />
+                <span>Ver Informe Oficial</span>
+              </Link>
               <EtiquetaEstado valor={evaluacion.resultado} contexto="resultado" />
               <EtiquetaEstado valor={evaluacion.estado} contexto="evaluacion" />
             </div>
