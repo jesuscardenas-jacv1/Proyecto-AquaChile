@@ -1,6 +1,7 @@
 import { datosSemilla } from './semilla';
 
-export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v2';
+// v3: agrega etapas del Planner y solicitudes demo; la clave nueva recarga la semilla.
+export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v3';
 
 const COLECCIONES = ['candidatos', 'solicitudes', 'evaluaciones'];
 

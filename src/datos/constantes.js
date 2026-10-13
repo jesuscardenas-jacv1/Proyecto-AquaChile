@@ -43,5 +43,19 @@ export const PROFESIONALES = [
   'Macarena Vidal',
 ];
 
+/**
+ * Etapas del Planner de la psicóloga (las mismas 4 columnas del Microsoft Planner
+ * "Status Evaluaciones" que usa hoy AquaChile). Cada etapa corresponde a uno de los
+ * estados oficiales del MVP, así el Planner detalla el estado sin reemplazarlo.
+ */
+export const ETAPAS_PLANNER = [
+  { id: 'recibida', titulo: 'Evaluación Recibida', estado: 'Pendiente', icono: 'bi-inbox' },
+  { id: 'agendada', titulo: 'Entrevista Agendada', estado: 'En proceso', icono: 'bi-calendar-event' },
+  { id: 'realizada', titulo: 'Entrevista Realizada', estado: 'En proceso', icono: 'bi-person-check' },
+  { id: 'informe', titulo: 'Informe enviado', estado: 'Finalizada', icono: 'bi-send-check' },
+];
+
+export const MODALIDADES_ENTREVISTA = ['Teams', 'Presencial', 'Telefónica'];
+
 /** Estados de solicitud que permiten registrar o actualizar una evaluación. */
 export const ESTADOS_QUE_PERMITEN_EVALUAR = ['En proceso', 'Finalizada'];
