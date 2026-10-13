@@ -8,6 +8,7 @@ const ENLACES = [
   { nombre: 'Dashboard', ruta: '/' },
   { nombre: 'Candidatos', ruta: '/candidatos' },
   { nombre: 'Solicitudes', ruta: '/solicitudes' },
+  { nombre: 'Planner', ruta: '/planner' },
 ];
 
 const renderNavbar = (ruta = '/') =>

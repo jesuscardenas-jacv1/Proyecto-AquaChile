@@ -162,6 +162,46 @@ describe('DatosContext', () => {
     expect(result.current.candidatos).toHaveLength(totalSemilla);
   });
 
+  it('mueve una solicitud por las etapas del Planner sincronizando el estado', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
+    const agenda = { fechaEntrevista: '2026-09-05', horaEntrevista: '10:00', modalidadEntrevista: 'Teams' };
+
+    act(() => {
+      result.current.moverEtapa(3, 'agendada', agenda);
+    });
+    expect(result.current.obtenerSolicitud(3)).toMatchObject({ ...agenda, etapa: 'agendada', estado: 'En proceso' });
+
+    act(() => {
+      result.current.moverEtapa(3, 'realizada');
+    });
+    expect(result.current.obtenerSolicitud(3)).toMatchObject({ etapa: 'realizada', fechaEntrevista: '2026-09-05' });
+
+    act(() => {
+      result.current.moverEtapa(3, 'recibida');
+    });
+    expect(result.current.obtenerSolicitud(3)).toMatchObject({
+      etapa: 'recibida',
+      estado: 'Pendiente',
+      fechaEntrevista: '',
+      horaEntrevista: '',
+    });
+  });
+
+  it('crea las solicitudes nuevas en la etapa Evaluación Recibida', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
+
+    let creada;
+    act(() => {
+      creada = result.current.agregarSolicitud({
+        candidatoId: 1,
+        cargo: 'Técnico de Planta',
+        familiaCargo: 'Técnico B C',
+        fechaSolicitud: '2026-09-02',
+      });
+    });
+    expect(creada).toMatchObject({ estado: 'Pendiente', etapa: 'recibida' });
+  });
+
   it('falla si el hook se usa fuera del proveedor', () => {
     expect(() => renderHook(() => useDatos())).toThrowError(
       /debe usarse dentro de un <ProveedorDatos>/,
