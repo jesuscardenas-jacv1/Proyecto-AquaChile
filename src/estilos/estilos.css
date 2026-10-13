@@ -404,3 +404,67 @@ h1, h2, h3, h4, h5, h6,
   overflow-x: auto;
   padding-bottom: 0.25rem;
 }
+
+/* Estilos de Informe Oficial e Impresión */
+.hoja-informe {
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.cabecera-informe-marca {
+  background-color: var(--aqua-primario);
+  color: #fff;
+  padding: 1.5rem;
+  border-radius: 8px 8px 0 0;
+}
+
+.caja-dictamen {
+  border: 2px solid var(--aqua-primario);
+  border-radius: 8px;
+  background: var(--aqua-gris-calido-claro);
+}
+
+.firma-linea {
+  border-top: 1px solid var(--aqua-primario);
+  width: 220px;
+  margin: 0 auto 0.5rem auto;
+}
+
+@media print {
+  .no-imprimir,
+  .navbar,
+  footer,
+  .btn {
+    display: none !important;
+  }
+
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  .hoja-informe {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .cabecera-informe-marca {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: #425563 !important;
+    color: #fff !important;
+  }
+
+  .caja-dictamen {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
