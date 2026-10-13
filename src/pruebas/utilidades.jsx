@@ -1,30 +1,47 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ProveedorDatos } from '../datos/DatosContext';
+import { ProveedorAuth } from '../datos/AuthContext';
+
+export const USUARIO_TEST_DEFAULT = {
+  id: 1,
+  nombre: 'Usuario Test',
+  correo: 'test@aquachile.cl',
+  rol: 'admin',
+  cargo: 'Administrador Demo',
+};
 
 /**
- * Helper de pruebas: renderiza un componente dentro del router y del
- * proveedor de datos con datos controlados.
+ * Helper de pruebas: renderiza un componente dentro del router y de los
+ * proveedores de datos y autenticación con datos controlados.
  */
-export function renderConContexto(ui, { ruta = '/', datosIniciales } = {}) {
+export function renderConContexto(
+  ui,
+  { ruta = '/', datosIniciales, usuario = USUARIO_TEST_DEFAULT } = {},
+) {
   return render(
     <MemoryRouter initialEntries={[ruta]}>
-      <ProveedorDatos datosIniciales={datosIniciales}>{ui}</ProveedorDatos>
+      <ProveedorAuth usuarioInicial={usuario}>
+        <ProveedorDatos datosIniciales={datosIniciales}>{ui}</ProveedorDatos>
+      </ProveedorAuth>
     </MemoryRouter>,
   );
 }
 
 /**
- * Wrapper para renderHook: entrega el ProveedorDatos con datos controlados.
+ * Wrapper para renderHook: entrega ProveedorAuth y ProveedorDatos con datos controlados.
  */
-export function crearWrapper(datosIniciales) {
+export function crearWrapper(datosIniciales, usuario = USUARIO_TEST_DEFAULT) {
   return function Wrapper({ children }) {
-    return <ProveedorDatos datosIniciales={datosIniciales}>{children}</ProveedorDatos>;
+    return (
+      <ProveedorAuth usuarioInicial={usuario}>
+        <ProveedorDatos datosIniciales={datosIniciales}>{children}</ProveedorDatos>
+      </ProveedorAuth>
+    );
   };
 }
 
 export const datosVacios = { candidatos: [], solicitudes: [], evaluaciones: [] };
-
 
 export const datosDePrueba = {
   candidatos: [
