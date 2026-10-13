@@ -11,7 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "importar:bd": "node scripts/importar-bd-simulada.mjs"
+    "importar:bd": "node scripts/importar-bd-simulada.mjs",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:migrar": "npm --prefix backend run db:migrar",
+    "backend:semilla": "npm --prefix backend run db:semilla",
+    "backend:test": "npm --prefix backend test"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",

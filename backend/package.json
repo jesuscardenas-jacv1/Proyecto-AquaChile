@@ -1,0 +1,29 @@
+{
+  "name": "aquachile-api",
+  "version": "1.0.0",
+  "description": "API REST backend para el módulo de evaluaciones psicolaborales AquaChile (DSY1104)",
+  "type": "commonjs",
+  "main": "src/servidor.js",
+  "scripts": {
+    "start": "node src/servidor.js",
+    "dev": "node --watch src/servidor.js",
+    "db:migrar": "node src/bd/migrar.js",
+    "db:semilla": "node src/bd/semilla.js",
+    "test": "node src/probar_api.js"
+  },
+  "keywords": [
+    "aquachile",
+    "api",
+    "express",
+    "sqlite",
+    "evaluaciones"
+  ],
+  "author": "AquaChile - Reclutamiento y Selección",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

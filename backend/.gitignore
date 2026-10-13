@@ -1,0 +1,13 @@
+# Archivos de base de datos SQLite (no versionar la base en producción)
+datos.sqlite
+*.sqlite
+
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+.env.local
+
+# Logs
+*.log
