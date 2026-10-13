@@ -183,6 +183,92 @@ h1, h2, h3, h4, h5, h6,
   height: 0.35rem;
 }
 
+/* ------------------------------------------------------------------------- */
+/* Planner de la psicóloga: columnas por etapa con la paleta corporativa.     */
+/* ------------------------------------------------------------------------- */
+.planner-columna {
+  background-color: var(--aqua-gris-calido);
+  border-radius: 0.5rem;
+  border-top: 4px solid var(--aqua-primario);
+  padding: 0.75rem;
+}
+
+.planner-columna-recibida {
+  border-top-color: var(--aqua-gris-calido-texto);
+}
+
+.planner-columna-agendada {
+  border-top-color: var(--aqua-primario);
+}
+
+.planner-columna-realizada {
+  border-top-color: var(--aqua-acento);
+}
+
+.planner-columna-informe {
+  border-top-color: var(--bs-success);
+}
+
+.planner-columna-cabecera {
+  margin-bottom: 0.75rem;
+}
+
+.planner-columna-vacia {
+  border: 1px dashed var(--aqua-gris-calido-borde);
+  border-radius: 0.375rem;
+}
+
+.planner-tarjeta {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.planner-tarjeta:hover,
+.planner-tarjeta:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.planner-tarjeta .card-footer {
+  border-top: 1px solid var(--aqua-gris-calido);
+}
+
+.planner-tarjeta-nombre {
+  color: var(--aqua-primario-oscuro);
+}
+
+.planner-tarjeta-nombre:hover {
+  color: var(--aqua-acento-oscuro);
+}
+
+.planner-avatar {
+  align-items: center;
+  background-color: var(--bs-primary-bg-subtle);
+  border-radius: 50%;
+  color: var(--aqua-primario-oscuro);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  height: 1.75rem;
+  justify-content: center;
+  width: 1.75rem;
+}
+
+.planner-solicitante {
+  max-width: 9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planner-tarjeta {
+    transition: none;
+  }
+
+  .planner-tarjeta:hover,
+  .planner-tarjeta:focus-within {
+    transform: none;
+  }
+}
+
 /* ---------------------------- Gráficos del dashboard ---------------------------- */
 .tabular {
   font-variant-numeric: tabular-nums;
