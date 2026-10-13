@@ -1,5 +1,6 @@
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAuth } from '../datos/AuthContext';
 import { ESTADOS_QUE_PERMITEN_EVALUAR } from '../datos/constantes';
 import { formatearFecha } from '../dominio/formateo';
 import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
@@ -12,6 +13,7 @@ export default function DetalleSolicitud() {
   const { id } = useParams();
   const navegar = useNavigate();
   const ubicacion = useLocation();
+  const { esAnalista, esEvaluador } = useAuth();
   const {
     obtenerSolicitud,
     obtenerCandidato,
@@ -166,28 +168,60 @@ export default function DetalleSolicitud() {
           )}
         </div>
         <div className="card-body">
-          {!puedeEvaluar ? (
-            <Mensaje tipo="info">
-              Para registrar o actualizar una evaluación, la solicitud debe estar en estado{' '}
-              <strong>En proceso</strong>. Cámbiala desde el panel de gestión.
-            </Mensaje>
-          ) : null}
+          {/* Vista para el profesional evaluador (acceso clínico completo) */}
+          {esEvaluador && (
+            <>
+              {!puedeEvaluar ? (
+                <Mensaje tipo="info">
+                  Para registrar o actualizar una evaluación, la solicitud debe estar en estado{' '}
+                  <strong>En proceso</strong>. Cámbiala desde el panel de gestión.
+                </Mensaje>
+              ) : null}
 
-          {evaluacion ? (
-            <div className="mb-3">
-              <p className="small text-secondary mb-1">
-                Fecha de evaluación: {formatearFecha(evaluacion.fechaEvaluacion)}
-              </p>
-              <p className="mb-0">{evaluacion.observaciones}</p>
-            </div>
-          ) : null}
+              {evaluacion ? (
+                <div className="mb-3">
+                  <p className="small text-secondary mb-1">
+                    Fecha de evaluación: {formatearFecha(evaluacion.fechaEvaluacion)}
+                  </p>
+                  <p className="mb-0">{evaluacion.observaciones}</p>
+                </div>
+              ) : null}
 
-          {puedeEvaluar ? (
-            <FormularioEvaluacion
-              evaluacion={evaluacion}
-              alGuardar={(datos) => registrarEvaluacion(solicitud.id, datos)}
-            />
-          ) : null}
+              {puedeEvaluar ? (
+                <FormularioEvaluacion
+                  evaluacion={evaluacion}
+                  alGuardar={(datos) => registrarEvaluacion(solicitud.id, datos)}
+                />
+              ) : null}
+            </>
+          )}
+
+          {/* Vista para el analista de reclutamiento (solo dictamen final, observaciones confidenciales) */}
+          {esAnalista && !esEvaluador && (
+            <>
+              {evaluacion ? (
+                <div className="d-flex flex-column gap-2">
+                  <div className="p-3 bg-light rounded border d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                      <span className="text-secondary small d-block">Dictamen de la evaluación:</span>
+                      <strong className="fs-6">{evaluacion.resultado}</strong>
+                      <span className="text-secondary small d-block mt-1">
+                        Fecha de informe: {formatearFecha(evaluacion.fechaEvaluacion)}
+                      </span>
+                    </div>
+                    <EtiquetaEstado valor={evaluacion.resultado} contexto="resultado" />
+                  </div>
+                  <p className="small text-secondary fst-italic mb-0">
+                    * Las notas clínicas y pauta detallada de entrevista son confidenciales del profesional evaluador.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-secondary mb-0">
+                  La evaluación aún no ha sido realizada por el profesional asignado.
+                </p>
+              )}
+            </>
+          )}
         </div>
       </section>
     </div>

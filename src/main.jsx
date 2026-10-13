@@ -6,13 +6,16 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './estilos/estilos.css';
 import App from './App';
 import { ProveedorDatos } from './datos/DatosContext';
+import { ProveedorAuth } from './datos/AuthContext';
 
 createRoot(document.getElementById('raiz')).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <ProveedorDatos>
-        <App />
-      </ProveedorDatos>
+      <ProveedorAuth>
+        <ProveedorDatos>
+          <App />
+        </ProveedorDatos>
+      </ProveedorAuth>
     </BrowserRouter>
   </StrictMode>,
 );

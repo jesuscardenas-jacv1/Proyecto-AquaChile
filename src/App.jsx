@@ -7,22 +7,49 @@ import EditarCandidato from './paginas/EditarCandidato';
 import Solicitudes from './paginas/Solicitudes';
 import NuevaSolicitud from './paginas/NuevaSolicitud';
 import DetalleSolicitud from './paginas/DetalleSolicitud';
+import Login from './paginas/Login';
 import NoEncontrada from './paginas/NoEncontrada';
+import RutaProtegida from './componentes/comunes/RutaProtegida';
 
-/** Definición de rutas de la aplicación. */
+/** Definición de rutas de la aplicación con control de acceso por roles. */
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/candidatos" element={<Candidatos />} />
-        <Route path="/candidatos/nuevo" element={<NuevoCandidato />} />
-        <Route path="/candidatos/:id/editar" element={<EditarCandidato />} />
-        <Route path="/solicitudes" element={<Solicitudes />} />
-        <Route path="/solicitudes/nueva" element={<NuevaSolicitud />} />
-        <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
-        <Route path="/candidatos-inexistente" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<NoEncontrada />} />
+      <Route path="/login" element={<Login />} />
+
+      <Route element={<RutaProtegida />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/candidatos" element={<Candidatos />} />
+          <Route
+            path="/candidatos/nuevo"
+            element={
+              <RutaProtegida rolesPermitidos={['analista']}>
+                <NuevoCandidato />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/candidatos/:id/editar"
+            element={
+              <RutaProtegida rolesPermitidos={['analista']}>
+                <EditarCandidato />
+              </RutaProtegida>
+            }
+          />
+          <Route path="/solicitudes" element={<Solicitudes />} />
+          <Route
+            path="/solicitudes/nueva"
+            element={
+              <RutaProtegida rolesPermitidos={['analista']}>
+                <NuevaSolicitud />
+              </RutaProtegida>
+            }
+          />
+          <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
+          <Route path="/candidatos-inexistente" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NoEncontrada />} />
+        </Route>
       </Route>
     </Routes>
   );

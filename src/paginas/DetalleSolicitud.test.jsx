@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DetalleSolicitud from './DetalleSolicitud';
 import { datosDePrueba } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
+import { ProveedorAuth } from '../datos/AuthContext';
 
 const renderDetalle = (id = '3') =>
   render(
@@ -89,5 +90,27 @@ describe('DetalleSolicitud', () => {
 
     await usuario.click(screen.getByRole('button', { name: /volver a solicitudes/i }));
     expect(screen.getByRole('heading', { name: /listado de solicitudes/i })).toBeInTheDocument();
+  });
+
+  it('para un analista muestra solo el dictamen y oculta las observaciones por confidencialidad', () => {
+    render(
+      <MemoryRouter initialEntries={['/solicitudes/1']}>
+        <ProveedorAuth usuarioInicial={{ id: 1, rol: 'analista', nombre: 'Carolina' }}>
+          <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+            <Routes>
+              <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
+            </Routes>
+          </ProveedorDatos>
+        </ProveedorAuth>
+      </MemoryRouter>,
+    );
+
+    // Muestra la tarjeta de dictamen
+    expect(screen.getByText(/dictamen de la evaluación/i)).toBeInTheDocument();
+    expect(screen.getByText(/confidencial/i)).toBeInTheDocument();
+    // La observación cualitativa 'Perfil estable y buen trabajo en equipo.' NO debe mostrarse al analista
+    expect(screen.queryByText('Perfil estable y buen trabajo en equipo.')).toBeNull();
+    // No debe mostrar el formulario de evaluación al analista
+    expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
   });
 });

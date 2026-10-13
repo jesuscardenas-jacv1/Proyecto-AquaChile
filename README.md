@@ -115,18 +115,26 @@ src/
 └── pruebas/                       # configuración y utilidades compartidas de pruebas
 ```
 
-## Vistas
+## Vistas y Control de Acceso (RBAC)
 
-| Ruta | Vista |
-| --- | --- |
-| `/` | Dashboard con indicadores (totales por estado, % finalizadas, distribución por familia) |
-| `/candidatos` | Listado de candidatos con búsqueda, edición y eliminación |
-| `/candidatos/nuevo` | Formulario de registro de candidato |
-| `/candidatos/:id/editar` | Formulario de edición de candidato |
-| `/solicitudes` | Listado de solicitudes con búsqueda y filtros por estado y familia |
-| `/solicitudes/nueva` | Formulario de nueva solicitud (completa el cargo desde el candidato) |
-| `/solicitudes/:id` | Detalle: asignar profesional, cambiar estado, registrar/actualizar evaluación |
-| `*` | Página 404 |
+| Ruta | Vista | Acceso por Rol |
+| --- | --- | --- |
+| `/login` | Inicio de sesión corporativo | No autenticado |
+| `/` | Dashboard con indicadores y KPIs generales | Analista y Evaluador |
+| `/candidatos` | Directorio de candidatos con búsqueda | Analista y Evaluador |
+| `/candidatos/nuevo` | Formulario de registro de candidato | Exclusivo Analista |
+| `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
+| `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
+| `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
+| `/solicitudes/:id` | Ficha, panel de gestión y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
+| `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
+
+## Usuarios de demostración (AquaChile)
+
+| Rol | Correo / Alias | Contraseña | Funciones |
+| --- | --- | --- | --- |
+| **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
+| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
 
 ## Flujo principal a demostrar
 
