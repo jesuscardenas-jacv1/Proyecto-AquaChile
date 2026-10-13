@@ -15,6 +15,7 @@ export default function Navbar() {
     { ruta: '/', etiqueta: 'Dashboard', exacto: true },
     { ruta: '/candidatos', etiqueta: 'Candidatos' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes' },
+    { ruta: '/planner', etiqueta: 'Planner' },
     ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud' }] : []),
   ];
 

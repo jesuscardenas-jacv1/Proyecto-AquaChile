@@ -8,14 +8,27 @@ import {
   RESULTADOS_EVALUACION,
 } from './constantes';
 import { validarCandidato, validarEvaluacion, validarSolicitud } from '../dominio/validaciones';
+import { estadoDeEtapa, validarAgenda } from '../dominio/planner';
+import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner';
 
 const { candidatos, solicitudes, evaluaciones } = datosSemilla;
 
 describe('BD simulada (semilla)', () => {
-  it('trae las 100 evaluaciones del Excel', () => {
-    expect(candidatos).toHaveLength(100);
-    expect(solicitudes).toHaveLength(100);
+  it('trae las 100 evaluaciones del Excel más las solicitudes demo del Planner', () => {
+    expect(candidatos).toHaveLength(100 + candidatosDemoPlanner.length);
+    expect(solicitudes).toHaveLength(100 + solicitudesDemoPlanner.length);
     expect(evaluaciones).toHaveLength(100);
+  });
+
+  it('las solicitudes demo cubren las etapas en curso del Planner', () => {
+    const etapas = new Set(solicitudesDemoPlanner.map((solicitud) => solicitud.etapa));
+    expect([...etapas].sort()).toEqual(['agendada', 'realizada', 'recibida']);
+    solicitudesDemoPlanner.forEach((solicitud) => {
+      expect(estadoDeEtapa(solicitud.etapa)).toBe(solicitud.estado);
+      if (solicitud.etapa !== 'recibida') {
+        expect(validarAgenda(solicitud, solicitud)).toEqual({});
+      }
+    });
   });
 
   it('cumple las validaciones de la aplicación', () => {

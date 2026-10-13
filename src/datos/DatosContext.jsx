@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
 import { ESTADOS_EVALUACION } from './constantes';
 import { estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
+import { estadoDeEtapa } from '../dominio/planner';
 
 const ContextoDatos = createContext(null);
 
@@ -66,6 +67,7 @@ export function ProveedorDatos({ children, datosIniciales }) {
         familiaCargo: nueva.familiaCargo,
         fechaSolicitud: nueva.fechaSolicitud,
         estado: 'Pendiente',
+        etapa: 'recibida',
         profesionalResponsable: nueva.profesionalResponsable ?? '',
         observaciones: nueva.observaciones?.trim() ?? '',
         tipoEvaluacion: nueva.tipoEvaluacion ?? '',
@@ -99,6 +101,31 @@ export function ProveedorDatos({ children, datosIniciales }) {
     (id) => datos.solicitudes.find((solicitud) => solicitud.id === Number(id)) ?? null,
     [datos.solicitudes],
   );
+
+  /**
+   * Mueve una solicitud a otra etapa del Planner y sincroniza su estado oficial.
+   * Si se entregan datos de agenda (fecha, hora, modalidad) se guardan con la etapa;
+   * al volver a "Evaluación Recibida" la entrevista queda nuevamente por coordinar.
+   */
+  const moverEtapa = useCallback((id, etapa, agenda = {}) => {
+    setDatos((actual) => ({
+      ...actual,
+      solicitudes: actual.solicitudes.map((solicitud) => {
+        if (solicitud.id !== Number(id)) return solicitud;
+        const datosAgenda =
+          etapa === 'recibida'
+            ? { fechaEntrevista: '', horaEntrevista: '', modalidadEntrevista: '' }
+            : {
+                ...(agenda.fechaEntrevista ? { fechaEntrevista: agenda.fechaEntrevista } : {}),
+                ...(agenda.horaEntrevista ? { horaEntrevista: agenda.horaEntrevista } : {}),
+                ...(agenda.modalidadEntrevista
+                  ? { modalidadEntrevista: agenda.modalidadEntrevista }
+                  : {}),
+              };
+        return { ...solicitud, ...datosAgenda, etapa, estado: estadoDeEtapa(etapa) };
+      }),
+    }));
+  }, []);
 
   const asignarProfesional = useCallback((id, profesional) => {
     setDatos((actual) => ({
@@ -176,6 +203,7 @@ export function ProveedorDatos({ children, datosIniciales }) {
       actualizarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
+      moverEtapa,
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
       reiniciarDatos,
@@ -190,6 +218,7 @@ export function ProveedorDatos({ children, datosIniciales }) {
       actualizarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
+      moverEtapa,
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
       reiniciarDatos,
