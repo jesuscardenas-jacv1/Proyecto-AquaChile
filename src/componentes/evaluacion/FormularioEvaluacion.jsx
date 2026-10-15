@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { RESULTADOS_EVALUACION } from '../../datos/constantes';
 import { hayErrores, validarEvaluacion } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
@@ -8,6 +8,13 @@ const CAMPOS_INICIALES = {
   resultado: '',
   observaciones: '',
   estado: 'Realizada',
+};
+
+/** Color de cada opción, igual al de las etiquetas de resultado del resto de la app. */
+const COLOR_RESULTADO = {
+  Recomendado: 'btn-outline-success',
+  'Recomendado con observaciones': 'btn-outline-warning',
+  'No recomendado': 'btn-outline-danger',
 };
 
 const construirEstadoInicial = (evaluacion) => ({
@@ -80,27 +87,30 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar }) {
               role="group"
               aria-label="Resultado de la evaluación"
             >
-              {RESULTADOS_EVALUACION.map((resultado) => (
-                <input
-                  key={resultado}
-                  className={`btn-check ${errorDe('resultado') ? 'is-invalid' : ''}`.trim()}
-                  type="radio"
-                  name="resultado"
-                  id={`resultado-${resultado.replace(/\s/g, '-').toLowerCase()}`}
-                  value={resultado}
-                  checked={formulario.resultado === resultado}
-                  onChange={cambiarCampo}
-                />
-              ))}
-              {RESULTADOS_EVALUACION.map((resultado) => (
-                <label
-                  key={resultado}
-                  className="btn btn-outline-secondary"
-                  htmlFor={`resultado-${resultado.replace(/\s/g, '-').toLowerCase()}`}
-                >
-                  {resultado}
-                </label>
-              ))}
+              {RESULTADOS_EVALUACION.map((resultado) => {
+                const id = `resultado-${resultado.replace(/\s/g, '-').toLowerCase()}`;
+                // Bootstrap marca el botón con el selector `.btn-check:checked + .btn`,
+                // por eso cada radio debe ir inmediatamente seguido de su propia etiqueta.
+                return (
+                  <Fragment key={resultado}>
+                    <input
+                      className={`btn-check ${errorDe('resultado') ? 'is-invalid' : ''}`.trim()}
+                      type="radio"
+                      name="resultado"
+                      id={id}
+                      value={resultado}
+                      checked={formulario.resultado === resultado}
+                      onChange={cambiarCampo}
+                    />
+                    <label className={`btn ${COLOR_RESULTADO[resultado]}`} htmlFor={id}>
+                      {formulario.resultado === resultado ? (
+                        <i className="bi bi-check-lg me-1" aria-hidden="true" />
+                      ) : null}
+                      {resultado}
+                    </label>
+                  </Fragment>
+                );
+              })}
             </div>
             {errorDe('resultado') ? (
               <div className="text-danger small mt-1">{errores.resultado}</div>

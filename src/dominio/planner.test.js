@@ -11,6 +11,10 @@ import {
   hoyIso,
   textoEntrevista,
   validarAgenda,
+  filtrarInformes,
+  paginar,
+  paginasVisibles,
+  resumenResultados,
 } from './planner';
 
 describe('etapas del Planner', () => {
@@ -148,5 +152,59 @@ describe('validarAgenda', () => {
     expect(validarAgenda({ ...valida, modalidadEntrevista: 'Zoom' }, solicitud)).toHaveProperty(
       'modalidadEntrevista',
     );
+  });
+});
+
+describe('informes enviados', () => {
+  const informe = (id, nombre, resultado, fechaInforme, profesionalResponsable = 'Javiera Soto') => ({
+    solicitud: { id, cargo: 'Operario', familiaCargo: 'Operario', ubicacion: 'Planta Calbuco', profesionalResponsable },
+    candidato: { nombre },
+    evaluacion: { resultado, fechaInforme },
+  });
+  const informes = [
+    informe(1, 'Bruno Díaz', 'Recomendado', '2026-03-01'),
+    informe(2, 'Ana Soto', 'No recomendado', '2026-05-01', 'Carolina Muñoz'),
+    informe(3, 'Carla Ríos', 'Recomendado', '2026-04-01'),
+  ];
+
+  it('ordena por fecha de informe o por nombre', () => {
+    expect(filtrarInformes(informes).map((i) => i.solicitud.id)).toEqual([2, 3, 1]);
+    expect(filtrarInformes(informes, { orden: 'antiguos' }).map((i) => i.solicitud.id)).toEqual([1, 3, 2]);
+    expect(filtrarInformes(informes, { orden: 'nombre' }).map((i) => i.candidato.nombre)).toEqual([
+      'Ana Soto',
+      'Bruno Díaz',
+      'Carla Ríos',
+    ]);
+  });
+
+  it('filtra por texto sin tildes, resultado y reclutador/a', () => {
+    expect(filtrarInformes(informes, { texto: 'rios' }).map((i) => i.solicitud.id)).toEqual([3]);
+    expect(filtrarInformes(informes, { texto: '#2' }).map((i) => i.solicitud.id)).toEqual([2]);
+    expect(filtrarInformes(informes, { resultado: 'Recomendado' })).toHaveLength(2);
+    expect(filtrarInformes(informes, { solicitante: 'Carolina Muñoz' })).toHaveLength(1);
+  });
+
+  it('cuenta los informes por resultado', () => {
+    expect(resumenResultados(informes, ['Recomendado', 'No recomendado', 'Recomendado con observaciones'])).toEqual({
+      Recomendado: 2,
+      'No recomendado': 1,
+      'Recomendado con observaciones': 0,
+    });
+  });
+
+  it('pagina la lista y corrige páginas fuera de rango', () => {
+    const lista = Array.from({ length: 25 }, (_, i) => i + 1);
+    expect(paginar(lista, 1, 12)).toMatchObject({ pagina: 1, totalPaginas: 3, desde: 1, hasta: 12 });
+    expect(paginar(lista, 3, 12)).toMatchObject({ elementos: [25], desde: 25, hasta: 25 });
+    expect(paginar(lista, 99, 12).pagina).toBe(3);
+    expect(paginar(lista, 'abc', 12).pagina).toBe(1);
+    expect(paginar([], 1, 12)).toMatchObject({ totalPaginas: 1, desde: 0, hasta: 0 });
+  });
+
+  it('abrevia la lista de páginas cuando son muchas', () => {
+    expect(paginasVisibles(1, 5)).toEqual([1, 2, 3, 4, 5]);
+    expect(paginasVisibles(1, 9)).toEqual([1, 2, '…', 9]);
+    expect(paginasVisibles(5, 9)).toEqual([1, '…', 4, 5, 6, '…', 9]);
+    expect(paginasVisibles(9, 9)).toEqual([1, '…', 8, 9]);
   });
 });

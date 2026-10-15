@@ -1,4 +1,5 @@
 import { ETAPAS_PLANNER, MODALIDADES_ENTREVISTA } from '../datos/constantes';
+import { normalizar as normalizarTexto } from './texto';
 
 /**
  * Reglas del Planner de la psicóloga.
@@ -174,4 +175,81 @@ export function accionesDisponibles(idEtapa) {
     reagendar: idEtapa === 'agendada',
     retroceder: idEtapa === 'agendada' || idEtapa === 'realizada',
   };
+}
+
+/* ------------------------------------------------------------------------- */
+/* Pantalla "Informes enviados": filtros, resumen y paginación.              */
+/* ------------------------------------------------------------------------- */
+
+/** Fecha en que se envió el informe de una solicitud finalizada. */
+export function fechaInformeDe(solicitud, evaluacion) {
+  return evaluacion?.fechaInforme || evaluacion?.fechaEvaluacion || solicitud?.fechaSolicitud || '';
+}
+
+/**
+ * Filtra y ordena los informes enviados.
+ * @param {Array} informes elementos { solicitud, candidato, evaluacion }
+ * @param {Object} criterios { texto, resultado, solicitante, orden: 'recientes' | 'antiguos' | 'nombre' }
+ */
+export function filtrarInformes(informes = [], criterios = {}) {
+  const { texto = '', resultado = '', solicitante = '', orden = 'recientes' } = criterios;
+  const busqueda = normalizarTexto(texto.trim());
+
+  const filtrados = informes.filter(({ solicitud, candidato, evaluacion }) => {
+    if (resultado && evaluacion?.resultado !== resultado) return false;
+    if (solicitante && solicitud.profesionalResponsable !== solicitante) return false;
+    if (!busqueda) return true;
+    return normalizarTexto(
+      [candidato?.nombre, solicitud.cargo, solicitud.familiaCargo, solicitud.ubicacion, `#${solicitud.id}`].join(' '),
+    ).includes(busqueda);
+  });
+
+  const porFecha = (a, b) =>
+    fechaInformeDe(a.solicitud, a.evaluacion).localeCompare(fechaInformeDe(b.solicitud, b.evaluacion)) ||
+    a.solicitud.id - b.solicitud.id;
+
+  if (orden === 'antiguos') return filtrados.sort(porFecha);
+  if (orden === 'nombre') {
+    return filtrados.sort((a, b) =>
+      (a.candidato?.nombre ?? '').localeCompare(b.candidato?.nombre ?? '', 'es'),
+    );
+  }
+  return filtrados.sort((a, b) => porFecha(b, a));
+}
+
+/** Cuenta los informes por resultado (para las tarjetas de resumen). */
+export function resumenResultados(informes = [], resultados = []) {
+  const conteo = Object.fromEntries(resultados.map((resultado) => [resultado, 0]));
+  informes.forEach(({ evaluacion }) => {
+    if (evaluacion?.resultado in conteo) conteo[evaluacion.resultado] += 1;
+  });
+  return conteo;
+}
+
+/**
+ * Devuelve una página de la lista. Si la página pedida no existe, entrega la más cercana.
+ * @returns {{ elementos: Array, pagina: number, totalPaginas: number, desde: number, hasta: number }}
+ */
+export function paginar(lista = [], pagina = 1, tamano = 12) {
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / tamano));
+  const actual = Math.min(Math.max(1, Number(pagina) || 1), totalPaginas);
+  const inicio = (actual - 1) * tamano;
+  const elementos = lista.slice(inicio, inicio + tamano);
+  return {
+    elementos,
+    pagina: actual,
+    totalPaginas,
+    desde: elementos.length ? inicio + 1 : 0,
+    hasta: inicio + elementos.length,
+  };
+}
+
+/** Números de página a mostrar, con "…" cuando hay muchas (ej: 1 … 4 5 6 … 9). */
+export function paginasVisibles(pagina, totalPaginas) {
+  if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+  const cercanas = [pagina - 1, pagina, pagina + 1].filter((n) => n > 1 && n < totalPaginas);
+  const paginas = [1, ...cercanas, totalPaginas];
+  return paginas.flatMap((numero, indice) =>
+    indice > 0 && numero - paginas[indice - 1] > 1 ? ['…', numero] : [numero],
+  );
 }

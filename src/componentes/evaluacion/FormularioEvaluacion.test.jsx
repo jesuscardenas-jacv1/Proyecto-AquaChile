@@ -76,4 +76,24 @@ describe('FormularioEvaluacion', () => {
       expect(screen.getByRole('radio', { name: resultado })).toBeInTheDocument();
     });
   });
+
+  it('pinta como seleccionado el botón de la opción elegida', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario();
+
+    // Cada radio debe ir seguido de su propia etiqueta para que Bootstrap marque el botón correcto.
+    ['Recomendado', 'Recomendado con observaciones', 'No recomendado'].forEach((resultado) => {
+      const radio = screen.getByRole('radio', { name: resultado });
+      expect(radio.nextElementSibling.tagName).toBe('LABEL');
+      expect(radio.nextElementSibling).toHaveAttribute('for', radio.id);
+    });
+
+    await usuario.click(screen.getByText('No recomendado'));
+    expect(screen.getByRole('radio', { name: 'No recomendado' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Recomendado' })).not.toBeChecked();
+
+    await usuario.dblClick(screen.getByText('Recomendado con observaciones'));
+    expect(screen.getByRole('radio', { name: 'Recomendado con observaciones' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'No recomendado' })).not.toBeChecked();
+  });
 });

@@ -19,6 +19,7 @@ const renderPlanner = (usuario = EVALUADORA) =>
           <Routes>
             <Route path="/planner" element={<Planner />} />
             <Route path="/solicitudes/:id" element={<h1>Detalle de la solicitud</h1>} />
+            <Route path="/planner/informes" element={<h1>Pantalla de informes</h1>} />
           </Routes>
         </ProveedorDatos>
       </ProveedorAuth>
@@ -128,5 +129,13 @@ describe('Planner', () => {
 
     expect(boton).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText(/informe enviado el/i)).not.toBeInTheDocument();
+  });
+
+  it('enlaza a la pantalla con todos los informes enviados', async () => {
+    const usuario = userEvent.setup();
+    renderPlanner();
+
+    await usuario.click(screen.getByRole('link', { name: /ver todos los informes/i }));
+    expect(screen.getByRole('heading', { name: 'Pantalla de informes' })).toBeInTheDocument();
   });
 });
