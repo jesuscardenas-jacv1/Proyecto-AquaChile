@@ -9,6 +9,7 @@ import NuevaSolicitud from './paginas/NuevaSolicitud';
 import DetalleSolicitud from './paginas/DetalleSolicitud';
 import InformePsicolaboral from './paginas/InformePsicolaboral';
 import Planner from './paginas/Planner';
+import InformesEnviados from './paginas/InformesEnviados';
 import Login from './paginas/Login';
 import NoEncontrada from './paginas/NoEncontrada';
 import RutaProtegida from './componentes/comunes/RutaProtegida';
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
           <Route path="/solicitudes/:id/informe" element={<InformePsicolaboral />} />
           <Route path="/planner" element={<Planner />} />
+          <Route path="/planner/informes" element={<InformesEnviados />} />
           <Route path="/candidatos-inexistente" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NoEncontrada />} />
         </Route>

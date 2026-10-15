@@ -51,6 +51,12 @@ export default function Planner() {
 
   const grupos = useMemo(() => agruparPorEtapa(filtradas, evaluaciones), [filtradas, evaluaciones]);
   const hayFiltros = Boolean(texto || solicitante);
+  // Los filtros del Planner se mantienen al abrir la pantalla de informes enviados.
+  const enlaceInformes = `/planner/informes${
+    hayFiltros
+      ? `?${new URLSearchParams({ ...(texto ? { q: texto } : {}), ...(solicitante ? { solicitante } : {}) })}`
+      : ''
+  }`;
 
   const nombreDe = (solicitud) => candidatosPorId[solicitud.candidatoId]?.nombre ?? 'el candidato';
 
@@ -172,6 +178,7 @@ export default function Planner() {
               etapa={etapa}
               cantidad={grupos[etapa.id].length}
               completadas={etapa.id === 'informe'}
+              enlaceVerTodos={etapa.id === 'informe' ? enlaceInformes : undefined}
             >
               {grupos[etapa.id].map((solicitud) => (
                 <TarjetaPlanner

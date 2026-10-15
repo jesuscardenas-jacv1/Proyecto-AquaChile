@@ -258,6 +258,30 @@ h1, h2, h3, h4, h5, h6,
   max-width: 9rem;
 }
 
+/* Paginación con los colores de marca (Bootstrap usa azul por defecto). */
+.pagination {
+  --bs-pagination-color: var(--aqua-primario);
+  --bs-pagination-hover-color: var(--aqua-primario-oscuro);
+  --bs-pagination-hover-bg: var(--aqua-gris-calido);
+  --bs-pagination-focus-color: var(--aqua-primario-oscuro);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(var(--aqua-primario-rgb), 0.25);
+  --bs-pagination-active-bg: var(--aqua-primario);
+  --bs-pagination-active-border-color: var(--aqua-primario);
+  --bs-pagination-border-color: var(--aqua-gris-calido-borde);
+}
+
+.breadcrumb {
+  --bs-breadcrumb-item-active-color: var(--aqua-gris-calido-texto);
+}
+
+/* El amarillo de Bootstrap no se lee sobre blanco: se usa un tono más oscuro para el texto. */
+.btn-outline-warning {
+  --bs-btn-color: #8a6200;
+  --bs-btn-border-color: #e0a800;
+  --bs-btn-hover-color: #24303a;
+  --bs-btn-active-color: #24303a;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .planner-tarjeta {
     transition: none;
