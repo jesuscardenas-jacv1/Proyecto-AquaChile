@@ -6,8 +6,15 @@ import EstadoVacio from '../comunes/EstadoVacio';
 /**
  * Listado de candidatos con buscador.
  * En pantallas grandes muestra tabla y en pantallas pequeñas tarjetas.
+ * El nombre lleva a la ficha del candidato; editar, eliminar y registrar solo
+ * aparecen si se entregan sus acciones (perfil analista).
  */
-export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar }) {
+export default function ListaCandidatos({
+  candidatos = [],
+  alEditar,
+  alEliminar,
+  mostrarNuevo = true,
+}) {
   const [busqueda, setBusqueda] = useState('');
   const visibles = filtrarCandidatos(candidatos, busqueda);
 
@@ -71,20 +78,32 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
                 {visibles.map((candidato) => (
                   <tr key={candidato.id}>
                     <td>{candidato.id}</td>
-                    <td className="fw-semibold">{candidato.nombre}</td>
+                    <td className="fw-semibold">
+                      <Link to={`/candidatos/${candidato.id}`}>{candidato.nombre}</Link>
+                    </td>
                     <td>{candidato.correo}</td>
                     <td>{candidato.telefono}</td>
                     <td>{candidato.cargo}</td>
                     <td>{candidato.familiaCargo}</td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
-                        <button
-                          type="button"
+                        <Link
+                          to={`/candidatos/${candidato.id}`}
                           className="btn btn-outline-primary"
-                          onClick={() => alEditar(candidato)}
+                          aria-label={`Ver ficha de ${candidato.nombre}`}
                         >
-                          Editar
-                        </button>
+                          <i className="bi bi-folder2-open me-1" aria-hidden="true" />
+                          Ver ficha
+                        </Link>
+                        {alEditar ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={() => alEditar(candidato)}
+                          >
+                            Editar
+                          </button>
+                        ) : null}
                         {alEliminar ? (
                           <button
                             type="button"
@@ -106,7 +125,9 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
             {visibles.map((candidato) => (
               <article key={candidato.id} className="card m-3 border shadow-none">
                 <div className="card-body">
-                  <h3 className="h6 mb-1">{candidato.nombre}</h3>
+                  <h3 className="h6 mb-1">
+                    <Link to={`/candidatos/${candidato.id}`}>{candidato.nombre}</Link>
+                  </h3>
                   <p className="small text-secondary mb-2">
                     {candidato.cargo} · {candidato.familiaCargo}
                   </p>
@@ -119,13 +140,21 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
                     {candidato.telefono}
                   </p>
                   <div className="d-flex gap-2">
-                    <button
-                      type="button"
+                    <Link
+                      to={`/candidatos/${candidato.id}`}
                       className="btn btn-sm btn-outline-primary"
-                      onClick={() => alEditar(candidato)}
                     >
-                      Editar
-                    </button>
+                      Ver ficha
+                    </Link>
+                    {alEditar ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => alEditar(candidato)}
+                      >
+                        Editar
+                      </button>
+                    ) : null}
                     {alEliminar ? (
                       <button
                         type="button"
@@ -143,12 +172,14 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
         </>
       )}
 
-      <div className="card-footer bg-white d-flex justify-content-end">
-        <Link to="/candidatos/nuevo" className="btn btn-primary btn-sm">
-          <i className="bi bi-person-plus me-1" aria-hidden="true" />
-          Nuevo candidato
-        </Link>
-      </div>
+      {mostrarNuevo ? (
+        <div className="card-footer bg-white d-flex justify-content-end">
+          <Link to="/candidatos/nuevo" className="btn btn-primary btn-sm">
+            <i className="bi bi-person-plus me-1" aria-hidden="true" />
+            Nuevo candidato
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import Dashboard from './paginas/Dashboard';
 import Candidatos from './paginas/Candidatos';
 import NuevoCandidato from './paginas/NuevoCandidato';
 import EditarCandidato from './paginas/EditarCandidato';
+import DetalleCandidato from './paginas/DetalleCandidato';
 import Solicitudes from './paginas/Solicitudes';
 import NuevaSolicitud from './paginas/NuevaSolicitud';
 import DetalleSolicitud from './paginas/DetalleSolicitud';
@@ -32,6 +33,7 @@ export default function App() {
               </RutaProtegida>
             }
           />
+          <Route path="/candidatos/:id" element={<DetalleCandidato />} />
           <Route
             path="/candidatos/:id/editar"
             element={
