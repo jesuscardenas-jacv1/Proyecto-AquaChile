@@ -44,12 +44,30 @@ export function ProveedorDatos({ children, datosIniciales }) {
     }));
   }, []);
 
-  const eliminarCandidato = useCallback((id) => {
-    setDatos((actual) => ({
-      ...actual,
-      candidatos: actual.candidatos.filter((candidato) => candidato.id !== Number(id)),
-    }));
-  }, []);
+  /**
+   * Elimina un candidato solo si no tiene solicitudes asociadas (misma regla que la API,
+   * que responde 409): así no quedan solicitudes apuntando a un candidato inexistente.
+   * @returns {{ ok: boolean, error?: string }}
+   */
+  const eliminarCandidato = useCallback(
+    (id) => {
+      const total = datos.solicitudes.filter(
+        (solicitud) => solicitud.candidatoId === Number(id),
+      ).length;
+      if (total > 0) {
+        return {
+          ok: false,
+          error: `No se puede eliminar: el candidato tiene ${total} solicitud(es) asociada(s).`,
+        };
+      }
+      setDatos((actual) => ({
+        ...actual,
+        candidatos: actual.candidatos.filter((candidato) => candidato.id !== Number(id)),
+      }));
+      return { ok: true };
+    },
+    [datos.solicitudes],
+  );
 
   const obtenerCandidato = useCallback(
     (id) => datos.candidatos.find((candidato) => candidato.id === Number(id)) ?? null,

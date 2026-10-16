@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Navbar from './Navbar';
+import { ProveedorAuth } from '../../datos/AuthContext';
+import { USUARIO_TEST_DEFAULT } from '../../pruebas/utilidades';
 
 const ENLACES = [
   { nombre: 'Dashboard', ruta: '/' },
@@ -14,7 +16,9 @@ const ENLACES = [
 const renderNavbar = (ruta = '/') =>
   render(
     <MemoryRouter initialEntries={[ruta]}>
-      <Navbar />
+      <ProveedorAuth usuarioInicial={USUARIO_TEST_DEFAULT}>
+        <Navbar />
+      </ProveedorAuth>
     </MemoryRouter>,
   );
 

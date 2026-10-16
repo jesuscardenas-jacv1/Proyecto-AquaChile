@@ -1,148 +1,366 @@
 /**
- * Script de prueba y verificación de la API REST de AquaChile.
- * Prueba salud, login, RBAC y endpoints principales.
+ * Pruebas automatizadas de la API REST de AquaChile (node:test + node:assert).
  *
- * Ejecutar con: node backend/src/probar_api.js
+ * - Trabajan sobre una base SQLite TEMPORAL (variable AQUACHILE_BD), así que nunca
+ *   modifican backend/datos.sqlite.
+ * - Si una prueba falla, el proceso termina con código distinto de 0 (útil para CI).
+ *
+ * Ejecutar con: npm test (dentro de backend/)
  */
-const http = require('http');
+const { test, before, after, beforeEach } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const dirTemporal = fs.mkdtempSync(path.join(os.tmpdir(), 'aquachile-api-'));
+process.env.AQUACHILE_BD = path.join(dirTemporal, 'pruebas.sqlite');
+
+const { migrar } = require('./bd/migrar');
+const { sembrar } = require('./bd/semilla');
 const app = require('./servidor');
+const rutaAuth = require('./rutas/auth');
+const db = require('./bd/conexion');
 
-const PUERTO_TEST = 3099;
-const URL_BASE = `http://localhost:${PUERTO_TEST}/api`;
+let servidor;
+let URL_BASE;
+let tokenAnalista;
+let tokenEvaluador;
 
-async function ejecutarPruebas() {
-  const servidor = app.listen(PUERTO_TEST);
-  console.log('🧪 Iniciando pruebas automatizadas de la API Backend AquaChile...\n');
-
-  try {
-    // 1. Probar healthcheck
-    const resSalud = await fetch(`${URL_BASE}/salud`);
-    const dataSalud = await resSalud.json();
-    console.assert(resSalud.status === 200, 'Healthcheck debe responder 200');
-    console.assert(dataSalud.estado === 'operativo', 'Estado debe ser operativo');
-    console.log('✅ 1. Healthcheck (/api/salud) responde 200 OK');
-
-    // 2. Probar login analista
-    const resLoginAnalista = await fetch(`${URL_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        correo: 'analista@aquachile.cl',
-        contrasena: 'AquaChile2026!',
-      }),
-    });
-    const dataLoginAnalista = await resLoginAnalista.json();
-    console.assert(resLoginAnalista.status === 200, 'Login analista debe responder 200');
-    console.assert(Boolean(dataLoginAnalista.token), 'Debe devolver un JWT');
-    console.assert(dataLoginAnalista.usuario.rol === 'analista', 'Rol debe ser analista');
-    console.log('✅ 2. Login de Analista con JWT exitoso');
-
-    const tokenAnalista = dataLoginAnalista.token;
-
-    // 3. Probar login evaluador
-    const resLoginEval = await fetch(`${URL_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        correo: 'evaluador@aquachile.cl',
-        contrasena: 'AquaChile2026!',
-      }),
-    });
-    const dataLoginEval = await resLoginEval.json();
-    console.assert(resLoginEval.status === 200, 'Login evaluador debe responder 200');
-    console.assert(dataLoginEval.usuario.rol === 'evaluador', 'Rol debe ser evaluador');
-    console.log('✅ 3. Login de Evaluador con JWT exitoso');
-
-    const tokenEvaluador = dataLoginEval.token;
-
-    // 4. Probar credenciales incorrectas
-    const resLoginInvalido = await fetch(`${URL_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        correo: 'analista@aquachile.cl',
-        contrasena: 'clave_incorrecta',
-      }),
-    });
-    console.assert(resLoginInvalido.status === 401, 'Credenciales incorrectas debe responder 401');
-    console.log('✅ 4. Rechazo correcto ante credenciales erróneas (401)');
-
-    // 5. Listar candidatos con token
-    const resCandidatos = await fetch(`${URL_BASE}/candidatos`, {
-      headers: { Authorization: `Bearer ${tokenAnalista}` },
-    });
-    const dataCandidatos = await resCandidatos.json();
-    console.assert(resCandidatos.status === 200, 'Listar candidatos debe responder 200');
-    console.assert(dataCandidatos.total >= 100, `Debe haber al menos 100 candidatos, hay: ${dataCandidatos.total}`);
-    console.log(`✅ 5. Consulta de candidatos exitosa (Total: ${dataCandidatos.total})`);
-
-    // 6. Listar solicitudes con token
-    const resSolicitudes = await fetch(`${URL_BASE}/solicitudes`, {
-      headers: { Authorization: `Bearer ${tokenAnalista}` },
-    });
-    const dataSolicitudes = await resSolicitudes.json();
-    console.assert(resSolicitudes.status === 200, 'Listar solicitudes debe responder 200');
-    console.assert(dataSolicitudes.total === 100, `Debe haber 100 solicitudes, hay: ${dataSolicitudes.total}`);
-    console.log(`✅ 6. Consulta de solicitudes exitosa (Total: ${dataSolicitudes.total})`);
-
-    // 7. Confidencialidad: Detalle de solicitud 1 para Analista vs Evaluador
-    const resSolAnalista = await fetch(`${URL_BASE}/solicitudes/1`, {
-      headers: { Authorization: `Bearer ${tokenAnalista}` },
-    });
-    const dataSolAnalista = await resSolAnalista.json();
-    console.assert(dataSolAnalista.evaluacion.observaciones === undefined, 'Analista no debe ver observaciones clínicas');
-    console.assert(dataSolAnalista.evaluacion.confidencial === true, 'Debe marcar como confidencial');
-
-    const resSolEval = await fetch(`${URL_BASE}/solicitudes/1`, {
-      headers: { Authorization: `Bearer ${tokenEvaluador}` },
-    });
-    const dataSolEval = await resSolEval.json();
-    console.assert(typeof dataSolEval.evaluacion.observaciones === 'string', 'Evaluador debe ver observaciones clínicas');
-    console.log('✅ 7. Regla de confidencialidad médica/psicológica verificada en API');
-
-    // 8. Control de acceso RBAC: Evaluador intenta crear candidato (debe recibir 403)
-    const resRbactest = await fetch(`${URL_BASE}/candidatos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenEvaluador}`,
-      },
-      body: JSON.stringify({
-        nombre: 'Intento Evaluador',
-        correo: 'intento@correo.cl',
-        telefono: '+56911111111',
-        cargo: 'Cargo X',
-        familiaCargo: 'Familia X',
-      }),
-    });
-    console.assert(resRbactest.status === 403, 'Evaluador no debe poder crear candidatos (403)');
-    console.log('✅ 8. Control de acceso RBAC verificado (403 Forbidden para evaluador creando candidato)');
-
-    // 9. Analista crea candidato exitosamente (201)
-    const resCrear = await fetch(`${URL_BASE}/candidatos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenAnalista}`,
-      },
-      body: JSON.stringify({
-        nombre: 'Candidato Test API',
-        correo: 'test.api@aquachile.cl',
-        telefono: '+56999887766',
-        cargo: 'Jefe de Centro Cultivo',
-        familiaCargo: 'Jefatura B C',
-        origen: 'Externo',
-      }),
-    });
-    const dataCrear = await resCrear.json();
-    console.assert(resCrear.status === 201, 'Analista debe crear candidato con 201');
-    console.assert(dataCrear.candidato.id > 100, 'Nuevo candidato debe tener ID asignado');
-    console.log(`✅ 9. Creación de candidato por Analista exitosa (ID: ${dataCrear.candidato.id})`);
-
-    console.log('\n🎉 ¡TODAS LAS PRUEBAS DE LA API BACKEND PASARON EXITOSAMENTE!');
-  } finally {
-    servidor.close();
-  }
+async function pedir(metodo, ruta, { token, cuerpo } = {}) {
+  const respuesta = await fetch(`${URL_BASE}${ruta}`, {
+    method: metodo,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    ...(cuerpo !== undefined && { body: JSON.stringify(cuerpo) }),
+  });
+  const texto = await respuesta.text();
+  return { status: respuesta.status, datos: texto ? JSON.parse(texto) : null };
 }
 
-ejecutarPruebas();
+async function login(correo, contrasena = 'AquaChile2026!') {
+  return pedir('POST', '/auth/login', { cuerpo: { correo, contrasena } });
+}
+
+/** Crea un candidato y una solicitud nuevos (Pendiente) y devuelve sus ids. */
+async function crearSolicitudPendiente() {
+  const candidato = await pedir('POST', '/candidatos', {
+    token: tokenAnalista,
+    cuerpo: {
+      nombre: 'Candidata Prueba',
+      correo: `prueba.${Date.now()}.${Math.random()}@correo.cl`,
+      telefono: '+56911112222',
+      cargo: 'Operario de Planta',
+      familiaCargo: 'Operario',
+    },
+  });
+  assert.equal(candidato.status, 201);
+  const solicitud = await pedir('POST', '/solicitudes', {
+    token: tokenAnalista,
+    cuerpo: {
+      candidatoId: candidato.datos.candidato.id,
+      cargo: 'Operario de Planta',
+      familiaCargo: 'Operario',
+      fechaSolicitud: '2026-01-05',
+    },
+  });
+  assert.equal(solicitud.status, 201);
+  return { candidatoId: candidato.datos.candidato.id, solicitudId: solicitud.datos.solicitud.id };
+}
+
+const evaluacionValida = {
+  resultado: 'Recomendado',
+  observaciones: 'Perfil consistente con el cargo y buena disposición.',
+  fechaEvaluacion: '2026-01-10',
+};
+
+before(async () => {
+  migrar();
+  sembrar({ silencioso: true });
+  await new Promise((resolver) => {
+    servidor = app.listen(0, resolver);
+  });
+  URL_BASE = `http://127.0.0.1:${servidor.address().port}/api`;
+
+  tokenAnalista = (await login('analista@aquachile.cl')).datos.token;
+  tokenEvaluador = (await login('evaluador@aquachile.cl')).datos.token;
+});
+
+beforeEach(() => rutaAuth.reiniciarIntentos());
+
+after(() => {
+  servidor.close();
+  db.close();
+  fs.rmSync(dirTemporal, { recursive: true, force: true });
+});
+
+/* --------------------------------- Salud ---------------------------------- */
+
+test('healthcheck responde 200 y estado operativo', async () => {
+  const { status, datos } = await pedir('GET', '/salud');
+  assert.equal(status, 200);
+  assert.equal(datos.estado, 'operativo');
+});
+
+test('ruta inexistente responde 404', async () => {
+  const { status } = await pedir('GET', '/no-existe');
+  assert.equal(status, 404);
+});
+
+test('JSON mal formado responde 400 (no 500)', async () => {
+  const respuesta = await fetch(`${URL_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{"correo": ',
+  });
+  assert.equal(respuesta.status, 400);
+});
+
+/* ---------------------------------- Auth ---------------------------------- */
+
+test('login de analista y evaluador entrega JWT con el rol correcto', async () => {
+  const analista = await login('analista@aquachile.cl');
+  assert.equal(analista.status, 200);
+  assert.ok(analista.datos.token);
+  assert.equal(analista.datos.usuario.rol, 'analista');
+  assert.equal(analista.datos.usuario.contrasena_hash, undefined);
+
+  const evaluador = await login('mvictoria.bustamante@aquachile.cl');
+  assert.equal(evaluador.status, 200);
+  assert.equal(evaluador.datos.usuario.rol, 'evaluador');
+});
+
+test('credenciales incorrectas responden 401', async () => {
+  const { status } = await login('analista@aquachile.cl', 'incorrecta');
+  assert.equal(status, 401);
+});
+
+test('login con tipos inválidos responde 400 (no 500)', async () => {
+  const { status } = await pedir('POST', '/auth/login', { cuerpo: { correo: 123, contrasena: [] } });
+  assert.equal(status, 400);
+});
+
+test('tras 5 intentos fallidos el login se bloquea (429)', async () => {
+  for (let i = 0; i < 5; i += 1) {
+    assert.equal((await login('evaluador@aquachile.cl', 'mala')).status, 401);
+  }
+  assert.equal((await login('evaluador@aquachile.cl')).status, 429);
+});
+
+test('sin token o con token inválido responde 401', async () => {
+  assert.equal((await pedir('GET', '/candidatos')).status, 401);
+  assert.equal((await pedir('GET', '/candidatos', { token: 'no-es-un-jwt' })).status, 401);
+});
+
+test('perfil devuelve al usuario autenticado', async () => {
+  const { status, datos } = await pedir('GET', '/auth/perfil', { token: tokenAnalista });
+  assert.equal(status, 200);
+  assert.equal(datos.usuario.correo, 'carolina.munoz@aquachile.cl');
+});
+
+/* ------------------------------- Candidatos ------------------------------- */
+
+test('lista los 100 candidatos de la base simulada', async () => {
+  const { status, datos } = await pedir('GET', '/candidatos', { token: tokenAnalista });
+  assert.equal(status, 200);
+  assert.ok(datos.total >= 100);
+});
+
+test('evaluador no puede crear candidatos (403)', async () => {
+  const { status } = await pedir('POST', '/candidatos', { token: tokenEvaluador, cuerpo: {} });
+  assert.equal(status, 403);
+});
+
+test('crear candidato con datos inválidos responde 400 con detalle por campo', async () => {
+  const { status, datos } = await pedir('POST', '/candidatos', {
+    token: tokenAnalista,
+    cuerpo: { nombre: 'Al', correo: 'no-es-correo', telefono: '12', cargo: '', familiaCargo: '' },
+  });
+  assert.equal(status, 400);
+  assert.deepEqual(Object.keys(datos.errores).sort(), [
+    'cargo',
+    'correo',
+    'familiaCargo',
+    'nombre',
+    'telefono',
+  ]);
+});
+
+test('analista crea, edita y elimina un candidato sin solicitudes', async () => {
+  const creado = await pedir('POST', '/candidatos', {
+    token: tokenAnalista,
+    cuerpo: {
+      nombre: 'Candidato Test API',
+      correo: 'Test.API@AquaChile.cl',
+      telefono: '+56999887766',
+      cargo: 'Jefe de Centro Cultivo',
+      familiaCargo: 'Jefatura',
+    },
+  });
+  assert.equal(creado.status, 201);
+  assert.equal(creado.datos.candidato.correo, 'test.api@aquachile.cl');
+  const id = creado.datos.candidato.id;
+
+  const editado = await pedir('PUT', `/candidatos/${id}`, {
+    token: tokenAnalista,
+    cuerpo: { cargo: 'Jefe de Centro' },
+  });
+  assert.equal(editado.status, 200);
+  assert.equal(editado.datos.candidato.cargo, 'Jefe de Centro');
+
+  const editadoInvalido = await pedir('PUT', `/candidatos/${id}`, {
+    token: tokenAnalista,
+    cuerpo: { correo: 'malo' },
+  });
+  assert.equal(editadoInvalido.status, 400);
+
+  assert.equal((await pedir('DELETE', `/candidatos/${id}`, { token: tokenAnalista })).status, 200);
+  assert.equal((await pedir('GET', `/candidatos/${id}`, { token: tokenAnalista })).status, 404);
+});
+
+test('no se elimina un candidato con solicitudes (409)', async () => {
+  const { status } = await pedir('DELETE', '/candidatos/1', { token: tokenAnalista });
+  assert.equal(status, 409);
+});
+
+test('id no numérico responde 400', async () => {
+  assert.equal((await pedir('GET', '/candidatos/abc', { token: tokenAnalista })).status, 400);
+  assert.equal((await pedir('GET', '/solicitudes/1.5', { token: tokenAnalista })).status, 400);
+});
+
+/* ------------------------------- Solicitudes ------------------------------ */
+
+test('lista las 100 solicitudes de la base simulada', async () => {
+  const { status, datos } = await pedir('GET', '/solicitudes?estado=Finalizada', {
+    token: tokenAnalista,
+  });
+  assert.equal(status, 200);
+  assert.equal(datos.total, 100);
+});
+
+test('regla de confidencialidad: el analista no recibe observaciones clínicas', async () => {
+  const analista = await pedir('GET', '/solicitudes/1', { token: tokenAnalista });
+  assert.equal(analista.datos.evaluacion.observaciones, undefined);
+  assert.equal(analista.datos.evaluacion.confidencial, true);
+
+  const evaluador = await pedir('GET', '/solicitudes/1', { token: tokenEvaluador });
+  assert.equal(typeof evaluador.datos.evaluacion.observaciones, 'string');
+  assert.equal(evaluador.datos.evaluacion.confidencial, false);
+});
+
+test('crear solicitud valida datos y candidato existente', async () => {
+  const sinDatos = await pedir('POST', '/solicitudes', { token: tokenAnalista, cuerpo: {} });
+  assert.equal(sinDatos.status, 400);
+
+  const fechaFutura = await pedir('POST', '/solicitudes', {
+    token: tokenAnalista,
+    cuerpo: { candidatoId: 1, cargo: 'X', familiaCargo: 'Operario', fechaSolicitud: '2999-01-01' },
+  });
+  assert.equal(fechaFutura.status, 400);
+
+  const candidatoInexistente = await pedir('POST', '/solicitudes', {
+    token: tokenAnalista,
+    cuerpo: { candidatoId: 99999, cargo: 'X', familiaCargo: 'Operario' },
+  });
+  assert.equal(candidatoInexistente.status, 404);
+});
+
+test('una solicitud no puede finalizarse sin evaluación (409)', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const { status } = await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenAnalista,
+    cuerpo: { estado: 'Finalizada' },
+  });
+  assert.equal(status, 409);
+});
+
+test('PATCH de estado rechaza estados inválidos y cuerpos vacíos', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const invalido = await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenAnalista,
+    cuerpo: { estado: 'Cerrada' },
+  });
+  assert.equal(invalido.status, 400);
+  const vacio = await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenAnalista,
+    cuerpo: {},
+  });
+  assert.equal(vacio.status, 400);
+});
+
+/* ------------------------------- Evaluaciones ----------------------------- */
+
+test('no se evalúa una solicitud Pendiente (409)', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const { status } = await pedir('POST', '/evaluaciones', {
+    token: tokenEvaluador,
+    cuerpo: { solicitudId, ...evaluacionValida },
+  });
+  assert.equal(status, 409);
+});
+
+test('flujo completo: En proceso → evaluación → Finalizada', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+
+  const enProceso = await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenEvaluador,
+    cuerpo: { estado: 'En proceso', profesionalResponsable: 'María Victoria Bustamante' },
+  });
+  assert.equal(enProceso.status, 200);
+
+  const creada = await pedir('POST', '/evaluaciones', {
+    token: tokenEvaluador,
+    cuerpo: { solicitudId, ...evaluacionValida },
+  });
+  assert.equal(creada.status, 201);
+  assert.equal(creada.datos.evaluacion.diasRespuesta, 5);
+
+  const solicitud = await pedir('GET', `/solicitudes/${solicitudId}`, { token: tokenAnalista });
+  assert.equal(solicitud.datos.solicitud.estado, 'Finalizada');
+
+  const duplicada = await pedir('POST', '/evaluaciones', {
+    token: tokenEvaluador,
+    cuerpo: { solicitudId, ...evaluacionValida },
+  });
+  assert.equal(duplicada.status, 409);
+});
+
+test('crear evaluación con datos inválidos responde 400', async () => {
+  const { status, datos } = await pedir('POST', '/evaluaciones', {
+    token: tokenEvaluador,
+    cuerpo: { solicitudId: 1, resultado: 'Cualquiera', observaciones: 'corta' },
+  });
+  assert.equal(status, 400);
+  assert.ok(datos.errores.resultado);
+  assert.ok(datos.errores.observaciones);
+});
+
+test('analista no puede registrar evaluaciones (403)', async () => {
+  const { status } = await pedir('POST', '/evaluaciones', {
+    token: tokenAnalista,
+    cuerpo: { solicitudId: 1, ...evaluacionValida },
+  });
+  assert.equal(status, 403);
+});
+
+test('PUT de evaluación con resultado inválido responde 400 (antes 500 con stack)', async () => {
+  const { status, datos } = await pedir('PUT', '/evaluaciones/1', {
+    token: tokenEvaluador,
+    cuerpo: { resultado: 'Cualquiera' },
+  });
+  assert.equal(status, 400);
+  assert.equal(datos.detalle, undefined);
+});
+
+test('PUT de evaluación válido actualiza solo los campos enviados', async () => {
+  const antes = await pedir('GET', '/evaluaciones/solicitud/2', { token: tokenEvaluador });
+  const { status, datos } = await pedir('PUT', `/evaluaciones/${antes.datos.evaluacion.id}`, {
+    token: tokenEvaluador,
+    cuerpo: { resultado: 'No recomendado' },
+  });
+  assert.equal(status, 200);
+  assert.equal(datos.evaluacion.resultado, 'No recomendado');
+  assert.equal(datos.evaluacion.observaciones, antes.datos.evaluacion.observaciones);
+});

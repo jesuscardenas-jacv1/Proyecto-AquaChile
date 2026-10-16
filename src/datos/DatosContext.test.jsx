@@ -64,14 +64,30 @@ describe('DatosContext', () => {
     expect(result.current.candidatos).toHaveLength(4);
   });
 
-  it('elimina un candidato', () => {
-    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
+  it('elimina un candidato sin solicitudes', () => {
+    const datos = { ...structuredClone(datosDemo), solicitudes: [], evaluaciones: [] };
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(datos) });
 
+    let respuesta;
     act(() => {
-      result.current.eliminarCandidato(1);
+      respuesta = result.current.eliminarCandidato(1);
     });
 
+    expect(respuesta).toEqual({ ok: true });
     expect(result.current.obtenerCandidato(1)).toBeNull();
+  });
+
+  it('no elimina un candidato que tiene solicitudes asociadas', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
+
+    let respuesta;
+    act(() => {
+      respuesta = result.current.eliminarCandidato(1);
+    });
+
+    expect(respuesta.ok).toBe(false);
+    expect(respuesta.error).toMatch(/solicitud/);
+    expect(result.current.obtenerCandidato(1)).not.toBeNull();
   });
 
   it('crea una solicitud en estado Pendiente y la recupera por id', () => {
@@ -152,9 +168,15 @@ describe('DatosContext', () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper() });
 
     act(() => {
-      result.current.eliminarCandidato(1);
+      result.current.agregarCandidato({
+        nombre: 'Temporal',
+        correo: 'temporal@correo.cl',
+        telefono: '+56911111111',
+        cargo: 'Operario',
+        familiaCargo: 'Operario',
+      });
     });
-    expect(result.current.candidatos).toHaveLength(totalSemilla - 1);
+    expect(result.current.candidatos).toHaveLength(totalSemilla + 1);
 
     act(() => {
       result.current.reiniciarDatos();

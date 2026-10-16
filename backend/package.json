@@ -4,12 +4,15 @@
   "description": "API REST backend para el módulo de evaluaciones psicolaborales AquaChile (DSY1104)",
   "type": "commonjs",
   "main": "src/servidor.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "start": "node src/servidor.js",
     "dev": "node --watch src/servidor.js",
     "db:migrar": "node src/bd/migrar.js",
     "db:semilla": "node src/bd/semilla.js",
-    "test": "node src/probar_api.js"
+    "test": "node --test --disable-warning=ExperimentalWarning src/probar_api.js"
   },
   "keywords": [
     "aquachile",

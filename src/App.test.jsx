@@ -4,14 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { ProveedorDatos } from './datos/DatosContext';
-import { datosDePrueba } from './pruebas/utilidades';
+import { ProveedorAuth } from './datos/AuthContext';
+import { datosDePrueba, USUARIO_TEST_DEFAULT } from './pruebas/utilidades';
 
 const renderApp = (ruta) =>
   render(
     <MemoryRouter initialEntries={[ruta]}>
-      <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
-        <App />
-      </ProveedorDatos>
+      <ProveedorAuth usuarioInicial={USUARIO_TEST_DEFAULT}>
+        <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+          <App />
+        </ProveedorDatos>
+      </ProveedorAuth>
     </MemoryRouter>,
   );
 

@@ -7,7 +7,12 @@ import EstadoVacio from '../comunes/EstadoVacio';
  * Listado de candidatos con buscador.
  * En pantallas grandes muestra tabla y en pantallas pequeñas tarjetas.
  */
-export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar }) {
+export default function ListaCandidatos({
+  candidatos = [],
+  alEditar,
+  alEliminar,
+  puedeCrear = true,
+}) {
   const [busqueda, setBusqueda] = useState('');
   const visibles = filtrarCandidatos(candidatos, busqueda);
 
@@ -78,13 +83,15 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
                     <td>{candidato.familiaCargo}</td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary"
-                          onClick={() => alEditar(candidato)}
-                        >
-                          Editar
-                        </button>
+                        {alEditar ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline-primary"
+                            onClick={() => alEditar(candidato)}
+                          >
+                            Editar
+                          </button>
+                        ) : null}
                         {alEliminar ? (
                           <button
                             type="button"
@@ -119,13 +126,15 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
                     {candidato.telefono}
                   </p>
                   <div className="d-flex gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => alEditar(candidato)}
-                    >
-                      Editar
-                    </button>
+                    {alEditar ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => alEditar(candidato)}
+                      >
+                        Editar
+                      </button>
+                    ) : null}
                     {alEliminar ? (
                       <button
                         type="button"
@@ -143,12 +152,14 @@ export default function ListaCandidatos({ candidatos = [], alEditar, alEliminar 
         </>
       )}
 
-      <div className="card-footer bg-white d-flex justify-content-end">
-        <Link to="/candidatos/nuevo" className="btn btn-primary btn-sm">
-          <i className="bi bi-person-plus me-1" aria-hidden="true" />
-          Nuevo candidato
-        </Link>
-      </div>
+      {puedeCrear ? (
+        <div className="card-footer bg-white d-flex justify-content-end">
+          <Link to="/candidatos/nuevo" className="btn btn-primary btn-sm">
+            <i className="bi bi-person-plus me-1" aria-hidden="true" />
+            Nuevo candidato
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

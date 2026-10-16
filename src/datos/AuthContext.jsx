@@ -68,21 +68,9 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
 export function useAuth() {
   const contexto = useContext(ContextoAuth);
   if (!contexto) {
-    // Fallback para pruebas unitarias de componentes aislados que no montan ProveedorAuth
-    return {
-      usuarioActual: {
-        id: 0,
-        nombre: 'Usuario Demo',
-        correo: 'demo@aquachile.cl',
-        rol: 'admin',
-        cargo: 'Administrador Demo',
-      },
-      estaAutenticado: true,
-      esAnalista: true,
-      esEvaluador: true,
-      iniciarSesion: () => ({ ok: true }),
-      cerrarSesion: () => {},
-    };
+    // Sin proveedor no hay sesión: se falla explícitamente en vez de asumir un usuario
+    // con todos los permisos (las pruebas montan ProveedorAuth con renderConContexto).
+    throw new Error('useAuth debe usarse dentro de un <ProveedorAuth>.');
   }
   return contexto;
 }

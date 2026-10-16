@@ -74,4 +74,10 @@ describe('AuthContext', () => {
     expect(result.current.estaAutenticado).toBe(false);
     expect(result.current.usuarioActual).toBeNull();
   });
+
+  it('falla si se usa fuera de ProveedorAuth en vez de asumir un administrador', () => {
+    expect(() => renderHook(() => useAuth())).toThrowError(
+      'useAuth debe usarse dentro de un <ProveedorAuth>.',
+    );
+  });
 });
