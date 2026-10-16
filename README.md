@@ -3,9 +3,12 @@
 MVP web desarrollado para el proyecto académico **DSY1104 – Desarrollo Full Stack II**
 (Evaluación Parcial 2), para la empresa **AquaChile** (Reclutamiento y Selección).
 
-El frontend funciona con **datos simulados** persistidos en `localStorage` y una autenticación
-local de demostración. En `backend/` hay además una **API REST** (Express + SQLite + JWT) con el
-mismo modelo de datos; por ahora el frontend **no la consume** (ver [`backend/README.md`](backend/README.md)).
+Aplicación **full stack**: el frontend (React) consume la **API REST** de `backend/`
+(Express + SQLite + JWT, ver [`backend/README.md`](backend/README.md)). El inicio de sesión, las
+reglas de negocio y la confidencialidad de las notas clínicas se aplican en el servidor.
+
+Además existe un **modo demo** sin backend (datos simulados en el navegador), que es el que se
+publica en GitHub Pages.
 
 ## Stack
 
@@ -20,8 +23,41 @@ mismo modelo de datos; por ahora el frontend **no la consume** (ver [`backend/RE
 
 ## Instalación y ejecución
 
+Requiere **Node.js 22.5 o superior** (el backend usa `node:sqlite`).
+
+### Primera vez
+
 ```bash
-npm install           # instalar dependencias
+npm install                    # dependencias del frontend
+npm install --prefix backend   # dependencias del backend
+npm run backend:migrar         # crea las tablas en backend/datos.sqlite
+npm run backend:semilla        # carga los datos simulados (100 del Excel + 8 del Planner)
+```
+
+### Ejecutar (dos terminales)
+
+```bash
+npm run backend:dev   # terminal 1: API en http://localhost:3001
+npm run dev           # terminal 2: app en http://localhost:5173
+```
+
+En desarrollo, Vite redirige las peticiones a `/api` hacia `http://localhost:3001` (proxy en
+`vite.config.js`), así que no hay que configurar CORS ni URLs. Si la API no está en ejecución, la
+app muestra *"No se pudieron cargar los datos"* con un botón para reintentar.
+
+### Modos de datos
+
+| Modo | Cómo se activa | Datos y login |
+| --- | --- | --- |
+| **API** (por defecto) | — | API REST del backend, login con JWT |
+| **Demo** | `VITE_MODO_DEMO=true` | `localStorage` del navegador, login local (`usuarios.js`) |
+
+Para apuntar a una API publicada en otro servidor, se define `VITE_API_URL` al construir
+(ver [`.env.example`](.env.example)); el backend debe permitir ese origen en `CORS_ORIGENES`.
+
+### Otros comandos
+
+```bash
 npm run dev           # servidor de desarrollo en http://localhost:5173
 npm run build         # build de producción en dist/
 npm run preview       # previsualizar el build
@@ -37,6 +73,8 @@ El reporte de cobertura se genera en `cobertura/index.html` (abrir en el navegad
 
 El workflow `.github/workflows/pages.yml` ejecuta las pruebas, construye la app y la publica en
 GitHub Pages en cada push a `main` (también se puede lanzar a mano desde la pestaña *Actions*).
+GitHub Pages solo sirve archivos estáticos (no puede ejecutar el backend), por eso esa versión se
+construye en **modo demo** (`VITE_MODO_DEMO=true`).
 Queda disponible en `https://<usuario>.github.io/<repositorio>/`.
 
 Requisito (una sola vez, lo hace quien administra el repositorio):
@@ -59,8 +97,9 @@ Evaluacion { id, solicitudId, fechaEvaluacion, resultado, observaciones, estado 
 // estado: Pendiente | Realizada
 ```
 
-Los datos se administran con `ProveedorDatos` (React Context) y se guardan en `localStorage`
-bajo la clave `aquachile_psicodelivery_v4`. En la primera visita se carga un conjunto de datos
+Los datos se administran con `ProveedorDatos` (React Context), que delega cada operación en un
+**servicio de datos** (ver *Arquitectura frontend ↔ backend*). En modo demo se guardan en
+`localStorage` bajo la clave `aquachile_psicodelivery_v4`. En la primera visita se carga un conjunto de datos
 semilla con la **base de datos simulada** de AquaChile (100 evaluaciones, abr-2025 a mar-2026).
 
 ### Base de datos simulada
@@ -87,20 +126,51 @@ Cada vez que cambia el formato de los datos se sube la versión de la clave de `
 (hoy `v4`, que pasó `diasRespuesta` a días corridos), para que los navegadores con datos antiguos
 carguen la nueva semilla.
 
+## Arquitectura frontend ↔ backend
+
+```
+Pantallas (paginas/, componentes/)
+   │  useDatos() / useAuth()      ← acciones asíncronas; los errores se muestran con useAccion()
+   ▼
+ProveedorDatos / ProveedorAuth   (datos/DatosContext.jsx, datos/AuthContext.jsx)
+   │  servicio de datos (misma interfaz en ambos casos)
+   ├──▶ servicioApi      → fetch + JWT → API REST (backend/) → SQLite
+   └──▶ servicioMemoria  → datos en memoria (+ localStorage en modo demo) · pruebas y GitHub Pages
+```
+
+- **Sesión:** `POST /api/auth/login` devuelve el usuario y un JWT de 8 horas, que se guarda en
+  `sessionStorage` y se envía en cada petición (`Authorization: Bearer …`). Si la API responde 401
+  (token vencido), la sesión se cierra y el login avisa que expiró.
+- **Carga:** al iniciar sesión se piden candidatos, solicitudes y evaluaciones; si cambia el usuario
+  se vuelven a pedir, porque la API filtra según el rol (la analista no recibe notas clínicas).
+- **Acciones:** crear, editar o eliminar devuelven una promesa; si la API las rechaza (validación,
+  regla de negocio, permisos) la pantalla muestra el motivo y no se pierde lo escrito.
+- **Reglas en ambos lados:** las validaciones del frontend dan respuesta inmediata; las de la API
+  son las que valen. `servicioMemoria` replica las reglas de la API para que el modo demo se
+  comporte igual.
+
 ## Estructura del proyecto
 
 ```
 src/
-├── main.jsx                       # punto de entrada (Router + ProveedorDatos)
+├── main.jsx                       # punto de entrada (Router + ProveedorAuth + ProveedorDatos)
 ├── App.jsx                        # definición de rutas
 ├── estilos/estilos.css            # estilos menores sobre Bootstrap
 ├── datos/
 │   ├── constantes.js              # catálogos (estados, familias, profesionales)
 │   ├── bdSimulada.json            # BD simulada generada desde el Excel (no editar)
 │   ├── semilla.js                 # datos semilla (usa bdSimulada.json)
-│   ├── almacen.js                 # lectura/escritura en localStorage (funciones puras)
-│   ├── DatosContext.jsx           # estado global y acciones de negocio
-│   └── DatosContext.test.jsx
+│   ├── demoPlanner.json           # solicitudes demo del Planner (también las siembra el backend)
+│   ├── almacen.js                 # lectura/escritura en localStorage (modo demo)
+│   ├── AuthContext.jsx            # sesión, login (API o local) y roles
+│   ├── DatosContext.jsx           # estado global; delega las operaciones en un servicio
+│   └── useAccion.js               # ejecuta acciones asíncronas y guarda su error
+├── servicios/
+│   ├── servicioApi.js             # cliente de la API REST (fetch + JWT)
+│   ├── servicioMemoria.js         # misma interfaz, en memoria (pruebas y modo demo)
+│   ├── configuracion.js           # elige el servicio según VITE_MODO_DEMO / VITE_API_URL
+│   ├── sesion.js                  # sesión en sessionStorage y evento de sesión expirada
+│   └── errores.js                 # ErrorApi y mensajes para el usuario
 ├── dominio/                       # lógica pura (fácilmente testeable)
 │   ├── validaciones.js            # validaciones de candidato, solicitud y evaluación
 │   ├── consultas.js               # búsquedas y filtros
@@ -160,8 +230,12 @@ src/
 
 ## Pruebas y cobertura
 
-**131 pruebas en 20 archivos** (Vitest + React Testing Library), que cubren lógica, comportamiento de
-componentes y manipulación del DOM, con mocks del contexto de datos y de `useNavigate`.
+**Frontend: 247 pruebas en 31 archivos** (Vitest + React Testing Library), que cubren lógica,
+comportamiento de componentes y manipulación del DOM. Las pantallas se prueban con `servicioMemoria`
+(sin backend) y el cliente de la API con `fetch` simulado (`servicioApi.test.js`).
+
+**Backend: 33 pruebas** (`npm run backend:test`, `node:test`) contra la API real sobre una base
+SQLite temporal: autenticación, permisos por rol, validaciones, reglas de negocio, Planner y migración.
 
 | Área | Qué se prueba |
 | --- | --- |
@@ -171,12 +245,13 @@ componentes y manipulación del DOM, con mocks del contexto de datos y de `useNa
 | Detalle de solicitud | cambio de estado, asignación de profesional, reglas de evaluación |
 | Navegación (App) | rutas entre vistas y 404 |
 | Dominio y datos | validaciones, filtros, métricas, localStorage, acciones del contexto |
+| Integración con la API | rutas y métodos HTTP, envío del JWT, errores 400/401/409, sin conexión, carga y reintento |
 
 Cobertura actual (v8):
 
 ```
 All files   | % Stmts | % Branch | % Funcs | % Lines
-    99.13   |  99.13  |   91.44  |  88.23  |  99.13
+            |  97.29  |   88.93  |  90.35  |  97.29
 ```
 
 Los umbrales están configurados en `vite.config.js` (sentencias/líneas 80, ramas 75, funciones 80);
@@ -184,8 +259,9 @@ Los umbrales están configurados en `vite.config.js` (sentencias/líneas 80, ram
 
 ## Fuera de alcance
 
-Integración del frontend con la API del backend, almacenamiento real de adjuntos (CV y descriptor:
-hoy solo se guarda el nombre del archivo), Copilot, Power Automate y Microsoft Planner.
+Almacenamiento real de adjuntos (CV y descriptor: hoy solo se guarda el nombre del archivo),
+publicación del backend en un servidor, Copilot, Power Automate y Microsoft Planner.
 
-> Las credenciales de demostración del frontend están en `src/datos/usuarios.js` y quedan
-> visibles en el bundle publicado: es una autenticación **simulada**, no usar claves reales.
+> En **modo demo** las credenciales están en `src/datos/usuarios.js` y quedan visibles en el
+> bundle publicado: es una autenticación **simulada**, no usar claves reales. En modo API las
+> contraseñas se validan en el backend (bcrypt) y nunca llegan al navegador.

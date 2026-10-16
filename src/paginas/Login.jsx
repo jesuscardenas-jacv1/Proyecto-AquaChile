@@ -14,7 +14,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
 
-  const { iniciarSesion, estaAutenticado } = useAuth();
+  const { iniciarSesion, estaAutenticado, avisoSesion } = useAuth();
   const navegar = useNavigate();
   const ubicacion = useLocation();
 
@@ -26,7 +26,7 @@ export default function Login() {
     }
   }, [estaAutenticado, destino, navegar]);
 
-  const manejarEnvio = (e) => {
+  const manejarEnvio = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -36,7 +36,7 @@ export default function Login() {
     }
 
     setCargando(true);
-    const resultado = iniciarSesion(correo, contrasena);
+    const resultado = await iniciarSesion(correo, contrasena);
 
     if (resultado.ok) {
       navegar(destino, { replace: true });
@@ -66,6 +66,12 @@ export default function Login() {
           <h2 className="h6 fw-bold text-secondary mb-3 text-uppercase small text-center">
             Iniciar sesión
           </h2>
+
+          {avisoSesion && !error ? (
+            <div className="alert alert-warning py-2 px-3 small mb-3" role="status">
+              {avisoSesion}
+            </div>
+          ) : null}
 
           {error ? (
             <div

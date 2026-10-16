@@ -9,6 +9,7 @@ import Mensaje from '../componentes/comunes/Mensaje';
 import ColumnaPlanner from '../componentes/planner/ColumnaPlanner';
 import TarjetaPlanner from '../componentes/planner/TarjetaPlanner';
 import VentanaAgenda from '../componentes/planner/VentanaAgenda';
+import { mensajeDeError } from '../servicios/errores';
 
 /**
  * Planner de la psicóloga: tablero con las 4 etapas del proceso
@@ -60,10 +61,21 @@ export default function Planner() {
 
   const nombreDe = (solicitud) => candidatosPorId[solicitud.candidatoId]?.nombre ?? 'el candidato';
 
-  const guardarAgenda = (agenda) => {
+  /** Ejecuta un movimiento de etapa; si la API lo rechaza, muestra el motivo. */
+  const mover = async (solicitud, etapa, agenda) => {
+    try {
+      await moverEtapa(solicitud.id, etapa, agenda);
+      return true;
+    } catch (error) {
+      setAviso({ tipo: 'danger', texto: `No se pudo mover a ${nombreDe(solicitud)}: ${mensajeDeError(error)}` });
+      return false;
+    }
+  };
+
+  const guardarAgenda = async (agenda) => {
     const { solicitud, reagendar } = ventana;
-    moverEtapa(solicitud.id, 'agendada', agenda);
     setVentana(null);
+    if (!(await mover(solicitud, 'agendada', agenda))) return;
     setAviso({
       tipo: 'success',
       texto: `${reagendar ? 'Entrevista reagendada' : 'Entrevista agendada'}: ${nombreDe(solicitud)}. ${textoEntrevista(
@@ -72,17 +84,17 @@ export default function Planner() {
     });
   };
 
-  const marcarRealizada = (solicitud) => {
-    moverEtapa(solicitud.id, 'realizada');
+  const marcarRealizada = async (solicitud) => {
+    if (!(await mover(solicitud, 'realizada'))) return;
     setAviso({
       tipo: 'success',
       texto: `Entrevista de ${nombreDe(solicitud)} marcada como realizada. Siguiente paso: registrar la evaluación y el informe.`,
     });
   };
 
-  const retroceder = (solicitud, etapaActual) => {
+  const retroceder = async (solicitud, etapaActual) => {
     const destino = etapaAnterior(etapaActual);
-    moverEtapa(solicitud.id, destino);
+    if (!(await mover(solicitud, destino))) return;
     setAviso({
       tipo: 'info',
       texto: `${nombreDe(solicitud)} volvió a "${obtenerEtapa(destino).titulo}".`,

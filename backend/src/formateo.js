@@ -36,6 +36,11 @@ function formatearSolicitud(s) {
     referido: s.referido === null || s.referido === undefined ? null : Boolean(s.referido),
     cv: s.cv,
     descriptorCargo: s.descriptor_cargo,
+    // null = sin etapa guardada: el frontend la deduce del estado
+    etapa: s.etapa ?? null,
+    fechaEntrevista: s.fecha_entrevista ?? '',
+    horaEntrevista: s.hora_entrevista ?? '',
+    modalidadEntrevista: s.modalidad_entrevista ?? '',
     creadoEn: s.creado_en,
   };
 }

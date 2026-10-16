@@ -7,6 +7,7 @@ import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
+import { useAccion } from '../datos/useAccion';
 
 /** Detalle de solicitud: datos del candidato, gestión de estado y evaluación. */
 export default function DetalleSolicitud() {
@@ -22,6 +23,7 @@ export default function DetalleSolicitud() {
     asignarProfesional,
     registrarEvaluacion,
   } = useDatos();
+  const { ejecutar, error, limpiarError } = useAccion();
 
   const solicitud = obtenerSolicitud(id);
   const mensaje = ubicacion.state?.mensaje;
@@ -86,6 +88,12 @@ export default function DetalleSolicitud() {
         </Mensaje>
       ) : null}
 
+      {error ? (
+        <Mensaje tipo="danger" titulo="No se pudo guardar el cambio" alCerrar={limpiarError}>
+          {error}
+        </Mensaje>
+      ) : null}
+
       <div className="row g-3">
         <div className="col-12 col-lg-5">
           <section className="card border-0 shadow-sm h-100">
@@ -127,8 +135,10 @@ export default function DetalleSolicitud() {
         <div className="col-12 col-lg-7">
           <PanelGestion
             solicitud={solicitud}
-            alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
-            alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
+            alAsignarProfesional={(profesional) =>
+              ejecutar(() => asignarProfesional(solicitud.id, profesional))
+            }
+            alCambiarEstado={(estado) => ejecutar(() => actualizarSolicitud(solicitud.id, { estado }))}
             puedeFinalizar={Boolean(evaluacion?.resultado)}
           />
         </div>
@@ -199,7 +209,7 @@ export default function DetalleSolicitud() {
               {puedeEvaluar ? (
                 <FormularioEvaluacion
                   evaluacion={evaluacion}
-                  alGuardar={(datos) => registrarEvaluacion(solicitud.id, datos)}
+                  alGuardar={(datos) => ejecutar(() => registrarEvaluacion(solicitud.id, datos))}
                 />
               ) : null}
             </>

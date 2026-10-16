@@ -103,7 +103,7 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     // Actualizar la solicitud a 'Finalizada'
     db.prepare(
       `UPDATE solicitudes
-       SET estado = 'Finalizada', actualizado_en = datetime('now')
+       SET estado = 'Finalizada', etapa = 'informe', actualizado_en = datetime('now')
        WHERE id = ?`,
     ).run(solicitudId);
 

@@ -10,6 +10,13 @@ const {
   exigirSinErrores,
   validarSolicitud,
 } = require('../validaciones');
+const {
+  ESTADO_DE_ETAPA,
+  ETAPA_POR_ESTADO,
+  ETAPAS_MANUALES,
+  validarAgenda,
+  traeAgenda,
+} = require('../planner');
 
 const router = express.Router();
 
@@ -110,8 +117,8 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
       `INSERT INTO solicitudes (
         candidato_id, cargo, familia_cargo, fecha_solicitud, estado,
         profesional_responsable, observaciones, tipo_evaluacion, ubicacion,
-        unidad, ceco, requiere_referencias, referido, cv, descriptor_cargo
-      ) VALUES (?, ?, ?, ?, 'Pendiente', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        unidad, ceco, requiere_referencias, referido, cv, descriptor_cargo, etapa
+      ) VALUES (?, ?, ?, ?, 'Pendiente', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'recibida')`,
     )
     .run(
       candidatoId,
@@ -177,15 +184,22 @@ router.patch('/:id/estado', autenticar, (req, res) => {
     }
   }
 
+  // La etapa del Planner debe calzar con el estado: si el nuevo estado no corresponde
+  // a la etapa guardada, se usa la etapa por defecto de ese estado.
+  const nuevaEtapa =
+    estado && ESTADO_DE_ETAPA[s.etapa] !== estado ? ETAPA_POR_ESTADO[estado] : s.etapa;
+
   db.prepare(
     `UPDATE solicitudes
      SET estado = COALESCE(?, estado),
          profesional_responsable = COALESCE(?, profesional_responsable),
+         etapa = ?,
          actualizado_en = datetime('now')
      WHERE id = ?`,
   ).run(
     estado ?? null,
     profesionalResponsable === undefined ? null : profesionalResponsable.trim(),
+    nuevaEtapa ?? null,
     id,
   );
 
@@ -194,6 +208,81 @@ router.patch('/:id/estado', autenticar, (req, res) => {
   res.json({
     ok: true,
     mensaje: 'Estado de la solicitud actualizado.',
+    solicitud: formatearSolicitud(actualizada),
+  });
+});
+
+/**
+ * PATCH /api/solicitudes/:id/etapa
+ * Mueve una solicitud entre las etapas del Planner (exclusivo Evaluador) y sincroniza
+ * su estado oficial. Body: { etapa, fechaEntrevista?, horaEntrevista?, modalidadEntrevista? }
+ * - recibida: vuelve a "por coordinar" y borra los datos de la entrevista.
+ * - agendada: exige fecha, hora y modalidad si la solicitud aún no los tiene (o si se envían).
+ * - realizada: requiere una entrevista agendada.
+ * - informe: no se asigna a mano; se alcanza al registrar la evaluación.
+ */
+router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
+  const id = idValido(req.params.id);
+  const datos = req.body ?? {};
+  const { etapa } = datos;
+
+  const s = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
+  if (!s) {
+    throw new ErrorHttp(404, `Solicitud #${id} no encontrada.`);
+  }
+
+  if (etapa === 'informe') {
+    throw new ErrorHttp(
+      400,
+      'La etapa "Informe enviado" se alcanza registrando la evaluación de la solicitud.',
+    );
+  }
+  if (!ETAPAS_MANUALES.includes(etapa)) {
+    throw new ErrorHttp(400, `Etapa inválida. Debe ser una de: ${ETAPAS_MANUALES.join(', ')}.`);
+  }
+  if (s.estado === 'Finalizada') {
+    throw new ErrorHttp(409, `La solicitud #${id} ya tiene su informe enviado y no se reabre.`);
+  }
+
+  let agenda = {
+    fecha: s.fecha_entrevista,
+    hora: s.hora_entrevista,
+    modalidad: s.modalidad_entrevista,
+  };
+
+  if (etapa === 'recibida') {
+    agenda = { fecha: '', hora: '', modalidad: '' };
+  } else if (traeAgenda(datos) || !s.fecha_entrevista) {
+    if (etapa === 'realizada' && !traeAgenda(datos)) {
+      throw new ErrorHttp(409, 'La entrevista debe estar agendada antes de marcarla como realizada.');
+    }
+    exigirSinErrores(validarAgenda(datos, s.fecha_solicitud));
+    agenda = {
+      fecha: datos.fechaEntrevista.trim(),
+      hora: datos.horaEntrevista.trim(),
+      modalidad: datos.modalidadEntrevista,
+    };
+  }
+
+  db.prepare(
+    `UPDATE solicitudes
+     SET etapa = ?, estado = ?,
+         fecha_entrevista = ?, hora_entrevista = ?, modalidad_entrevista = ?,
+         actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, id);
+
+  const actualizada = db
+    .prepare(
+      `SELECT s.*, c.nombre as candidato_nombre
+       FROM solicitudes s LEFT JOIN candidatos c ON s.candidato_id = c.id
+       WHERE s.id = ?`,
+    )
+    .get(id);
+
+  res.json({
+    ok: true,
+    mensaje: 'Etapa de la solicitud actualizada.',
     solicitud: formatearSolicitud(actualizada),
   });
 });
