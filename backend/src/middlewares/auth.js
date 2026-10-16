@@ -1,6 +1,20 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRETO = process.env.JWT_SECRETO || 'aquachile-secreto-mvp-2026';
+const SECRETO_DESARROLLO = 'aquachile-secreto-solo-desarrollo';
+
+/**
+ * En producción el secreto es obligatorio: si se usara el valor por defecto
+ * (público en el repositorio) cualquiera podría firmar tokens válidos.
+ */
+function obtenerSecreto() {
+  if (process.env.JWT_SECRETO) return process.env.JWT_SECRETO;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Falta la variable de entorno JWT_SECRETO (obligatoria en producción).');
+  }
+  return SECRETO_DESARROLLO;
+}
+
+const JWT_SECRETO = obtenerSecreto();
 
 /**
  * Middleware para validar token JWT en cabecera Authorization: Bearer <token>
@@ -13,7 +27,7 @@ function autenticar(req, res, next) {
     });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.slice('Bearer '.length).trim();
 
   try {
     const decodificado = jwt.verify(token, JWT_SECRETO);

@@ -1,6 +1,9 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAccion } from '../datos/useAccion';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
+import Mensaje from '../componentes/comunes/Mensaje';
 
 /**
  * Página de creación de solicitud de evaluación.
@@ -9,19 +12,33 @@ import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud'
 export default function NuevaSolicitud() {
   const { candidatos, agregarCandidato, agregarSolicitud } = useDatos();
   const navegar = useNavigate();
+  const { ejecutar, error, limpiarError } = useAccion();
+  // Si el candidato se registró pero la solicitud falló, el reintento reutiliza ese
+  // candidato en vez de crear un duplicado (la clave es su correo).
+  const candidatoCreado = useRef(null);
 
-  const guardar = ({ nombreCandidato, correo, telefono, ...datos }) => {
-    const candidatoId =
-      datos.candidatoId ||
-      agregarCandidato({
-        nombre: nombreCandidato,
-        correo,
-        telefono,
-        cargo: datos.cargo,
-        familiaCargo: datos.familiaCargo,
-        origen: datos.origen,
-      }).id;
-    const solicitud = agregarSolicitud({ ...datos, candidatoId });
+  const guardar = async ({ nombreCandidato, correo, telefono, ...datos }) => {
+    const resultado = await ejecutar(async () => {
+      let candidatoId = datos.candidatoId;
+      if (!candidatoId) {
+        const correoNormalizado = correo.trim().toLowerCase();
+        if (candidatoCreado.current?.correo !== correoNormalizado) {
+          const creado = await agregarCandidato({
+            nombre: nombreCandidato,
+            correo,
+            telefono,
+            cargo: datos.cargo,
+            familiaCargo: datos.familiaCargo,
+            origen: datos.origen,
+          });
+          candidatoCreado.current = { id: creado.id, correo: correoNormalizado };
+        }
+        candidatoId = candidatoCreado.current.id;
+      }
+      return agregarSolicitud({ ...datos, candidatoId });
+    });
+    if (!resultado.ok) return;
+    const solicitud = resultado.valor;
     navegar(`/solicitudes/${solicitud.id}`, {
       state: {
         mensaje: datos.candidatoId
@@ -40,6 +57,12 @@ export default function NuevaSolicitud() {
           Completa los datos del candidato/a y del cargo para solicitar su evaluación.
         </p>
       </header>
+
+      {error ? (
+        <Mensaje tipo="danger" titulo="No se pudo enviar la solicitud" alCerrar={limpiarError}>
+          {error}
+        </Mensaje>
+      ) : null}
 
       <div className="row">
         <div className="col-12 col-xl-10">

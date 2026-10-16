@@ -86,4 +86,20 @@ describe('PanelGestion', () => {
     expect(screen.getByRole('option', { name: 'En proceso' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Finalizada' })).toBeInTheDocument();
   });
+
+  it('no permite elegir Finalizada si la solicitud aún no tiene evaluación', () => {
+    renderConContexto(
+      <PanelGestion
+        solicitud={solicitud}
+        alAsignarProfesional={vi.fn()}
+        alCambiarEstado={vi.fn()}
+        puedeFinalizar={false}
+      />,
+      { datosIniciales: datosVacios },
+    );
+
+    expect(screen.getByRole('option', { name: 'Finalizada' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'En proceso' })).toBeEnabled();
+    expect(screen.getByText(/se finaliza automáticamente/i)).toBeInTheDocument();
+  });
 });

@@ -1,11 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import NuevaSolicitud from './NuevaSolicitud';
 import Solicitudes from './Solicitudes';
 import { ProveedorDatos, useDatos } from '../datos/DatosContext';
 import { datosDePrueba, datosVacios } from '../pruebas/utilidades';
+import { crearServicioMemoria } from '../servicios/servicioMemoria';
+import { ErrorApi } from '../servicios/errores';
 
 const DetalleFalso = () => {
   const { id } = useParams();
@@ -19,10 +21,12 @@ const DetalleFalso = () => {
   );
 };
 
-const renderNueva = (datosIniciales) =>
+const renderNueva = (datosIniciales, servicio) =>
   render(
     <MemoryRouter initialEntries={['/solicitudes/nueva']}>
-      <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
+      <ProveedorDatos
+        servicio={servicio ?? crearServicioMemoria(structuredClone(datosIniciales))}
+      >
         <Routes>
           <Route path="/solicitudes/nueva" element={<NuevaSolicitud />} />
           <Route path="/solicitudes/:id" element={<DetalleFalso />} />
@@ -83,6 +87,33 @@ describe('NuevaSolicitud', () => {
 
     expect(screen.getByRole('heading', { name: /detalle de solicitud #1/i })).toBeInTheDocument();
     expect(screen.getByText('Candidato: Pedro Soto')).toBeInTheDocument();
+  });
+
+  it('si la solicitud falla, muestra el error y el reintento no duplica al candidato', async () => {
+    const usuario = userEvent.setup();
+    const servicio = crearServicioMemoria(structuredClone(datosVacios));
+    const crearCandidato = vi.spyOn(servicio, 'crearCandidato');
+    const crearReal = servicio.crearSolicitud;
+    servicio.crearSolicitud = vi
+      .fn()
+      .mockRejectedValueOnce(new ErrorApi(0, 'No se pudo conectar con el servidor.'))
+      .mockImplementation(crearReal);
+    renderNueva(datosVacios, servicio);
+
+    await completarSolicitud(usuario, 'Pedro Soto');
+    await usuario.type(screen.getByLabelText(/correo del candidato/i), 'pedro@correo.cl');
+    await usuario.type(screen.getByLabelText(/teléfono del candidato/i), '+56911112222');
+    await elegir(usuario, /origen/i, 'Externo');
+    await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Jefe de Centro');
+    await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+
+    expect(await screen.findByText('No se pudo enviar la solicitud')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+
+    expect(await screen.findByRole('heading', { name: /detalle de solicitud #1/i })).toBeInTheDocument();
+    expect(screen.getByText('Candidato: Pedro Soto')).toBeInTheDocument();
+    expect(crearCandidato).toHaveBeenCalledTimes(1);
   });
 });
 
