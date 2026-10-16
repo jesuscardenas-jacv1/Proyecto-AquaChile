@@ -1,14 +1,18 @@
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAccion } from '../datos/useAccion';
 import FormularioCandidato from '../componentes/candidatos/FormularioCandidato';
+import Mensaje from '../componentes/comunes/Mensaje';
 
 /** Página de registro de candidato (crea y vuelve al listado). */
 export default function NuevoCandidato() {
   const { agregarCandidato } = useDatos();
   const navegar = useNavigate();
+  const { ejecutar, error, limpiarError } = useAccion();
 
-  const guardar = (datos) => {
-    agregarCandidato(datos);
+  const guardar = async (datos) => {
+    const resultado = await ejecutar(() => agregarCandidato(datos));
+    if (!resultado.ok) return;
     navegar('/candidatos', {
       state: { mensaje: 'Candidato registrado correctamente.', tipo: 'success' },
     });
@@ -22,6 +26,11 @@ export default function NuevoCandidato() {
           Completa los datos del postulante para poder generar una solicitud de evaluación.
         </p>
       </header>
+      {error ? (
+        <Mensaje tipo="danger" titulo="No se pudo registrar el candidato" alCerrar={limpiarError}>
+          {error}
+        </Mensaje>
+      ) : null}
       <div className="row">
         <div className="col-12 col-lg-8">
           <FormularioCandidato

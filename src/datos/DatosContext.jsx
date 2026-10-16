@@ -1,72 +1,129 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
-import { ESTADOS_EVALUACION } from './constantes';
-import { calcularDiasRespuesta, estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
-import { estadoDeEtapa } from '../dominio/planner';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { obtenerSemilla } from './almacen';
+import { ContextoAuth } from './AuthContext';
+import { crearServicioPorDefecto } from '../servicios/configuracion';
+import { crearServicioMemoria } from '../servicios/servicioMemoria';
 
 const ContextoDatos = createContext(null);
 
-const normalizarCandidato = (datos) => ({
-  nombre: datos.nombre.trim(),
-  correo: datos.correo.trim().toLowerCase(),
-  telefono: datos.telefono.trim(),
-  cargo: datos.cargo.trim(),
-  familiaCargo: datos.familiaCargo,
-  // El origen solo se informa al crear la solicitud; al editar se conserva el existente.
-  ...(datos.origen ? { origen: datos.origen } : {}),
-});
+const DATOS_VACIOS = { candidatos: [], solicitudes: [], evaluaciones: [] };
+
+const reemplazarPorId = (lista, actualizado) =>
+  lista.map((item) => (item.id === actualizado.id ? actualizado : item));
+
+const agregarOReemplazar = (lista, item) =>
+  lista.some((actual) => actual.id === item.id)
+    ? reemplazarPorId(lista, item)
+    : [...lista, item];
 
 /**
- * Proveedor de datos simulados de la aplicación.
- * Mantiene candidatos, solicitudes y evaluaciones, y los persiste en localStorage.
+ * Proveedor de datos de la aplicación (candidatos, solicitudes y evaluaciones).
+ *
+ * Delega cada operación en un "servicio" de datos:
+ * - servicioApi: la API REST del backend (modo por defecto). Los datos se cargan al
+ *   iniciar sesión y se vuelven a cargar si cambia el usuario (cada rol recibe lo suyo).
+ * - servicioMemoria: datos locales (pruebas y modo demo de GitHub Pages).
+ *
+ * Las acciones son asíncronas: devuelven una promesa y, si la operación falla,
+ * lanzan un ErrorApi que cada pantalla muestra al usuario.
+ *
+ * @param {object} props
+ * @param {object} [props.datosIniciales] datos para un servicio en memoria (pruebas)
+ * @param {object} [props.servicio]       servicio de datos explícito
  */
-export function ProveedorDatos({ children, datosIniciales }) {
-  const [datos, setDatos] = useState(() => datosIniciales ?? cargarDatos());
+export function ProveedorDatos({ children, datosIniciales, servicio: servicioExterno }) {
+  const auth = useContext(ContextoAuth);
+  const idUsuario = auth?.usuarioActual?.id ?? null;
+
+  const [servicio] = useState(
+    () =>
+      servicioExterno ??
+      (datosIniciales ? crearServicioMemoria(datosIniciales) : crearServicioPorDefecto()),
+  );
+  // El servicio en memoria entrega sus datos de inmediato; la API se consulta al iniciar sesión.
+  const esLocal = typeof servicio.obtenerInstantanea === 'function';
+
+  const [datos, setDatos] = useState(() =>
+    esLocal ? servicio.obtenerInstantanea() : DATOS_VACIOS,
+  );
+  const [estadoCarga, setEstadoCarga] = useState(esLocal ? 'listo' : 'inactivo');
+  const [errorCarga, setErrorCarga] = useState(null);
+
+  // Referencia a los datos más recientes para las acciones (evita cierres desactualizados)
+  const datosRef = useRef(datos);
+  datosRef.current = datos;
+  // Identifica la última carga para descartar respuestas de cargas anteriores
+  const cargaActual = useRef(0);
+
+  const recargar = useCallback(async () => {
+    const numero = ++cargaActual.current;
+    setEstadoCarga('cargando');
+    setErrorCarga(null);
+    try {
+      const nuevos = await servicio.cargarDatos();
+      if (numero !== cargaActual.current) return;
+      setDatos(nuevos);
+      setEstadoCarga('listo');
+    } catch (error) {
+      if (numero !== cargaActual.current) return;
+      setErrorCarga(error);
+      setEstadoCarga('error');
+    }
+  }, [servicio]);
 
   useEffect(() => {
-    guardarDatos(datos);
-  }, [datos]);
+    if (esLocal) return;
+    if (!idUsuario) {
+      // Sin sesión no se muestran datos de nadie
+      cargaActual.current += 1;
+      setDatos(DATOS_VACIOS);
+      setEstadoCarga('inactivo');
+      return;
+    }
+    recargar();
+  }, [esLocal, idUsuario, recargar]);
 
   /* ------------------------------- Candidatos ------------------------------ */
 
-  const agregarCandidato = useCallback((nuevo) => {
-    const candidato = { id: generarId(datos.candidatos), ...normalizarCandidato(nuevo) };
-    setDatos((actual) => ({ ...actual, candidatos: [...actual.candidatos, candidato] }));
-    return candidato;
-  }, [datos.candidatos]);
+  const agregarCandidato = useCallback(
+    async (nuevo) => {
+      const candidato = await servicio.crearCandidato(nuevo);
+      setDatos((actual) => ({ ...actual, candidatos: [...actual.candidatos, candidato] }));
+      return candidato;
+    },
+    [servicio],
+  );
 
-  const actualizarCandidato = useCallback((id, cambios) => {
-    setDatos((actual) => ({
-      ...actual,
-      candidatos: actual.candidatos.map((candidato) =>
-        candidato.id === Number(id) ? { ...candidato, ...normalizarCandidato(cambios) } : candidato,
-      ),
-    }));
-  }, []);
+  const actualizarCandidato = useCallback(
+    async (id, cambios) => {
+      const candidato = await servicio.actualizarCandidato(Number(id), cambios);
+      setDatos((actual) => ({
+        ...actual,
+        candidatos: reemplazarPorId(actual.candidatos, candidato),
+      }));
+      return candidato;
+    },
+    [servicio],
+  );
 
-  /**
-   * Elimina un candidato solo si no tiene solicitudes asociadas (misma regla que la API,
-   * que responde 409): así no quedan solicitudes apuntando a un candidato inexistente.
-   * @returns {{ ok: boolean, error?: string }}
-   */
+  /** Solo se elimina si no tiene solicitudes asociadas (si no, lanza ErrorApi 409). */
   const eliminarCandidato = useCallback(
-    (id) => {
-      const total = datos.solicitudes.filter(
-        (solicitud) => solicitud.candidatoId === Number(id),
-      ).length;
-      if (total > 0) {
-        return {
-          ok: false,
-          error: `No se puede eliminar: el candidato tiene ${total} solicitud(es) asociada(s).`,
-        };
-      }
+    async (id) => {
+      await servicio.eliminarCandidato(Number(id));
       setDatos((actual) => ({
         ...actual,
         candidatos: actual.candidatos.filter((candidato) => candidato.id !== Number(id)),
       }));
-      return { ok: true };
     },
-    [datos.solicitudes],
+    [servicio],
   );
 
   const obtenerCandidato = useCallback(
@@ -77,84 +134,47 @@ export function ProveedorDatos({ children, datosIniciales }) {
   /* ------------------------------- Solicitudes ----------------------------- */
 
   const agregarSolicitud = useCallback(
-    (nueva) => {
-      const solicitud = {
-        id: generarId(datos.solicitudes),
-        candidatoId: Number(nueva.candidatoId),
-        cargo: nueva.cargo.trim(),
-        familiaCargo: nueva.familiaCargo,
-        fechaSolicitud: nueva.fechaSolicitud,
-        estado: 'Pendiente',
-        etapa: 'recibida',
-        profesionalResponsable: nueva.profesionalResponsable ?? '',
-        observaciones: nueva.observaciones?.trim() ?? '',
-        tipoEvaluacion: nueva.tipoEvaluacion ?? '',
-        ubicacion: nueva.ubicacion?.trim() ?? '',
-        unidad: nueva.unidad ?? '',
-        ceco: nueva.ceco ?? '',
-        requiereReferencias: Boolean(nueva.requiereReferencias),
-        referido: nueva.referido ?? null,
-        cv: nueva.cv ?? '',
-        descriptorCargo: nueva.descriptorCargo ?? '',
-      };
-      setDatos((actual) => ({
-        ...actual,
-        solicitudes: [...actual.solicitudes, solicitud],
-      }));
+    async (nueva) => {
+      const solicitud = await servicio.crearSolicitud(nueva);
+      setDatos((actual) => ({ ...actual, solicitudes: [...actual.solicitudes, solicitud] }));
       return solicitud;
     },
-    [datos.solicitudes],
+    [servicio],
   );
 
-  const actualizarSolicitud = useCallback((id, cambios) => {
+  const aplicarSolicitud = useCallback((solicitud) => {
     setDatos((actual) => ({
       ...actual,
-      solicitudes: actual.solicitudes.map((solicitud) =>
-        solicitud.id === Number(id) ? { ...solicitud, ...cambios } : solicitud,
-      ),
+      solicitudes: reemplazarPorId(actual.solicitudes, solicitud),
     }));
+    return solicitud;
   }, []);
+
+  /** Cambia el estado y/o el profesional responsable de una solicitud. */
+  const actualizarSolicitud = useCallback(
+    async (id, cambios) => aplicarSolicitud(await servicio.actualizarSolicitud(Number(id), cambios)),
+    [servicio, aplicarSolicitud],
+  );
+
+  const asignarProfesional = useCallback(
+    (id, profesional) => actualizarSolicitud(id, { profesionalResponsable: profesional }),
+    [actualizarSolicitud],
+  );
+
+  /**
+   * Mueve una solicitud a otra etapa del Planner (sincroniza su estado oficial).
+   * Si se entregan datos de agenda (fecha, hora, modalidad) se guardan con la etapa.
+   */
+  const moverEtapa = useCallback(
+    async (id, etapa, agenda = {}) =>
+      aplicarSolicitud(await servicio.moverEtapa(Number(id), etapa, agenda)),
+    [servicio, aplicarSolicitud],
+  );
 
   const obtenerSolicitud = useCallback(
     (id) => datos.solicitudes.find((solicitud) => solicitud.id === Number(id)) ?? null,
     [datos.solicitudes],
   );
-
-  /**
-   * Mueve una solicitud a otra etapa del Planner y sincroniza su estado oficial.
-   * Si se entregan datos de agenda (fecha, hora, modalidad) se guardan con la etapa;
-   * al volver a "Evaluación Recibida" la entrevista queda nuevamente por coordinar.
-   */
-  const moverEtapa = useCallback((id, etapa, agenda = {}) => {
-    setDatos((actual) => ({
-      ...actual,
-      solicitudes: actual.solicitudes.map((solicitud) => {
-        if (solicitud.id !== Number(id)) return solicitud;
-        const datosAgenda =
-          etapa === 'recibida'
-            ? { fechaEntrevista: '', horaEntrevista: '', modalidadEntrevista: '' }
-            : {
-                ...(agenda.fechaEntrevista ? { fechaEntrevista: agenda.fechaEntrevista } : {}),
-                ...(agenda.horaEntrevista ? { horaEntrevista: agenda.horaEntrevista } : {}),
-                ...(agenda.modalidadEntrevista
-                  ? { modalidadEntrevista: agenda.modalidadEntrevista }
-                  : {}),
-              };
-        return { ...solicitud, ...datosAgenda, etapa, estado: estadoDeEtapa(etapa) };
-      }),
-    }));
-  }, []);
-
-  const asignarProfesional = useCallback((id, profesional) => {
-    setDatos((actual) => ({
-      ...actual,
-      solicitudes: actual.solicitudes.map((solicitud) =>
-        solicitud.id === Number(id)
-          ? { ...solicitud, profesionalResponsable: profesional }
-          : solicitud,
-      ),
-    }));
-  }, []);
 
   /* ------------------------------ Evaluaciones ----------------------------- */
 
@@ -165,62 +185,43 @@ export function ProveedorDatos({ children, datosIniciales }) {
     [datos.evaluaciones],
   );
 
-  /** Registra o actualiza la evaluación de una solicitud y actualiza su estado. */
+  /** Registra o actualiza la evaluación de una solicitud (y su estado). */
   const registrarEvaluacion = useCallback(
-    (solicitudId, datosEvaluacion) => {
-      const registro = {
-        fechaEvaluacion: datosEvaluacion.fechaEvaluacion,
-        resultado: datosEvaluacion.resultado,
-        observaciones: datosEvaluacion.observaciones.trim(),
-        estado: ESTADOS_EVALUACION.includes(datosEvaluacion.estado)
-          ? datosEvaluacion.estado
-          : 'Realizada',
-      };
-
-      setDatos((actual) => {
-        const existente = actual.evaluaciones.find(
+    async (solicitudId, datosEvaluacion) => {
+      const existente =
+        datosRef.current.evaluaciones.find(
           (evaluacion) => evaluacion.solicitudId === Number(solicitudId),
-        );
-        const base = existente
-          ? { ...existente, ...registro }
-          : { id: generarId(actual.evaluaciones), solicitudId: Number(solicitudId), ...registro };
-        // Días de respuesta (corridos) hasta el informe; si aún no hay fecha de informe
-        // se usa la de evaluación, igual que la API al registrar la evaluación.
-        const solicitud = actual.solicitudes.find((item) => item.id === Number(solicitudId));
-        const diasRespuesta = calcularDiasRespuesta(
-          solicitud?.fechaSolicitud,
-          base.fechaInforme || base.fechaEvaluacion,
-        );
-        const evaluacion = { ...base, diasRespuesta };
-
-        return {
-          ...actual,
-          evaluaciones: existente
-            ? actual.evaluaciones.map((item) => (item.id === existente.id ? evaluacion : item))
-            : [...actual.evaluaciones, evaluacion],
-          solicitudes: actual.solicitudes.map((solicitud) =>
-            solicitud.id === Number(solicitudId)
-              ? { ...solicitud, estado: estadoSolicitudDesdeEvaluacion(evaluacion) }
-              : solicitud,
-          ),
-        };
-      });
-
-      return registro;
+        ) ?? null;
+      const { evaluacion, solicitud } = await servicio.registrarEvaluacion(
+        Number(solicitudId),
+        datosEvaluacion,
+        existente,
+      );
+      setDatos((actual) => ({
+        ...actual,
+        evaluaciones: agregarOReemplazar(actual.evaluaciones, evaluacion),
+        solicitudes: reemplazarPorId(actual.solicitudes, solicitud),
+      }));
+      return evaluacion;
     },
-    [],
+    [servicio],
   );
 
-  /** Restaura los datos semilla (útil para demos y pruebas). */
-  const reiniciarDatos = useCallback(() => {
-    setDatos(obtenerSemilla());
-  }, []);
+  /** Restaura los datos semilla (solo en modo memoria: demos y pruebas). */
+  const reiniciarDatos = useCallback(async () => {
+    if (typeof servicio.reiniciar !== 'function') return;
+    setDatos(await servicio.reiniciar(obtenerSemilla()));
+  }, [servicio]);
 
   const valor = useMemo(
     () => ({
       candidatos: datos.candidatos,
       solicitudes: datos.solicitudes,
       evaluaciones: datos.evaluaciones,
+      cargando: estadoCarga === 'cargando',
+      errorCarga,
+      modo: servicio.modo,
+      recargar,
       agregarCandidato,
       actualizarCandidato,
       eliminarCandidato,
@@ -236,6 +237,10 @@ export function ProveedorDatos({ children, datosIniciales }) {
     }),
     [
       datos,
+      estadoCarga,
+      errorCarga,
+      servicio.modo,
+      recargar,
       agregarCandidato,
       actualizarCandidato,
       eliminarCandidato,

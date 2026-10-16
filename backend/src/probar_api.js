@@ -364,3 +364,130 @@ test('PUT de evaluación válido actualiza solo los campos enviados', async () =
   assert.equal(datos.evaluacion.resultado, 'No recomendado');
   assert.equal(datos.evaluacion.observaciones, antes.datos.evaluacion.observaciones);
 });
+
+/* ---------------------------- Planner (etapas) ---------------------------- */
+
+test('la semilla incluye las solicitudes demo del Planner con su etapa y agenda', async () => {
+  const { datos } = await pedir('GET', '/solicitudes/104', { token: tokenEvaluador });
+  assert.equal(datos.solicitud.etapa, 'agendada');
+  assert.equal(datos.solicitud.estado, 'En proceso');
+  assert.equal(datos.solicitud.modalidadEntrevista, 'Teams');
+});
+
+test('una solicitud nueva parte en la etapa "recibida"', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const { datos } = await pedir('GET', `/solicitudes/${solicitudId}`, { token: tokenAnalista });
+  assert.equal(datos.solicitud.etapa, 'recibida');
+});
+
+test('Planner: agendar → realizada → volver a recibida sincroniza estado y agenda', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const ruta = `/solicitudes/${solicitudId}/etapa`;
+
+  const sinAgenda = await pedir('PATCH', ruta, { token: tokenEvaluador, cuerpo: { etapa: 'agendada' } });
+  assert.equal(sinAgenda.status, 400);
+  assert.ok(sinAgenda.datos.errores.fechaEntrevista);
+
+  const agendada = await pedir('PATCH', ruta, {
+    token: tokenEvaluador,
+    cuerpo: {
+      etapa: 'agendada',
+      fechaEntrevista: '2026-01-08',
+      horaEntrevista: '10:30',
+      modalidadEntrevista: 'Teams',
+    },
+  });
+  assert.equal(agendada.status, 200);
+  assert.equal(agendada.datos.solicitud.estado, 'En proceso');
+  assert.equal(agendada.datos.solicitud.horaEntrevista, '10:30');
+
+  const realizada = await pedir('PATCH', ruta, { token: tokenEvaluador, cuerpo: { etapa: 'realizada' } });
+  assert.equal(realizada.status, 200);
+  assert.equal(realizada.datos.solicitud.etapa, 'realizada');
+  assert.equal(realizada.datos.solicitud.fechaEntrevista, '2026-01-08');
+
+  const recibida = await pedir('PATCH', ruta, { token: tokenEvaluador, cuerpo: { etapa: 'recibida' } });
+  assert.equal(recibida.datos.solicitud.estado, 'Pendiente');
+  assert.equal(recibida.datos.solicitud.fechaEntrevista, '');
+});
+
+test('Planner: valida la agenda, no asigna "informe" a mano y es solo para evaluadores', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const ruta = `/solicitudes/${solicitudId}/etapa`;
+
+  const horaFuera = await pedir('PATCH', ruta, {
+    token: tokenEvaluador,
+    cuerpo: { etapa: 'agendada', fechaEntrevista: '2026-01-08', horaEntrevista: '22:00', modalidadEntrevista: 'Teams' },
+  });
+  assert.equal(horaFuera.status, 400);
+  assert.ok(horaFuera.datos.errores.horaEntrevista);
+
+  const antesDeSolicitud = await pedir('PATCH', ruta, {
+    token: tokenEvaluador,
+    cuerpo: { etapa: 'agendada', fechaEntrevista: '2025-12-01', horaEntrevista: '10:00', modalidadEntrevista: 'Teams' },
+  });
+  assert.equal(antesDeSolicitud.status, 400);
+
+  const informe = await pedir('PATCH', ruta, { token: tokenEvaluador, cuerpo: { etapa: 'informe' } });
+  assert.equal(informe.status, 400);
+
+  const realizadaSinAgenda = await pedir('PATCH', ruta, {
+    token: tokenEvaluador,
+    cuerpo: { etapa: 'realizada' },
+  });
+  assert.equal(realizadaSinAgenda.status, 409);
+
+  const analista = await pedir('PATCH', ruta, { token: tokenAnalista, cuerpo: { etapa: 'recibida' } });
+  assert.equal(analista.status, 403);
+});
+
+test('Planner: una solicitud finalizada no se reabre y la evaluación la deja en "informe"', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenEvaluador,
+    cuerpo: { estado: 'En proceso' },
+  });
+  await pedir('POST', '/evaluaciones', { token: tokenEvaluador, cuerpo: { solicitudId, ...evaluacionValida } });
+
+  const { datos } = await pedir('GET', `/solicitudes/${solicitudId}`, { token: tokenEvaluador });
+  assert.equal(datos.solicitud.etapa, 'informe');
+
+  const reabrir = await pedir('PATCH', `/solicitudes/${solicitudId}/etapa`, {
+    token: tokenEvaluador,
+    cuerpo: { etapa: 'realizada' },
+  });
+  assert.equal(reabrir.status, 409);
+});
+
+test('cambiar el estado ajusta la etapa del Planner para que no se contradigan', async () => {
+  const { solicitudId } = await crearSolicitudPendiente();
+  const { datos } = await pedir('PATCH', `/solicitudes/${solicitudId}/estado`, {
+    token: tokenAnalista,
+    cuerpo: { estado: 'En proceso' },
+  });
+  assert.equal(datos.solicitud.etapa, 'agendada');
+});
+
+test('la migración agrega las columnas del Planner a una base antigua sin perder datos', () => {
+  const { DatabaseSync } = require('node:sqlite');
+  const ruta = path.join(dirTemporal, 'antigua.sqlite');
+  const antigua = new DatabaseSync(ruta);
+  antigua.exec(`CREATE TABLE solicitudes (id INTEGER PRIMARY KEY, cargo TEXT);
+                INSERT INTO solicitudes (id, cargo) VALUES (1, 'Operario');`);
+  antigua.close();
+
+  const { execFileSync } = require('node:child_process');
+  execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, 'bd', 'migrar.js')], {
+    env: { ...process.env, AQUACHILE_BD: ruta },
+  });
+
+  const migrada = new DatabaseSync(ruta);
+  const columnas = migrada.prepare('PRAGMA table_info(solicitudes)').all().map((c) => c.name);
+  const fila = migrada.prepare('SELECT * FROM solicitudes WHERE id = 1').get();
+  migrada.close();
+
+  for (const columna of ['etapa', 'fecha_entrevista', 'hora_entrevista', 'modalidad_entrevista']) {
+    assert.ok(columnas.includes(columna), `falta la columna ${columna}`);
+  }
+  assert.equal(fila.cargo, 'Operario');
+});

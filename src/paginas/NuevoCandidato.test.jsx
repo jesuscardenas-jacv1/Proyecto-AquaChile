@@ -1,15 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import NuevoCandidato from './NuevoCandidato';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { datosDePrueba, datosVacios } from '../pruebas/utilidades';
+import { crearServicioMemoria } from '../servicios/servicioMemoria';
+import { ErrorApi } from '../servicios/errores';
 
-const renderPagina = (datosIniciales) =>
+const renderPagina = (datosIniciales, servicio) =>
   render(
     <MemoryRouter initialEntries={['/candidatos/nuevo']}>
-      <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
+      <ProveedorDatos
+        servicio={servicio ?? crearServicioMemoria(structuredClone(datosIniciales))}
+      >
         <Routes>
           <Route path="/candidatos/nuevo" element={<NuevoCandidato />} />
           <Route path="/candidatos" element={<h1>Listado de candidatos</h1>} />
@@ -60,5 +64,22 @@ describe('NuevoCandidato', () => {
   it('muestra el formulario aunque no existan candidatos', () => {
     renderPagina(datosVacios);
     expect(screen.getByLabelText(/nombre completo/i)).toBeInTheDocument();
+  });
+
+  it('si la API rechaza los datos, muestra el motivo y no sale del formulario', async () => {
+    const usuario = userEvent.setup();
+    const servicio = crearServicioMemoria(structuredClone(datosDePrueba));
+    servicio.crearCandidato = vi.fn().mockRejectedValue(
+      new ErrorApi(400, 'Los datos enviados no son válidos.', {
+        telefono: 'El teléfono debe contener solo números (8 a 15 dígitos).',
+      }),
+    );
+    renderPagina(datosDePrueba, servicio);
+
+    await completarYEnviar(usuario);
+
+    expect(await screen.findByText('No se pudo registrar el candidato')).toBeInTheDocument();
+    expect(screen.getByText(/el teléfono debe contener solo números/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /listado de candidatos/i })).toBeNull();
   });
 });

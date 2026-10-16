@@ -13,7 +13,7 @@ npm install
 ```
 
 ### 2. Migración y siembra de la Base de Datos
-Crea las tablas relacionales y carga los 100 registros históricos de candidatos, solicitudes y evaluaciones desde la base simulada:
+Crea las tablas relacionales y carga los mismos datos semilla que el frontend: los 100 registros históricos de la base simulada (`src/datos/bdSimulada.json`) y las 8 solicitudes en curso del Planner (`src/datos/demoPlanner.json`). `db:migrar` también agrega las columnas nuevas a una base creada con una versión anterior, sin perder datos:
 ```bash
 npm run db:migrar
 npm run db:semilla
@@ -83,7 +83,13 @@ Requiere **Node.js 22.5 o superior** (módulo `node:sqlite`).
 * `GET /api/solicitudes/:id`: Detalle completo, candidato y evaluación asociada.
   * **Regla de confidencialidad:** Si el usuario es Analista, las observaciones clínicas se ocultan y el campo `confidencial: true`.
 * `POST /api/solicitudes`: Crear solicitud (**Exclusivo Analista**).
-* `PATCH /api/solicitudes/:id/estado`: Transición de estado (`Pendiente`, `En proceso`, `Finalizada`) y asignación de psicólogo/a. Solo se puede pasar a `Finalizada` si ya existe una evaluación (si no, `409`).
+* `PATCH /api/solicitudes/:id/estado`: Transición de estado (`Pendiente`, `En proceso`, `Finalizada`) y asignación de psicólogo/a. Solo se puede pasar a `Finalizada` si ya existe una evaluación (si no, `409`). Si el nuevo estado no calza con la etapa del Planner, la etapa se ajusta.
+* `PATCH /api/solicitudes/:id/etapa`: Mueve la solicitud en el Planner (**Exclusivo Evaluador**). Body: `{ etapa, fechaEntrevista?, horaEntrevista?, modalidadEntrevista? }`.
+  * `recibida` (→ `Pendiente`): borra los datos de la entrevista.
+  * `agendada` (→ `En proceso`): exige fecha (no anterior a la solicitud), hora entre 08:00 y 20:00 y modalidad (`Teams`, `Presencial`, `Telefónica`).
+  * `realizada` (→ `En proceso`): requiere una entrevista agendada.
+  * `informe` no se asigna a mano (`400`): se alcanza al registrar la evaluación. Una solicitud `Finalizada` no se reabre (`409`).
+* Cada solicitud incluye `etapa` (`null` = se deduce del estado), `fechaEntrevista`, `horaEntrevista` y `modalidadEntrevista`.
 
 ### Evaluaciones Psicolaborales (`/api/evaluaciones`)
 * `GET /api/evaluaciones`: Listado de evaluaciones realizadas.

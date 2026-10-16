@@ -63,6 +63,12 @@ function migrar() {
       referido                INTEGER,
       cv                      TEXT    NOT NULL DEFAULT '',
       descriptor_cargo        TEXT    NOT NULL DEFAULT '',
+      -- Planner de la psicóloga: etapa detallada y datos de la entrevista
+      etapa                   TEXT
+                                CHECK(etapa IS NULL OR etapa IN ('recibida', 'agendada', 'realizada', 'informe')),
+      fecha_entrevista        TEXT    NOT NULL DEFAULT '',
+      hora_entrevista         TEXT    NOT NULL DEFAULT '',
+      modalidad_entrevista    TEXT    NOT NULL DEFAULT '',
       creado_en               TEXT    NOT NULL DEFAULT (datetime('now')),
       actualizado_en          TEXT    NOT NULL DEFAULT (datetime('now'))
     );
@@ -86,6 +92,28 @@ function migrar() {
     );
   `);
 
+  agregarColumnasFaltantes();
+}
+
+/**
+ * Bases creadas antes de existir el Planner no tienen sus columnas:
+ * CREATE TABLE IF NOT EXISTS no las agrega, así que se agregan aquí sin perder datos.
+ */
+function agregarColumnasFaltantes() {
+  const existentes = new Set(
+    db.prepare('PRAGMA table_info(solicitudes)').all().map((columna) => columna.name),
+  );
+  const nuevas = {
+    etapa: 'TEXT',
+    fecha_entrevista: "TEXT NOT NULL DEFAULT ''",
+    hora_entrevista: "TEXT NOT NULL DEFAULT ''",
+    modalidad_entrevista: "TEXT NOT NULL DEFAULT ''",
+  };
+  for (const [nombre, definicion] of Object.entries(nuevas)) {
+    if (!existentes.has(nombre)) {
+      db.exec(`ALTER TABLE solicitudes ADD COLUMN ${nombre} ${definicion};`);
+    }
+  }
 }
 
 if (require.main === module) {

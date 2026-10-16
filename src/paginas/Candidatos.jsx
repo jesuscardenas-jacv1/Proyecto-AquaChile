@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
+import { useAccion } from '../datos/useAccion';
 import ListaCandidatos from '../componentes/candidatos/ListaCandidatos';
 import Mensaje from '../componentes/comunes/Mensaje';
 
@@ -13,15 +14,15 @@ export default function Candidatos() {
   const navegar = useNavigate();
   const ubicacion = useLocation();
   const [confirmando, setConfirmando] = useState(null);
-  const [errorEliminar, setErrorEliminar] = useState('');
+  const { ejecutar, error: errorEliminar, limpiarError } = useAccion();
 
   const mensaje = ubicacion.state?.mensaje;
   const tipo = ubicacion.state?.tipo ?? 'success';
 
-  const confirmarEliminar = () => {
-    const resultado = eliminarCandidato(confirmando.id);
-    setErrorEliminar(resultado.ok ? '' : resultado.error);
+  const confirmarEliminar = async () => {
+    const { id } = confirmando;
     setConfirmando(null);
+    await ejecutar(() => eliminarCandidato(id));
   };
 
   return (
@@ -50,7 +51,7 @@ export default function Candidatos() {
       ) : null}
 
       {errorEliminar ? (
-        <Mensaje tipo="danger" alCerrar={() => setErrorEliminar('')}>
+        <Mensaje tipo="danger" alCerrar={limpiarError}>
           {errorEliminar}
         </Mensaje>
       ) : null}
