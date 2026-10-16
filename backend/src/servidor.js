@@ -6,6 +6,7 @@ const rutaAuth = require('./rutas/auth');
 const rutaCandidatos = require('./rutas/candidatos');
 const rutaSolicitudes = require('./rutas/solicitudes');
 const rutaEvaluaciones = require('./rutas/evaluaciones');
+const rutaDocumentos = require('./rutas/documentos');
 
 const app = express();
 const PUERTO = process.env.PORT || 3001;
@@ -28,6 +29,7 @@ app.get('/api/salud', (req, res) => {
 // 3. Montaje de módulos de rutas de la API REST
 app.use('/api/auth', rutaAuth);
 app.use('/api/candidatos', rutaCandidatos);
+app.use('/api/solicitudes/:id/documentos', rutaDocumentos);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);
 
@@ -44,6 +46,8 @@ if (require.main === module) {
     console.log(`   - Candidatos:            http://localhost:${PUERTO}/api/candidatos`);
     console.log(`   - Solicitudes:           http://localhost:${PUERTO}/api/solicitudes`);
     console.log(`   - Evaluaciones:          http://localhost:${PUERTO}/api/evaluaciones`);
+    console.log(`   - Documentos:            http://localhost:${PUERTO}/api/solicitudes/:id/documentos`);
+    console.log(`   - Almacenamiento:        ${process.env.ALMACENAMIENTO || 'local'}`);
   });
 }
 

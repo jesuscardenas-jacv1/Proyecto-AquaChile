@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { autenticarUsuario } from './usuarios';
+import { conectarApi, desconectarApi } from '../servicios/apiDocumentos';
 
 const ContextoAuth = createContext(null);
 const CLAVE_SESION = 'aquachile_sesion_activa';
@@ -41,6 +42,8 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
     if (resultado.ok) {
       setUsuarioActual(resultado.usuario);
       guardarSesion(resultado.usuario);
+      // En segundo plano: token del backend para la sección de documentos.
+      conectarApi(correo, contrasena);
     }
     return resultado;
   }, []);
@@ -48,6 +51,7 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
   const cerrarSesion = useCallback(() => {
     setUsuarioActual(null);
     guardarSesion(null);
+    desconectarApi();
   }, []);
 
   const valor = useMemo(

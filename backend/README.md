@@ -74,3 +74,33 @@ npm test
 * `GET /api/evaluaciones/solicitud/:solicitudId`: Evaluación de una solicitud.
 * `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Pasa la solicitud a `Finalizada` automáticamente mediante transacción.
 * `PUT /api/evaluaciones/:id`: Modificación de evaluación (**Exclusivo Evaluador**).
+
+### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
+Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo y el informe psicolaboral. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `), así la carpeta se entiende igual al abrirla directo en OneDrive.
+* `GET /api/solicitudes/:id/documentos`: Carpeta, archivos y categorías que el usuario puede gestionar.
+* `POST /api/solicitudes/:id/documentos?categoria=cv|descriptor|informe&nombre=archivo.pdf`: Sube el archivo (cuerpo binario, máx. 10 MB) y crea la carpeta si no existe. CV y descriptor: **Analista**; informe: **Evaluador**.
+* `GET /api/solicitudes/:id/documentos/:archivoId/contenido`: Descarga el archivo.
+* `DELETE /api/solicitudes/:id/documentos/:archivoId`: Elimina el archivo (mismo perfil que puede subirlo).
+
+---
+
+## 📁 Almacenamiento de documentos: local u OneDrive
+
+La variable `ALMACENAMIENTO` elige dónde viven las carpetas (copie `.env.example` como `.env`):
+
+| Valor | Destino | Uso |
+|---|---|---|
+| `local` (por defecto) | `backend/documentos/` | Desarrollo y demo, sin Microsoft 365 |
+| `graph` | OneDrive o biblioteca de SharePoint vía Microsoft Graph | Producción en el tenant de AquaChile |
+
+Para `graph`, TI de AquaChile debe:
+1. Registrar una aplicación en **Microsoft Entra ID** y crear un secreto de cliente (`GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`).
+2. Otorgar el permiso de aplicación **Sites.Selected** sobre el sitio de SharePoint de Reclutamiento (recomendado) o **Files.ReadWrite.All**, con consentimiento de administrador.
+3. Indicar el destino: `GRAPH_DRIVE_ID` (biblioteca de SharePoint, recomendado) o `GRAPH_USUARIO` (OneDrive de una cuenta de servicio).
+
+Se recomienda una biblioteca de SharePoint y no el OneDrive personal de una persona: si esa cuenta se da de baja, sus archivos se eliminan.
+
+Pruebas de la capa de almacenamiento (Graph se prueba con respuestas simuladas):
+```bash
+npm run test:almacenamiento
+```

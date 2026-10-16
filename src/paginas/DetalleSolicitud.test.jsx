@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DetalleSolicitud from './DetalleSolicitud';
 import { datosDePrueba } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
+import { apiDocumentos } from '../servicios/apiDocumentos';
 
 const renderDetalle = (id = '3') =>
   render(
@@ -112,5 +113,72 @@ describe('DetalleSolicitud', () => {
     expect(screen.queryByText('Perfil estable y buen trabajo en equipo.')).toBeNull();
     // No debe mostrar el formulario de evaluación al analista
     expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
+  });
+  describe('informe en la carpeta de la solicitud', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const registrarRecomendado = async (usuario) => {
+      await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
+      await usuario.type(screen.getByLabelText(/^observaciones/i), 'Nota clínica reservada.');
+      await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
+    };
+
+    it('guarda el informe en la carpeta al registrar la evaluación y recarga los documentos', async () => {
+      vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+      const listar = vi
+        .spyOn(apiDocumentos, 'listar')
+        .mockResolvedValue({ proveedor: 'local', carpeta: null, archivos: [], permisos: ['informe'] });
+      const generarInforme = vi.spyOn(apiDocumentos, 'generarInforme').mockResolvedValue({ ok: true });
+      const usuario = userEvent.setup();
+      renderDetalle('2');
+      await screen.findByText(/la carpeta se crea al subir/i);
+
+      await registrarRecomendado(usuario);
+
+      expect(
+        await screen.findByText(/el informe psicolaboral se guardó en la carpeta/i),
+      ).toBeInTheDocument();
+      const [solicitudId, datos] = generarInforme.mock.calls[0];
+      expect(solicitudId).toBe(2);
+      expect(datos.candidato.nombre).toBe('Juan Pérez');
+      expect(datos.solicitud.cargo).toBe('Analista de Datos');
+      expect(datos.evaluacion.resultado).toBe('Recomendado');
+      expect(listar).toHaveBeenCalledTimes(2);
+    });
+
+    it('registra la evaluación aunque el servicio de documentos no esté conectado', async () => {
+      const generarInforme = vi.spyOn(apiDocumentos, 'generarInforme');
+      const usuario = userEvent.setup();
+      renderDetalle('2');
+
+      await registrarRecomendado(usuario);
+
+      expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
+      expect(screen.getByText(/el informe no se guardó en la carpeta/i)).toBeInTheDocument();
+      expect(generarInforme).not.toHaveBeenCalled();
+    });
+
+    it('avisa si el backend no pudo guardar el informe', async () => {
+      vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+      vi.spyOn(apiDocumentos, 'listar').mockResolvedValue({
+        proveedor: 'local',
+        carpeta: null,
+        archivos: [],
+        permisos: ['informe'],
+      });
+      vi.spyOn(apiDocumentos, 'generarInforme').mockRejectedValue(new Error('Error de Microsoft Graph (503)'));
+      const usuario = userEvent.setup();
+      renderDetalle('2');
+      await screen.findByText(/la carpeta se crea al subir/i);
+
+      await registrarRecomendado(usuario);
+
+      expect(
+        await screen.findByText(/no se pudo guardar el informe en la carpeta: error de microsoft graph/i),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
+    });
   });
 });
