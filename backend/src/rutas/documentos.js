@@ -11,6 +11,7 @@ const {
   nombreCarpeta,
   validarArchivo,
 } = require('../almacenamiento/comun');
+const { generarInformePdf, nombreArchivoInforme } = require('../almacenamiento/informePdf');
 
 /**
  * Documentos de una solicitud (CV, descriptor de cargo e informe psicolaboral).
@@ -31,9 +32,10 @@ function idSolicitud(req) {
 
 /**
  * Nombre del candidato para nombrar la carpeta. Se toma de la BD; si la solicitud aún no
- * existe en ella (la página trabaja con datos locales) se usa la cabecera X-Candidato.
+ * existe en ella (la página trabaja con datos locales) se usa el respaldo enviado por el
+ * cliente: el nombre del cuerpo o la cabecera X-Candidato.
  */
-function nombreCandidato(req, id) {
+function nombreCandidato(req, id, respaldo) {
   try {
     const fila = db
       .prepare(
@@ -44,6 +46,7 @@ function nombreCandidato(req, id) {
   } catch {
     // BD sin migrar: se usa el dato enviado por el cliente.
   }
+  if (respaldo) return respaldo;
   try {
     return decodeURIComponent(req.get('X-Candidato') ?? '');
   } catch {
@@ -122,6 +125,40 @@ router.post(
     const archivo = await almacenamiento.subirArchivo(
       carpeta,
       nombreArchivo(categoria, nombre),
+      contenido,
+    );
+
+    res.status(201).json({ ok: true, carpeta, archivo: { ...archivo, puedeEliminar: true } });
+  }),
+);
+
+/**
+ * POST /api/solicitudes/:id/documentos/informe
+ * Genera el PDF oficial del informe psicolaboral y lo guarda en la carpeta de la solicitud
+ * (reemplaza el anterior si la evaluación se actualiza). Exclusivo del evaluador.
+ * Cuerpo JSON: { candidato, solicitud, evaluacion }. Las observaciones clínicas no se
+ * incluyen: el PDF queda visible para el analista.
+ */
+router.post(
+  '/informe',
+  autenticar,
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    if (!puedeGestionar(req.usuario, 'informe')) {
+      throw new ErrorAlmacenamiento('Solo el profesional evaluador puede generar el informe.', 403);
+    }
+
+    const { candidato, solicitud, evaluacion } = req.body ?? {};
+    const contenido = await generarInformePdf({ solicitudId: id, candidato, solicitud, evaluacion });
+    const nombre = nombreCandidato(req, id, candidato?.nombre);
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const carpeta = await almacenamiento.obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), {
+      crear: true,
+    });
+    const archivo = await almacenamiento.subirArchivo(
+      carpeta,
+      nombreArchivo('informe', nombreArchivoInforme(id, nombre)),
       contenido,
     );
 

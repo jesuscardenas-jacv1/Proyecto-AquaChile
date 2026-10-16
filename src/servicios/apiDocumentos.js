@@ -126,10 +126,46 @@ export async function eliminarDocumento(solicitudId, archivoId) {
   });
 }
 
+/**
+ * Pide al backend generar el PDF oficial del informe y guardarlo en la carpeta de la
+ * solicitud. Solo viajan los datos del dictamen: las observaciones clínicas no se envían,
+ * porque el PDF de la carpeta también lo ve el analista.
+ */
+export async function generarInforme(solicitudId, { candidato, solicitud, evaluacion }) {
+  const cuerpo = {
+    candidato: {
+      nombre: candidato?.nombre ?? '',
+      correo: candidato?.correo ?? '',
+      telefono: candidato?.telefono ?? '',
+      origen: candidato?.origen ?? '',
+    },
+    solicitud: {
+      cargo: solicitud.cargo,
+      familiaCargo: solicitud.familiaCargo,
+      fechaSolicitud: solicitud.fechaSolicitud,
+      profesionalResponsable: solicitud.profesionalResponsable ?? '',
+      ubicacion: solicitud.ubicacion ?? '',
+      unidad: solicitud.unidad ?? '',
+      ceco: solicitud.ceco ?? '',
+    },
+    evaluacion: {
+      fechaEvaluacion: evaluacion.fechaEvaluacion,
+      resultado: evaluacion.resultado,
+    },
+  };
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/informe`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify(cuerpo),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return respuesta.json();
+}
+
 export const apiDocumentos = {
   conectado: () => Boolean(obtenerToken()),
   listar: listarDocumentos,
   subir: subirDocumento,
   descargar: descargarDocumento,
   eliminar: eliminarDocumento,
+  generarInforme,
 };

@@ -28,7 +28,12 @@ function formatearTamano(bytes) {
  * Los archivos viven en la carpeta de la solicitud (OneDrive/SharePoint o disco local,
  * según el backend); este panel solo los muestra, sube, descarga y elimina.
  */
-export default function PanelDocumentos({ solicitud, nombreCandidato, api = apiDocumentos }) {
+export default function PanelDocumentos({
+  solicitud,
+  nombreCandidato,
+  api = apiDocumentos,
+  actualizacion = 0,
+}) {
   const [estado, setEstado] = useState({ cargando: true });
   const [ocupado, setOcupado] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -52,9 +57,10 @@ export default function PanelDocumentos({ solicitud, nombreCandidato, api = apiD
     }
   }, [api, solicitud.id]);
 
+  // `actualizacion` cambia cuando otra parte de la página agrega archivos (p. ej. el informe).
   useEffect(() => {
     cargar();
-  }, [cargar]);
+  }, [cargar, actualizacion]);
 
   const ejecutar = async (clave, accion, mensajeExito) => {
     setOcupado(clave);
