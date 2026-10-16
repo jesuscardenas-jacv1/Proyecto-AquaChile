@@ -91,7 +91,7 @@ export default function Dashboard() {
           resumen:
             promedio === null
               ? `${evaluaciones.length} evaluaciones registradas`
-              : `${evaluaciones.length} evaluaciones · tiempo de respuesta promedio: ${promedio} días hábiles`,
+              : `${evaluaciones.length} evaluaciones · tiempo de respuesta promedio: ${promedio} días`,
           grupos: [
             {
               titulo: 'Por resultado',

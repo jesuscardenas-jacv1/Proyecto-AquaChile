@@ -102,7 +102,7 @@ export function porReclutador(registros = []) {
   return contarPor(registros, (registro) => registro.reclutador, 'Sin asignar');
 }
 
-/** Promedio de días hábiles entre la solicitud y el envío del informe. */
+/** Promedio de días corridos entre la solicitud y el envío del informe. */
 export function promedioTiming(registros = []) {
   return promedioDiasRespuesta(registros);
 }

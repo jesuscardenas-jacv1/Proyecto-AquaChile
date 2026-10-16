@@ -73,7 +73,20 @@ export function contarPor(items = [], obtenerClave, sinDato = 'Sin dato') {
     .sort((a, b) => b.total - a.total || a.etiqueta.localeCompare(b.etiqueta));
 }
 
-/** Promedio de días hábiles de respuesta (null si ninguna evaluación lo registra). */
+/**
+ * Días de respuesta de una evaluación: días CORRIDOS desde la solicitud hasta el envío
+ * del informe, con mínimo 1 (misma regla que la API y que el script de importación).
+ * @returns {number|null} null si falta alguna de las fechas.
+ */
+export function calcularDiasRespuesta(fechaSolicitud, fechaInforme) {
+  if (!fechaSolicitud || !fechaInforme) return null;
+  const inicio = Date.parse(`${fechaSolicitud}T00:00:00Z`);
+  const fin = Date.parse(`${fechaInforme}T00:00:00Z`);
+  if (Number.isNaN(inicio) || Number.isNaN(fin)) return null;
+  return Math.max(1, Math.round((fin - inicio) / 86400000));
+}
+
+/** Promedio de días (corridos) de respuesta (null si ninguna evaluación lo registra). */
 export function promedioDiasRespuesta(evaluaciones = []) {
   const dias = evaluaciones
     .map((evaluacion) => evaluacion.diasRespuesta)

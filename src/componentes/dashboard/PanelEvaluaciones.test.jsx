@@ -32,7 +32,7 @@ describe('PanelEvaluaciones', () => {
     expect(reclutadores.getByRole('row', { name: 'Javiera Soto 2' })).toBeInTheDocument();
     expect(reclutadores.getByRole('row', { name: 'Total 3' })).toBeInTheDocument();
 
-    expect(screen.getByRole('img', { name: /promedio de timing: 4 días hábiles/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /promedio de timing: 4 días/i })).toBeInTheDocument();
   });
 
   it('aplica los filtros de mes y tipo de evaluación a todos los gráficos', async () => {
@@ -51,6 +51,6 @@ describe('PanelEvaluaciones', () => {
     const familias = tablaDe('Recuento de candidatos evaluados por familia de cargo');
     expect(familias.getByRole('row', { name: 'Técnico B C 1 0 1' })).toBeInTheDocument();
     expect(familias.queryByRole('row', { name: /jefatura/i })).toBeNull();
-    expect(screen.getByRole('img', { name: /promedio de timing: 2 días hábiles/i })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /promedio de timing: 2 días/i })).toBeInTheDocument();
   });
 });

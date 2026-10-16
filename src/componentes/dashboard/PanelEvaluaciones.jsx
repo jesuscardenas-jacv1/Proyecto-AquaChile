@@ -189,9 +189,9 @@ export default function PanelEvaluaciones({ solicitudes, evaluaciones }) {
         <div className="col-12 col-xl-3">
           <Tarjeta
             titulo="Promedio de timing"
-            subtitulo="Promedio de días hábiles desde la solicitud hasta el envío del informe."
+            subtitulo="Promedio de días corridos desde la solicitud hasta el envío del informe."
           >
-            <Medidor valor={timing} unidad="días hábiles" descripcion="Promedio de timing" />
+            <Medidor valor={timing} unidad="días" descripcion="Promedio de timing" />
           </Tarjeta>
         </div>
       </div>

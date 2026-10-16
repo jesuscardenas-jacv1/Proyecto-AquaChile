@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { filtrarCandidatos, filtrarSolicitudes, ordenarPorFecha } from './consultas';
 import {
+  calcularDiasRespuesta,
   contarPor,
   estadoSolicitudDesdeEvaluacion,
   promedioDiasRespuesta,
@@ -104,5 +105,22 @@ describe('promedioDiasRespuesta', () => {
   it('devuelve null cuando no hay datos', () => {
     expect(promedioDiasRespuesta([{}])).toBeNull();
     expect(promedioDiasRespuesta()).toBeNull();
+  });
+});
+
+describe('calcularDiasRespuesta', () => {
+  it('cuenta días corridos, incluidos fines de semana', () => {
+    // viernes 25-04-2025 → jueves 08-05-2025: 13 corridos (serían 9 hábiles)
+    expect(calcularDiasRespuesta('2025-04-25', '2025-05-08')).toBe(13);
+  });
+
+  it('usa mínimo 1 día cuando el informe sale el mismo día', () => {
+    expect(calcularDiasRespuesta('2026-03-02', '2026-03-02')).toBe(1);
+  });
+
+  it('devuelve null si falta alguna fecha o no es válida', () => {
+    expect(calcularDiasRespuesta('', '2026-03-02')).toBeNull();
+    expect(calcularDiasRespuesta('2026-03-02', undefined)).toBeNull();
+    expect(calcularDiasRespuesta('no-es-fecha', '2026-03-02')).toBeNull();
   });
 });
