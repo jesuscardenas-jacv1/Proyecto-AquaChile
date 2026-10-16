@@ -1,0 +1,135 @@
+/**
+ * Cliente de la API de documentos del backend (/api/solicitudes/:id/documentos).
+ * La página nunca habla directo con OneDrive: el backend decide si los archivos
+ * viven en disco local o en OneDrive / SharePoint vía Microsoft Graph.
+ */
+
+export const URL_API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
+const CLAVE_TOKEN = 'aquachile_token_api';
+
+/** Error de la API; `noDisponible` indica que el backend no está accesible. */
+export class ErrorApi extends Error {
+  constructor(mensaje, { status = 0, noDisponible = false } = {}) {
+    super(mensaje);
+    this.name = 'ErrorApi';
+    this.status = status;
+    this.noDisponible = noDisponible;
+  }
+}
+
+export function obtenerToken() {
+  try {
+    return sessionStorage.getItem(CLAVE_TOKEN);
+  } catch {
+    return null;
+  }
+}
+
+function guardarToken(token) {
+  try {
+    if (token) sessionStorage.setItem(CLAVE_TOKEN, token);
+    else sessionStorage.removeItem(CLAVE_TOKEN);
+  } catch {
+    // Sin sessionStorage la sección de documentos queda como no disponible.
+  }
+}
+
+/**
+ * Obtiene un JWT del backend con las mismas credenciales del login.
+ * Si el backend no está levantado no falla: la app sigue funcionando sin documentos.
+ */
+export async function conectarApi(correo, contrasena) {
+  try {
+    const respuesta = await fetch(`${URL_API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo, contrasena }),
+    });
+    const datos = await respuesta.json();
+    guardarToken(respuesta.ok ? datos.token : null);
+    return respuesta.ok;
+  } catch {
+    guardarToken(null);
+    return false;
+  }
+}
+
+export function desconectarApi() {
+  guardarToken(null);
+}
+
+async function llamar(ruta, { metodo = 'GET', cuerpo, cabeceras = {} } = {}) {
+  const token = obtenerToken();
+  if (!token) {
+    throw new ErrorApi('Sin conexión con el servicio de documentos.', { noDisponible: true });
+  }
+
+  let respuesta;
+  try {
+    respuesta = await fetch(`${URL_API}${ruta}`, {
+      method: metodo,
+      headers: { Authorization: `Bearer ${token}`, ...cabeceras },
+      body: cuerpo,
+    });
+  } catch {
+    throw new ErrorApi('No se pudo conectar con el servicio de documentos.', { noDisponible: true });
+  }
+
+  if (!respuesta.ok) {
+    const datos = await respuesta.json().catch(() => ({}));
+    if (respuesta.status === 401) guardarToken(null);
+    throw new ErrorApi(datos.error ?? `Error ${respuesta.status} del servicio de documentos.`, {
+      status: respuesta.status,
+      noDisponible: respuesta.status === 401,
+    });
+  }
+  return respuesta;
+}
+
+const rutaDocumentos = (solicitudId) => `/solicitudes/${solicitudId}/documentos`;
+
+export async function listarDocumentos(solicitudId) {
+  return (await llamar(rutaDocumentos(solicitudId))).json();
+}
+
+export async function subirDocumento(solicitudId, { categoria, archivo, nombreCandidato }) {
+  const parametros = new URLSearchParams({ categoria, nombre: archivo.name });
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}?${parametros}`, {
+    metodo: 'POST',
+    cuerpo: archivo,
+    cabeceras: {
+      'Content-Type': archivo.type || 'application/octet-stream',
+      'X-Candidato': encodeURIComponent(nombreCandidato ?? ''),
+    },
+  });
+  return respuesta.json();
+}
+
+/** Descarga el archivo con el token y lo entrega al navegador como descarga. */
+export async function descargarDocumento(solicitudId, archivo) {
+  const respuesta = await llamar(
+    `${rutaDocumentos(solicitudId)}/${encodeURIComponent(archivo.id)}/contenido`,
+  );
+  const url = URL.createObjectURL(await respuesta.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = archivo.nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function eliminarDocumento(solicitudId, archivoId) {
+  await llamar(`${rutaDocumentos(solicitudId)}/${encodeURIComponent(archivoId)}`, {
+    metodo: 'DELETE',
+  });
+}
+
+export const apiDocumentos = {
+  conectado: () => Boolean(obtenerToken()),
+  listar: listarDocumentos,
+  subir: subirDocumento,
+  descargar: descargarDocumento,
+  eliminar: eliminarDocumento,
+};

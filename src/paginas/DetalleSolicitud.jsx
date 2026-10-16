@@ -7,6 +7,7 @@ import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
+import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
 
 /** Detalle de solicitud: datos del candidato, gestión de estado y evaluación. */
 export default function DetalleSolicitud() {
@@ -154,6 +155,8 @@ export default function DetalleSolicitud() {
           ) : null}
         </div>
       </section>
+
+      <PanelDocumentos solicitud={solicitud} nombreCandidato={candidato?.nombre} />
 
       <section className="card border-0 shadow-sm">
         <div className="card-header bg-white d-flex flex-wrap justify-content-between gap-2 align-items-center">

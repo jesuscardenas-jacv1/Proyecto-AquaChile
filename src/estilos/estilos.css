@@ -578,3 +578,20 @@ h1, h2, h3, h4, h5, h6,
   }
 }
 
+
+/* Documentos de la solicitud (carpeta en OneDrive / almacenamiento local) */
+.documentos-categoria + .documentos-categoria {
+  border-top: 1px solid var(--aqua-gris-calido);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.documentos-archivo {
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: -0.5rem;
+}
+
+.documentos-archivo:hover {
+  background-color: var(--aqua-gris-calido-claro);
+}
