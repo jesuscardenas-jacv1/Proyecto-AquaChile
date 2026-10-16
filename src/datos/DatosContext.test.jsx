@@ -132,6 +132,8 @@ describe('DatosContext', () => {
 
     expect(result.current.obtenerEvaluacionDeSolicitud(3).resultado).toBe('Recomendado');
     expect(result.current.obtenerSolicitud(3).estado).toBe('Finalizada');
+    // Días corridos desde la solicitud (2026-08-24) hasta la evaluación (2026-09-12)
+    expect(result.current.obtenerEvaluacionDeSolicitud(3).diasRespuesta).toBe(19);
   });
 
   it('actualiza la evaluación existente en lugar de duplicarla', () => {

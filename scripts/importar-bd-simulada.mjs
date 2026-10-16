@@ -58,18 +58,15 @@ const formatoChileno = (iso) => iso.split('-').reverse().join('-');
 const sinTildes = (valor) =>
   valor.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-/** Días hábiles (lunes a viernes) transcurridos entre dos fechas ISO. */
-function diasHabiles(desde, hasta) {
+/**
+ * Días corridos entre la petición y el envío del informe, con mínimo 1
+ * (misma regla que calcularDiasRespuesta del frontend y que la API).
+ */
+function diasCorridos(desde, hasta) {
   if (!desde || !hasta) return null;
-  const actual = new Date(`${desde}T00:00:00Z`);
-  const fin = new Date(`${hasta}T00:00:00Z`);
-  let dias = 0;
-  while (actual < fin) {
-    actual.setUTCDate(actual.getUTCDate() + 1);
-    const diaSemana = actual.getUTCDay();
-    if (diaSemana !== 0 && diaSemana !== 6) dias += 1;
-  }
-  return dias;
+  const inicio = Date.parse(`${desde}T00:00:00Z`);
+  const fin = Date.parse(`${hasta}T00:00:00Z`);
+  return Math.max(1, Math.round((fin - inicio) / 86400000));
 }
 
 function crearGeneradorCorreos() {
@@ -118,7 +115,7 @@ async function main() {
     const fechaInforme = fechaIso(valor('fechaInforme'));
     const resultado = texto(valor('categoria'));
     const referencias = texto(valor('referencias'));
-    const diasRespuesta = diasHabiles(fechaSolicitud, fechaInforme);
+    const diasRespuesta = diasCorridos(fechaSolicitud, fechaInforme);
 
     candidatos.push({
       id,
@@ -151,7 +148,7 @@ async function main() {
     if (fechaEvaluacion) {
       const detalle = [
         fechaInforme
-          ? `Informe enviado el ${formatoChileno(fechaInforme)} (${diasRespuesta} días hábiles desde la petición).`
+          ? `Informe enviado el ${formatoChileno(fechaInforme)} (${diasRespuesta} días desde la petición).`
           : 'Informe pendiente de envío.',
         referencias ? `Resultado de referencias: ${referencias.toLowerCase()}.` : '',
       ];

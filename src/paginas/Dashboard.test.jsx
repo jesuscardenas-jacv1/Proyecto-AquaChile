@@ -146,7 +146,7 @@ describe('Dashboard', () => {
 
     await usuario.click(screen.getByRole('button', { name: /evaluaciones/i }));
     const detalle = screen.getByRole('dialog', { name: 'Detalle: Evaluaciones' });
-    expect(within(detalle).getByText(/promedio: 5\.5 días hábiles/)).toBeInTheDocument();
+    expect(within(detalle).getByText(/promedio: 5\.5 días/)).toBeInTheDocument();
     expect(within(detalle).getByText('Recomendado')).toBeInTheDocument();
     expect(within(detalle).getByText('No recomendado')).toBeInTheDocument();
   });

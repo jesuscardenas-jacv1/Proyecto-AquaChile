@@ -79,7 +79,8 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     });
   }
 
-  // Días corridos entre la solicitud y la evaluación (mínimo 1)
+  // Días corridos entre la solicitud y el informe (mínimo 1). Misma regla que
+  // calcularDiasRespuesta del frontend y el script de importación.
   const diasRespuesta = Math.max(
     1,
     Math.round((new Date(fechaEval) - new Date(solicitud.fecha_solicitud)) / (1000 * 60 * 60 * 24)),

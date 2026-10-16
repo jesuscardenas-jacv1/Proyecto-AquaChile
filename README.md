@@ -60,7 +60,7 @@ Evaluacion { id, solicitudId, fechaEvaluacion, resultado, observaciones, estado 
 ```
 
 Los datos se administran con `ProveedorDatos` (React Context) y se guardan en `localStorage`
-bajo la clave `aquachile_psicodelivery_v3`. En la primera visita se carga un conjunto de datos
+bajo la clave `aquachile_psicodelivery_v4`. En la primera visita se carga un conjunto de datos
 semilla con la **base de datos simulada** de AquaChile (100 evaluaciones, abr-2025 a mar-2026).
 
 ### Base de datos simulada
@@ -79,12 +79,12 @@ El script `scripts/importar-bd-simulada.mjs` la convierte en `src/datos/bdSimula
 | EV IN - EX, Ubicación, Unidad, CECO, Requiere Referencias, CV, Descriptor | campos extra de `Solicitud` |
 | Fecha entrevista | `Evaluacion.fechaEvaluacion` |
 | Categoría del evaluado | `Evaluacion.resultado` |
-| Fecha de envío informe, Referencias | `Evaluacion.fechaInforme`, `diasRespuesta` (días hábiles) y `observaciones` |
+| Fecha de envío informe, Referencias | `Evaluacion.fechaInforme`, `diasRespuesta` (días corridos, mínimo 1) y `observaciones` |
 
 Los catálogos de familias de cargo, resultados y reclutadoras (`constantes.js`) son los del Excel.
 El Excel no incluye correo ni teléfono, así que el script genera valores ficticios.
 Cada vez que cambia el formato de los datos se sube la versión de la clave de `localStorage`
-(hoy `v3`, que agregó las etapas del Planner), para que los navegadores con datos antiguos
+(hoy `v4`, que pasó `diasRespuesta` a días corridos), para que los navegadores con datos antiguos
 carguen la nueva semilla.
 
 ## Estructura del proyecto

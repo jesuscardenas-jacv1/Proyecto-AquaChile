@@ -60,7 +60,7 @@ export default function TarjetaInforme({ solicitud, candidato, evaluacion }) {
           {Number.isFinite(dias) ? (
             <>
               <dt className="col-6 text-secondary fw-normal">Respuesta</dt>
-              <dd className="col-6 mb-0 text-end">{dias} días hábiles</dd>
+              <dd className="col-6 mb-0 text-end">{dias} días</dd>
             </>
           ) : null}
         </dl>

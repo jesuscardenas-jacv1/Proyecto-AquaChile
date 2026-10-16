@@ -2609,87 +2609,87 @@
       "solicitudId": 1,
       "fechaEvaluacion": "2025-05-02",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 08-05-2025 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 08-05-2025 (13 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-08",
-      "diasRespuesta": 9
+      "diasRespuesta": 13
     },
     {
       "id": 2,
       "solicitudId": 2,
       "fechaEvaluacion": "2025-04-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 18-04-2025 (5 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 18-04-2025 (7 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-04-18",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 3,
       "solicitudId": 3,
       "fechaEvaluacion": "2025-04-29",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 01-05-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-05-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-01",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 4,
       "solicitudId": 4,
       "fechaEvaluacion": "2025-04-16",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 21-04-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 21-04-2025 (12 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-04-21",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 5,
       "solicitudId": 5,
       "fechaEvaluacion": "2025-04-21",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 23-04-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 23-04-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-04-23",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 6,
       "solicitudId": 6,
       "fechaEvaluacion": "2025-04-18",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 24-04-2025 (10 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 24-04-2025 (14 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-04-24",
-      "diasRespuesta": 10
+      "diasRespuesta": 14
     },
     {
       "id": 7,
       "solicitudId": 7,
       "fechaEvaluacion": "2025-05-06",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 08-05-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 08-05-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-08",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 8,
       "solicitudId": 8,
       "fechaEvaluacion": "2025-04-18",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 24-04-2025 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 24-04-2025 (13 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-04-24",
-      "diasRespuesta": 9
+      "diasRespuesta": 13
     },
     {
       "id": 9,
       "solicitudId": 9,
       "fechaEvaluacion": "2025-05-14",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 16-05-2025 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 16-05-2025 (4 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-16",
       "diasRespuesta": 4
@@ -2699,277 +2699,277 @@
       "solicitudId": 10,
       "fechaEvaluacion": "2025-05-12",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 15-05-2025 (5 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 15-05-2025 (7 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2025-05-15",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 11,
       "solicitudId": 11,
       "fechaEvaluacion": "2025-05-13",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 16-05-2025 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 16-05-2025 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-16",
-      "diasRespuesta": 9
+      "diasRespuesta": 11
     },
     {
       "id": 12,
       "solicitudId": 12,
       "fechaEvaluacion": "2025-05-13",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 19-05-2025 (10 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 19-05-2025 (14 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-19",
-      "diasRespuesta": 10
+      "diasRespuesta": 14
     },
     {
       "id": 13,
       "solicitudId": 13,
       "fechaEvaluacion": "2025-05-22",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 27-05-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-05-2025 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-27",
-      "diasRespuesta": 7
+      "diasRespuesta": 11
     },
     {
       "id": 14,
       "solicitudId": 14,
       "fechaEvaluacion": "2025-05-19",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 22-05-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 22-05-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-22",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 15,
       "solicitudId": 15,
       "fechaEvaluacion": "2025-05-26",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 28-05-2025 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 28-05-2025 (6 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-28",
-      "diasRespuesta": 4
+      "diasRespuesta": 6
     },
     {
       "id": 16,
       "solicitudId": 16,
       "fechaEvaluacion": "2025-05-19",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 21-05-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 21-05-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-21",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 17,
       "solicitudId": 17,
       "fechaEvaluacion": "2025-05-23",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 29-05-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 29-05-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-05-29",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 18,
       "solicitudId": 18,
       "fechaEvaluacion": "2025-06-17",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 19-06-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 19-06-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-19",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 19,
       "solicitudId": 19,
       "fechaEvaluacion": "2025-07-01",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 03-07-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 03-07-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-03",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 20,
       "solicitudId": 20,
       "fechaEvaluacion": "2025-06-17",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 20-06-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 20-06-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-20",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 21,
       "solicitudId": 21,
       "fechaEvaluacion": "2025-06-06",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 09-06-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 09-06-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-09",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 22,
       "solicitudId": 22,
       "fechaEvaluacion": "2025-06-17",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 19-06-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 19-06-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-19",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 23,
       "solicitudId": 23,
       "fechaEvaluacion": "2025-06-16",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 18-06-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 18-06-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-18",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 24,
       "solicitudId": 24,
       "fechaEvaluacion": "2025-06-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 17-06-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 17-06-2025 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-06-17",
-      "diasRespuesta": 7
+      "diasRespuesta": 11
     },
     {
       "id": 25,
       "solicitudId": 25,
       "fechaEvaluacion": "2025-06-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 19-06-2025 (8 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 19-06-2025 (10 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-06-19",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 26,
       "solicitudId": 26,
       "fechaEvaluacion": "2025-07-18",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 22-07-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 22-07-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-22",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 27,
       "solicitudId": 27,
       "fechaEvaluacion": "2025-07-23",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 24-07-2025 (5 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 24-07-2025 (7 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-07-24",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 28,
       "solicitudId": 28,
       "fechaEvaluacion": "2025-07-15",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 21-07-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 21-07-2025 (12 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-21",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 29,
       "solicitudId": 29,
       "fechaEvaluacion": "2025-07-14",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 15-07-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 15-07-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-15",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 30,
       "solicitudId": 30,
       "fechaEvaluacion": "2025-07-23",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 29-07-2025 (7 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 29-07-2025 (11 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2025-07-29",
-      "diasRespuesta": 7
+      "diasRespuesta": 11
     },
     {
       "id": 31,
       "solicitudId": 31,
       "fechaEvaluacion": "2025-07-18",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 23-07-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 23-07-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-23",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 32,
       "solicitudId": 32,
       "fechaEvaluacion": "2025-07-23",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 29-07-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 29-07-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-29",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 33,
       "solicitudId": 33,
       "fechaEvaluacion": "2025-07-21",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 25-07-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 25-07-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-07-25",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 34,
       "solicitudId": 34,
       "fechaEvaluacion": "2025-08-11",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 13-08-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 13-08-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-13",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 35,
       "solicitudId": 35,
       "fechaEvaluacion": "2025-08-06",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 12-08-2025 (6 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 12-08-2025 (8 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-08-12",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 36,
       "solicitudId": 36,
       "fechaEvaluacion": "2025-08-11",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 15-08-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 15-08-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-15",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 37,
       "solicitudId": 37,
       "fechaEvaluacion": "2025-08-13",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 15-08-2025 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 15-08-2025 (4 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-15",
       "diasRespuesta": 4
@@ -2979,27 +2979,27 @@
       "solicitudId": 38,
       "fechaEvaluacion": "2025-08-26",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 29-08-2025 (8 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 29-08-2025 (10 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-08-29",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 39,
       "solicitudId": 39,
       "fechaEvaluacion": "2025-08-27",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 28-08-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 28-08-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-28",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 40,
       "solicitudId": 40,
       "fechaEvaluacion": "2025-08-13",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 14-08-2025 (3 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 14-08-2025 (3 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-14",
       "diasRespuesta": 3
@@ -3009,177 +3009,177 @@
       "solicitudId": 41,
       "fechaEvaluacion": "2025-08-27",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 28-08-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 28-08-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-08-28",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 42,
       "solicitudId": 42,
       "fechaEvaluacion": "2025-09-12",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 15-09-2025 (5 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 15-09-2025 (7 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2025-09-15",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 43,
       "solicitudId": 43,
       "fechaEvaluacion": "2025-09-22",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 24-09-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 24-09-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-09-24",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 44,
       "solicitudId": 44,
       "fechaEvaluacion": "2025-09-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 18-09-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 18-09-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-09-18",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 45,
       "solicitudId": 45,
       "fechaEvaluacion": "2025-09-24",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 26-09-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 26-09-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-09-26",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 46,
       "solicitudId": 46,
       "fechaEvaluacion": "2025-09-25",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 01-10-2025 (10 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-10-2025 (14 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-01",
-      "diasRespuesta": 10
+      "diasRespuesta": 14
     },
     {
       "id": 47,
       "solicitudId": 47,
       "fechaEvaluacion": "2025-10-02",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 08-10-2025 (8 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 08-10-2025 (12 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-10-08",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 48,
       "solicitudId": 48,
       "fechaEvaluacion": "2025-09-10",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 12-09-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 12-09-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-09-12",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 49,
       "solicitudId": 49,
       "fechaEvaluacion": "2025-09-29",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 01-10-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-10-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-01",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 50,
       "solicitudId": 50,
       "fechaEvaluacion": "2025-09-16",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 18-09-2025 (8 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 18-09-2025 (10 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-09-18",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 51,
       "solicitudId": 51,
       "fechaEvaluacion": "2025-10-24",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 28-10-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 28-10-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-28",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 52,
       "solicitudId": 52,
       "fechaEvaluacion": "2025-10-21",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 23-10-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 23-10-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-23",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 53,
       "solicitudId": 53,
       "fechaEvaluacion": "2025-10-08",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 13-10-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 13-10-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-13",
-      "diasRespuesta": 6
+      "diasRespuesta": 10
     },
     {
       "id": 54,
       "solicitudId": 54,
       "fechaEvaluacion": "2025-10-23",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 28-10-2025 (6 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 28-10-2025 (8 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2025-10-28",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 55,
       "solicitudId": 55,
       "fechaEvaluacion": "2025-10-09",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 14-10-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 14-10-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-14",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 56,
       "solicitudId": 56,
       "fechaEvaluacion": "2025-10-21",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 27-10-2025 (10 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-10-2025 (14 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-27",
-      "diasRespuesta": 10
+      "diasRespuesta": 14
     },
     {
       "id": 57,
       "solicitudId": 57,
       "fechaEvaluacion": "2025-10-13",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 17-10-2025 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 17-10-2025 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-10-17",
-      "diasRespuesta": 9
+      "diasRespuesta": 11
     },
     {
       "id": 58,
       "solicitudId": 58,
       "fechaEvaluacion": "2025-10-15",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 17-10-2025 (4 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 17-10-2025 (4 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-10-17",
       "diasRespuesta": 4
@@ -3189,247 +3189,247 @@
       "solicitudId": 59,
       "fechaEvaluacion": "2025-11-14",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 19-11-2025 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 19-11-2025 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-19",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 60,
       "solicitudId": 60,
       "fechaEvaluacion": "2025-11-26",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 01-12-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-12-2025 (12 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-12-01",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 61,
       "solicitudId": 61,
       "fechaEvaluacion": "2025-11-17",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 21-11-2025 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 21-11-2025 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-21",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 62,
       "solicitudId": 62,
       "fechaEvaluacion": "2025-11-24",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 28-11-2025 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 28-11-2025 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-28",
-      "diasRespuesta": 9
+      "diasRespuesta": 11
     },
     {
       "id": 63,
       "solicitudId": 63,
       "fechaEvaluacion": "2025-11-07",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 11-11-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 11-11-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-11",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 64,
       "solicitudId": 64,
       "fechaEvaluacion": "2025-11-19",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 25-11-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 25-11-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-25",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 65,
       "solicitudId": 65,
       "fechaEvaluacion": "2025-11-25",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 27-11-2025 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-11-2025 (6 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-11-27",
-      "diasRespuesta": 4
+      "diasRespuesta": 6
     },
     {
       "id": 66,
       "solicitudId": 66,
       "fechaEvaluacion": "2025-11-24",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 26-11-2025 (6 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 26-11-2025 (8 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-11-26",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 67,
       "solicitudId": 67,
       "fechaEvaluacion": "2025-12-11",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 16-12-2025 (6 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 16-12-2025 (8 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-12-16",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 68,
       "solicitudId": 68,
       "fechaEvaluacion": "2025-12-19",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 24-12-2025 (6 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 24-12-2025 (8 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-12-24",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 69,
       "solicitudId": 69,
       "fechaEvaluacion": "2025-12-23",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 24-12-2025 (5 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 24-12-2025 (7 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2025-12-24",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 70,
       "solicitudId": 70,
       "fechaEvaluacion": "2025-12-24",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 26-12-2025 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 26-12-2025 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-12-26",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 71,
       "solicitudId": 71,
       "fechaEvaluacion": "2025-12-24",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 25-12-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 25-12-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-12-25",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 72,
       "solicitudId": 72,
       "fechaEvaluacion": "2025-12-12",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 17-12-2025 (8 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 17-12-2025 (12 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2025-12-17",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 73,
       "solicitudId": 73,
       "fechaEvaluacion": "2025-12-19",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 23-12-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 23-12-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-12-23",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 74,
       "solicitudId": 74,
       "fechaEvaluacion": "2025-12-29",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 01-01-2026 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-01-2026 (9 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-01",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 75,
       "solicitudId": 75,
       "fechaEvaluacion": "2025-12-18",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 23-12-2025 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 23-12-2025 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2025-12-23",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 76,
       "solicitudId": 76,
       "fechaEvaluacion": "2026-02-03",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 09-02-2026 (10 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 09-02-2026 (14 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-09",
-      "diasRespuesta": 10
+      "diasRespuesta": 14
     },
     {
       "id": 77,
       "solicitudId": 77,
       "fechaEvaluacion": "2026-01-28",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 03-02-2026 (6 días hábiles desde la petición). Resultado de referencias: referencias favorables.",
+      "observaciones": "Informe enviado el 03-02-2026 (8 días desde la petición). Resultado de referencias: referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2026-02-03",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 78,
       "solicitudId": 78,
       "fechaEvaluacion": "2026-01-28",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 30-01-2026 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 30-01-2026 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-30",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 79,
       "solicitudId": 79,
       "fechaEvaluacion": "2026-01-27",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 29-01-2026 (8 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 29-01-2026 (10 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2026-01-29",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 80,
       "solicitudId": 80,
       "fechaEvaluacion": "2026-01-13",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 14-01-2026 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 14-01-2026 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-14",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 81,
       "solicitudId": 81,
       "fechaEvaluacion": "2026-01-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 19-01-2026 (5 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 19-01-2026 (7 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-19",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 82,
       "solicitudId": 82,
       "fechaEvaluacion": "2026-01-20",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 22-01-2026 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 22-01-2026 (10 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-22",
-      "diasRespuesta": 8
+      "diasRespuesta": 10
     },
     {
       "id": 83,
       "solicitudId": 83,
       "fechaEvaluacion": "2026-01-07",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 08-01-2026 (3 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 08-01-2026 (3 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-01-08",
       "diasRespuesta": 3
@@ -3439,47 +3439,47 @@
       "solicitudId": 84,
       "fechaEvaluacion": "2026-01-16",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 20-01-2026 (4 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 20-01-2026 (6 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2026-01-20",
-      "diasRespuesta": 4
+      "diasRespuesta": 6
     },
     {
       "id": 85,
       "solicitudId": 85,
       "fechaEvaluacion": "2026-02-16",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 20-02-2026 (9 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 20-02-2026 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-20",
-      "diasRespuesta": 9
+      "diasRespuesta": 11
     },
     {
       "id": 86,
       "solicitudId": 86,
       "fechaEvaluacion": "2026-02-25",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 27-02-2026 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-02-2026 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-27",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 87,
       "solicitudId": 87,
       "fechaEvaluacion": "2026-02-12",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 17-02-2026 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 17-02-2026 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-17",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 88,
       "solicitudId": 88,
       "fechaEvaluacion": "2026-02-11",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 13-02-2026 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 13-02-2026 (4 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-13",
       "diasRespuesta": 4
@@ -3489,7 +3489,7 @@
       "solicitudId": 89,
       "fechaEvaluacion": "2026-02-25",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 27-02-2026 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-02-2026 (4 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-27",
       "diasRespuesta": 4
@@ -3499,87 +3499,87 @@
       "solicitudId": 90,
       "fechaEvaluacion": "2026-03-04",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 10-03-2026 (8 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 10-03-2026 (12 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-03-10",
-      "diasRespuesta": 8
+      "diasRespuesta": 12
     },
     {
       "id": 91,
       "solicitudId": 91,
       "fechaEvaluacion": "2026-02-10",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 12-02-2026 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 12-02-2026 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-02-12",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 92,
       "solicitudId": 92,
       "fechaEvaluacion": "2026-02-25",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 26-02-2026 (6 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 26-02-2026 (8 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2026-02-26",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 93,
       "solicitudId": 93,
       "fechaEvaluacion": "2026-03-26",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 27-03-2026 (6 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-03-2026 (8 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-03-27",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 94,
       "solicitudId": 94,
       "fechaEvaluacion": "2026-03-13",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 17-03-2026 (5 días hábiles desde la petición). Resultado de referencias: 1 referencia con observaciones.",
+      "observaciones": "Informe enviado el 17-03-2026 (7 días desde la petición). Resultado de referencias: 1 referencia con observaciones.",
       "estado": "Realizada",
       "fechaInforme": "2026-03-17",
-      "diasRespuesta": 5
+      "diasRespuesta": 7
     },
     {
       "id": 95,
       "solicitudId": 95,
       "fechaEvaluacion": "2026-03-12",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 18-03-2026 (6 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 18-03-2026 (8 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2026-03-18",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 96,
       "solicitudId": 96,
       "fechaEvaluacion": "2026-03-23",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 24-03-2026 (6 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 24-03-2026 (8 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2026-03-24",
-      "diasRespuesta": 6
+      "diasRespuesta": 8
     },
     {
       "id": 97,
       "solicitudId": 97,
       "fechaEvaluacion": "2026-03-26",
       "resultado": "Recomendado con observaciones",
-      "observaciones": "Informe enviado el 27-03-2026 (7 días hábiles desde la petición). Resultado de referencias: 2 referencias favorables.",
+      "observaciones": "Informe enviado el 27-03-2026 (9 días desde la petición). Resultado de referencias: 2 referencias favorables.",
       "estado": "Realizada",
       "fechaInforme": "2026-03-27",
-      "diasRespuesta": 7
+      "diasRespuesta": 9
     },
     {
       "id": 98,
       "solicitudId": 98,
       "fechaEvaluacion": "2026-03-25",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 27-03-2026 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 27-03-2026 (4 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-03-27",
       "diasRespuesta": 4
@@ -3589,20 +3589,20 @@
       "solicitudId": 99,
       "fechaEvaluacion": "2026-04-03",
       "resultado": "No recomendado",
-      "observaciones": "Informe enviado el 06-04-2026 (7 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 06-04-2026 (11 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-04-06",
-      "diasRespuesta": 7
+      "diasRespuesta": 11
     },
     {
       "id": 100,
       "solicitudId": 100,
       "fechaEvaluacion": "2026-03-30",
       "resultado": "Recomendado",
-      "observaciones": "Informe enviado el 01-04-2026 (4 días hábiles desde la petición).",
+      "observaciones": "Informe enviado el 01-04-2026 (6 días desde la petición).",
       "estado": "Realizada",
       "fechaInforme": "2026-04-01",
-      "diasRespuesta": 4
+      "diasRespuesta": 6
     }
   ]
 }

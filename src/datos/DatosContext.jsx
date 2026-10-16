@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
 import { ESTADOS_EVALUACION } from './constantes';
-import { estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
+import { calcularDiasRespuesta, estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
 import { estadoDeEtapa } from '../dominio/planner';
 
 const ContextoDatos = createContext(null);
@@ -181,9 +181,17 @@ export function ProveedorDatos({ children, datosIniciales }) {
         const existente = actual.evaluaciones.find(
           (evaluacion) => evaluacion.solicitudId === Number(solicitudId),
         );
-        const evaluacion = existente
+        const base = existente
           ? { ...existente, ...registro }
           : { id: generarId(actual.evaluaciones), solicitudId: Number(solicitudId), ...registro };
+        // Días de respuesta (corridos) hasta el informe; si aún no hay fecha de informe
+        // se usa la de evaluación, igual que la API al registrar la evaluación.
+        const solicitud = actual.solicitudes.find((item) => item.id === Number(solicitudId));
+        const diasRespuesta = calcularDiasRespuesta(
+          solicitud?.fechaSolicitud,
+          base.fechaInforme || base.fechaEvaluacion,
+        );
+        const evaluacion = { ...base, diasRespuesta };
 
         return {
           ...actual,
