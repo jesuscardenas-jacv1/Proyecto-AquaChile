@@ -13,6 +13,7 @@ const comun = require('./comun');
 const { AlmacenamientoLocal } = require('./local');
 const { AlmacenamientoGraph } = require('./graph');
 const { crearAlmacenamiento, establecerAlmacenamiento } = require('./index');
+const { generarInformePdf, nombreArchivoInforme } = require('./informePdf');
 
 describe('reglas comunes', () => {
   it('nombra la carpeta con clave estable y nombre del candidato', () => {
@@ -345,5 +346,84 @@ describe('API /api/solicitudes/:id/documentos', () => {
     const id = encodeURIComponent('CV - curriculum.pdf');
     const respuesta = await fetch(`${base}/${id}`, { method: 'DELETE', headers: cabeceras('analista') });
     assert.equal(respuesta.status, 200);
+  });
+  const datosInforme = {
+    candidato: { nombre: 'Ana Pérez', correo: 'ana@correo.cl', telefono: '+56911112222', origen: 'Interno' },
+    solicitud: { cargo: 'Jefe de Centro', familiaCargo: 'Jefatura', fechaSolicitud: '2026-10-01' },
+    evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'Recomendado con observaciones' },
+  };
+  const generar = (rol, cuerpo = datosInforme) =>
+    fetch(`${base}/informe`, {
+      method: 'POST',
+      headers: cabeceras(rol, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(cuerpo),
+    });
+
+  it('el evaluador genera el informe en PDF dentro de la carpeta de la solicitud', async () => {
+    const respuesta = await generar('evaluador');
+    const datos = await respuesta.json();
+
+    assert.equal(respuesta.status, 201);
+    assert.equal(datos.carpeta.nombre, 'S9001 - Ana Pérez');
+    assert.equal(datos.archivo.nombre, 'Informe - S9001 - Ana Pérez.pdf');
+    assert.equal(datos.archivo.categoria, 'informe');
+
+    const id = encodeURIComponent(datos.archivo.id);
+    const descarga = await fetch(`${base}/${id}/contenido`, { headers: cabeceras('analista') });
+    assert.equal(descarga.headers.get('content-type'), 'application/pdf');
+    assert.equal((await descarga.text()).slice(0, 5), '%PDF-');
+  });
+
+  it('al actualizar la evaluación el informe se reemplaza, no se duplica', async () => {
+    await generar('evaluador', {
+      ...datosInforme,
+      evaluacion: { ...datosInforme.evaluacion, resultado: 'Recomendado' },
+    });
+    const datos = await (await fetch(base, { headers: cabeceras('evaluador') })).json();
+    const informes = datos.archivos.filter((a) => a.nombre.startsWith('Informe - S9001'));
+    assert.equal(informes.length, 1);
+  });
+
+  it('solo el evaluador puede generar el informe y con datos válidos', async () => {
+    assert.equal((await generar('analista')).status, 403);
+    const invalido = await generar('evaluador', {
+      ...datosInforme,
+      evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'Excelente' },
+    });
+    assert.equal(invalido.status, 400);
+  });
+});
+
+describe('informe psicolaboral en PDF', () => {
+  const datos = {
+    solicitudId: 12,
+    candidato: { nombre: 'José Ñancupil Muñoz' },
+    solicitud: { cargo: 'Operario', familiaCargo: 'Operario', profesionalResponsable: 'Javiera Soto' },
+    evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'No recomendado', observaciones: 'Reservado' },
+  };
+
+  it('genera un PDF de una sola página', async () => {
+    const pdf = await generarInformePdf(datos);
+    assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
+    const paginas = pdf.toString('latin1').match(/\/Type \/Page\b/g) ?? [];
+    assert.equal(paginas.length, 1);
+  });
+
+  it('exige candidato, cargo, fecha y un resultado válido', async () => {
+    assert.throws(() => generarInformePdf({ ...datos, candidato: {} }), { status: 400 });
+    assert.throws(() => generarInformePdf({ ...datos, solicitud: {} }), { status: 400 });
+    assert.throws(
+      () => generarInformePdf({ ...datos, evaluacion: { resultado: 'Recomendado' } }),
+      { status: 400 },
+    );
+    assert.throws(
+      () => generarInformePdf({ ...datos, evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'Bueno' } }),
+      { status: 400 },
+    );
+  });
+
+  it('nombra el archivo con la clave de la solicitud y el candidato', () => {
+    assert.equal(nombreArchivoInforme(12, 'José Ñancupil Muñoz'), 'S0012 - José Ñancupil Muñoz.pdf');
+    assert.equal(nombreArchivoInforme(12, ''), 'S0012.pdf');
   });
 });

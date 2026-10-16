@@ -4,6 +4,7 @@ import {
   conectarApi,
   desconectarApi,
   eliminarDocumento,
+  generarInforme,
   listarDocumentos,
   obtenerToken,
   subirDocumento,
@@ -80,5 +81,25 @@ describe('apiDocumentos', () => {
     });
     expect(fetch.mock.calls[0][0]).toBe(`${URL_API}/solicitudes/5/documentos/CV%20-%20a.pdf`);
     expect(obtenerToken()).toBeNull();
+  });
+
+  it('genera el informe enviando solo el dictamen, nunca las observaciones clínicas', async () => {
+    sessionStorage.setItem('aquachile_token_api', 'jwt-2');
+    fetch.mockReturnValue(respuestaJson({ ok: true }, 201));
+
+    await generarInforme(5, {
+      candidato: { id: 1, nombre: 'Ana Pérez', correo: 'ana@correo.cl', telefono: '+569', origen: 'Interno' },
+      solicitud: { id: 5, cargo: 'Jefe de Centro', familiaCargo: 'Jefatura', fechaSolicitud: '2026-10-01' },
+      evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'Recomendado', observaciones: 'Nota clínica' },
+    });
+
+    const [url, opciones] = fetch.mock.calls[0];
+    expect(url).toBe(`${URL_API}/solicitudes/5/documentos/informe`);
+    expect(opciones.method).toBe('POST');
+    expect(opciones.headers['Content-Type']).toBe('application/json');
+    const cuerpo = JSON.parse(opciones.body);
+    expect(cuerpo.evaluacion).toEqual({ fechaEvaluacion: '2026-10-10', resultado: 'Recomendado' });
+    expect(cuerpo.candidato.nombre).toBe('Ana Pérez');
+    expect(opciones.body).not.toContain('Nota clínica');
   });
 });
