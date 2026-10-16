@@ -12,8 +12,9 @@ const db = require('./conexion');
 // Ruta a los datos simulados existentes en el proyecto
 const RUTA_BD_SIMULADA = path.join(__dirname, '..', '..', '..', 'src', 'datos', 'bdSimulada.json');
 
-function sembrar() {
-  console.log('🌱 Iniciando siembra de datos en SQLite...');
+function sembrar({ silencioso = false } = {}) {
+  const log = silencioso ? () => {} : console.log;
+  log('🌱 Iniciando siembra de datos en SQLite...');
 
   const datosSimulados = require(RUTA_BD_SIMULADA);
   const passwordHash = bcrypt.hashSync('AquaChile2026!', 10);
@@ -55,7 +56,7 @@ function sembrar() {
       'Reclutamiento y Selección',
     );
 
-    console.log('   👤 2 usuarios corporativos sembrados.');
+    log('   👤 2 usuarios corporativos sembrados.');
 
     // 3. Insertar candidatos
     const stmtCandidato = db.prepare(`
@@ -74,7 +75,7 @@ function sembrar() {
         c.origen || 'Externo',
       );
     }
-    console.log(`   👥 ${datosSimulados.candidatos.length} candidatos sembrados.`);
+    log(`   👥 ${datosSimulados.candidatos.length} candidatos sembrados.`);
 
     // 4. Insertar solicitudes
     const stmtSolicitud = db.prepare(`
@@ -100,12 +101,12 @@ function sembrar() {
         s.unidad || '',
         s.ceco || '',
         s.requiereReferencias ? 1 : 0,
-        s.referido ? 1 : 0,
+        s.referido === undefined || s.referido === null ? null : s.referido ? 1 : 0,
         s.cv || '',
         s.descriptorCargo || '',
       );
     }
-    console.log(`   📋 ${datosSimulados.solicitudes.length} solicitudes sembradas.`);
+    log(`   📋 ${datosSimulados.solicitudes.length} solicitudes sembradas.`);
 
     // 5. Insertar evaluaciones
     const stmtEvaluacion = db.prepare(`
@@ -127,15 +128,23 @@ function sembrar() {
         e.diasRespuesta ?? null,
       );
     }
-    console.log(`   📝 ${datosSimulados.evaluaciones.length} evaluaciones sembradas.`);
+    log(`   📝 ${datosSimulados.evaluaciones.length} evaluaciones sembradas.`);
 
     db.exec('COMMIT;');
-    console.log('✅ Base de datos sembrada con éxito en SQLite.');
+    log('✅ Base de datos sembrada con éxito en SQLite.');
   } catch (err) {
     db.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
+if (require.main === module) {
+  try {
+    sembrar();
+  } catch (err) {
     console.error('❌ Error al sembrar base de datos:', err);
     process.exit(1);
   }
 }
 
-sembrar();
+module.exports = { sembrar };

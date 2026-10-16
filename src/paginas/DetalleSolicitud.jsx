@@ -129,6 +129,7 @@ export default function DetalleSolicitud() {
             solicitud={solicitud}
             alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
             alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
+            puedeFinalizar={Boolean(evaluacion?.resultado)}
           />
         </div>
       </div>

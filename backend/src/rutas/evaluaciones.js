@@ -1,26 +1,17 @@
 const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
+const { formatearEvaluacion } = require('../formateo');
+const {
+  ErrorHttp,
+  ESTADOS_QUE_PERMITEN_EVALUAR,
+  limpiar,
+  idValido,
+  exigirSinErrores,
+  validarEvaluacion,
+} = require('../validaciones');
 
 const router = express.Router();
-
-function formatearEvaluacion(e, rolUsuario) {
-  const esAnalista = rolUsuario === 'analista';
-
-  return {
-    id: e.id,
-    solicitudId: e.solicitud_id,
-    fechaEvaluacion: e.fecha_evaluacion,
-    resultado: e.resultado,
-    estado: e.estado,
-    fechaInforme: e.fecha_informe,
-    diasRespuesta: e.dias_respuesta,
-    // Ocultar observaciones clínicas cualitativas al analista
-    observaciones: esAnalista ? undefined : e.observaciones,
-    confidencial: esAnalista,
-    creadoEn: e.creado_en,
-  };
-}
 
 /**
  * GET /api/evaluaciones
@@ -38,13 +29,11 @@ router.get('/', autenticar, (req, res) => {
  * Obtener la evaluación asociada a una solicitud específica
  */
 router.get('/solicitud/:solicitudId', autenticar, (req, res) => {
-  const solicitudId = parseInt(req.params.solicitudId, 10);
+  const solicitudId = idValido(req.params.solicitudId, 'id de solicitud');
   const e = db.prepare('SELECT * FROM evaluaciones WHERE solicitud_id = ?').get(solicitudId);
 
   if (!e) {
-    return res.status(404).json({
-      error: `No existe evaluación registrada para la solicitud #${solicitudId}.`,
-    });
+    throw new ErrorHttp(404, `No existe evaluación registrada para la solicitud #${solicitudId}.`);
   }
 
   res.json({ ok: true, evaluacion: formatearEvaluacion(e, req.usuario.rol) });
@@ -56,38 +45,41 @@ router.get('/solicitud/:solicitudId', autenticar, (req, res) => {
  * Al registrar la evaluación, la solicitud pasa automáticamente a estado 'Finalizada'.
  */
 router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
-  const { solicitudId, fechaEvaluacion, resultado, observaciones } = req.body;
+  const datos = req.body ?? {};
+  const solicitudId = idValido(datos.solicitudId, 'id de solicitud');
+  exigirSinErrores(validarEvaluacion(datos));
 
-  if (!solicitudId || !resultado || !observaciones) {
-    return res.status(400).json({
-      error: 'Debe especificar la solicitud, el resultado del dictamen y las observaciones clínicas.',
-    });
-  }
-
-  const resultadosValidos = ['Recomendado', 'Recomendado con observaciones', 'No recomendado'];
-  if (!resultadosValidos.includes(resultado)) {
-    return res.status(400).json({
-      error: `Resultado inválido. Opciones permitidas: ${resultadosValidos.join(', ')}.`,
-    });
-  }
-
-  // Verificar que la solicitud exista y esté 'En proceso'
   const solicitud = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(solicitudId);
   if (!solicitud) {
-    return res.status(404).json({ error: `La solicitud #${solicitudId} no existe.` });
+    throw new ErrorHttp(404, `La solicitud #${solicitudId} no existe.`);
+  }
+
+  // Misma regla que el frontend: no se evalúa una solicitud que sigue Pendiente
+  if (!ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado)) {
+    throw new ErrorHttp(
+      409,
+      `La solicitud #${solicitudId} está "${solicitud.estado}": debe estar En proceso para evaluarla.`,
+    );
   }
 
   const existente = db.prepare('SELECT id FROM evaluaciones WHERE solicitud_id = ?').get(solicitudId);
   if (existente) {
-    return res.status(409).json({
-      error: `La solicitud #${solicitudId} ya tiene una evaluación registrada. Utilice PUT para actualizarla.`,
-    });
+    throw new ErrorHttp(
+      409,
+      `La solicitud #${solicitudId} ya tiene una evaluación registrada. Utilice PUT para actualizarla.`,
+    );
   }
 
   const fechaHoy = new Date().toISOString().split('T')[0];
-  const fechaEval = fechaEvaluacion || fechaHoy;
+  const fechaEval = limpiar(datos.fechaEvaluacion) || fechaHoy;
 
-  // Calcular días de respuesta hábiles o aproximados
+  if (fechaEval < solicitud.fecha_solicitud) {
+    throw new ErrorHttp(400, 'La fecha de evaluación no puede ser anterior a la fecha de solicitud.', {
+      fechaEvaluacion: 'Debe ser igual o posterior a la fecha de solicitud.',
+    });
+  }
+
+  // Días corridos entre la solicitud y la evaluación (mínimo 1)
   const diasRespuesta = Math.max(
     1,
     Math.round((new Date(fechaEval) - new Date(solicitud.fecha_solicitud)) / (1000 * 60 * 60 * 24)),
@@ -95,70 +87,66 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
 
   db.exec('BEGIN TRANSACTION;');
 
+  let idNueva;
   try {
-    const stmt = db.prepare(`
-      INSERT INTO evaluaciones (
-        solicitud_id, fecha_evaluacion, resultado, observaciones,
-        estado, fecha_informe, dias_respuesta
-      ) VALUES (?, ?, ?, ?, 'Realizada', ?, ?)
-    `);
-
-    const resEval = stmt.run(
-      solicitudId,
-      fechaEval,
-      resultado,
-      observaciones.trim(),
-      fechaEval,
-      diasRespuesta,
-    );
+    const resEval = db
+      .prepare(
+        `INSERT INTO evaluaciones (
+          solicitud_id, fecha_evaluacion, resultado, observaciones,
+          estado, fecha_informe, dias_respuesta
+        ) VALUES (?, ?, ?, ?, 'Realizada', ?, ?)`,
+      )
+      .run(solicitudId, fechaEval, datos.resultado, limpiar(datos.observaciones), fechaEval, diasRespuesta);
+    idNueva = resEval.lastInsertRowid;
 
     // Actualizar la solicitud a 'Finalizada'
-    db.prepare(`
-      UPDATE solicitudes
-      SET estado = 'Finalizada',
-          actualizado_en = datetime('now')
-      WHERE id = ?
-    `).run(solicitudId);
+    db.prepare(
+      `UPDATE solicitudes
+       SET estado = 'Finalizada', actualizado_en = datetime('now')
+       WHERE id = ?`,
+    ).run(solicitudId);
 
     db.exec('COMMIT;');
-
-    const nueva = db.prepare('SELECT * FROM evaluaciones WHERE id = ?').get(resEval.lastInsertRowid);
-
-    res.status(201).json({
-      ok: true,
-      mensaje: 'Evaluación registrada exitosamente y solicitud finalizada.',
-      evaluacion: formatearEvaluacion(nueva, req.usuario.rol),
-    });
   } catch (err) {
     db.exec('ROLLBACK;');
     throw err;
   }
+
+  const nueva = db.prepare('SELECT * FROM evaluaciones WHERE id = ?').get(idNueva);
+  res.status(201).json({
+    ok: true,
+    mensaje: 'Evaluación registrada exitosamente y solicitud finalizada.',
+    evaluacion: formatearEvaluacion(nueva, req.usuario.rol),
+  });
 });
 
 /**
  * PUT /api/evaluaciones/:id
- * Actualizar una evaluación existente (exclusivo para Evaluadores)
+ * Actualizar una evaluación existente (exclusivo para Evaluadores).
+ * Solo se modifican los campos enviados, que se validan igual que al crear.
  */
 router.put('/:id', autenticar, requerirRol('evaluador'), (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { resultado, observaciones, fechaEvaluacion } = req.body;
+  const id = idValido(req.params.id);
+  const cambios = req.body ?? {};
 
   const actual = db.prepare('SELECT * FROM evaluaciones WHERE id = ?').get(id);
   if (!actual) {
-    return res.status(404).json({ error: `Evaluación #${id} no encontrada.` });
+    throw new ErrorHttp(404, `Evaluación #${id} no encontrada.`);
   }
 
-  db.prepare(`
-    UPDATE evaluaciones
-    SET resultado = COALESCE(?, resultado),
-        observaciones = COALESCE(?, observaciones),
-        fecha_evaluacion = COALESCE(?, fecha_evaluacion),
-        actualizado_en = datetime('now')
-    WHERE id = ?
-  `).run(
-    resultado || null,
-    observaciones ? observaciones.trim() : null,
-    fechaEvaluacion || null,
+  exigirSinErrores(validarEvaluacion(cambios, { parcial: true }));
+
+  db.prepare(
+    `UPDATE evaluaciones
+     SET resultado = COALESCE(?, resultado),
+         observaciones = COALESCE(?, observaciones),
+         fecha_evaluacion = COALESCE(?, fecha_evaluacion),
+         actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(
+    cambios.resultado ?? null,
+    cambios.observaciones === undefined ? null : limpiar(cambios.observaciones),
+    limpiar(cambios.fechaEvaluacion) || null,
     id,
   );
 

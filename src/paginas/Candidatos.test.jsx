@@ -4,18 +4,26 @@ import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import Candidatos from './Candidatos';
 import { ProveedorDatos } from '../datos/DatosContext';
-import { datosDePrueba, datosVacios } from '../pruebas/utilidades';
+import { ProveedorAuth } from '../datos/AuthContext';
+import { datosDePrueba, datosVacios, USUARIO_TEST_DEFAULT } from '../pruebas/utilidades';
 
-const renderPagina = (datosIniciales, ruta = '/candidatos', estado = undefined) =>
+const renderPagina = (
+  datosIniciales,
+  ruta = '/candidatos',
+  estado = undefined,
+  usuario = USUARIO_TEST_DEFAULT,
+) =>
   render(
     <MemoryRouter initialEntries={[{ pathname: ruta, state: estado }]}>
-      <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
-        <Routes>
-          <Route path="/candidatos" element={<Candidatos />} />
-          <Route path="/candidatos/nuevo" element={<h1>Formulario nuevo candidato</h1>} />
-          <Route path="/candidatos/:id/editar" element={<h1>Formulario edición</h1>} />
-        </Routes>
-      </ProveedorDatos>
+      <ProveedorAuth usuarioInicial={usuario}>
+        <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
+          <Routes>
+            <Route path="/candidatos" element={<Candidatos />} />
+            <Route path="/candidatos/nuevo" element={<h1>Formulario nuevo candidato</h1>} />
+            <Route path="/candidatos/:id/editar" element={<h1>Formulario edición</h1>} />
+          </Routes>
+        </ProveedorDatos>
+      </ProveedorAuth>
     </MemoryRouter>,
   );
 
@@ -52,14 +60,29 @@ describe('Candidatos', () => {
     expect(screen.getByText(/2 de 2 registrados/)).toBeInTheDocument();
   });
 
-  it('elimina el candidato al confirmar', async () => {
+  it('elimina al confirmar un candidato sin solicitudes', async () => {
+    const usuario = userEvent.setup();
+    // Sin solicitudes ningún candidato tiene registros asociados
+    renderPagina({ ...datosDePrueba, solicitudes: [], evaluaciones: [] });
+
+    await usuario.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
+    await usuario.click(screen.getByRole('button', { name: /sí, eliminar/i }));
+
+    expect(screen.getByText(/1 de 1 registrados/)).toBeInTheDocument();
+  });
+
+  it('no elimina un candidato con solicitudes y explica el motivo', async () => {
     const usuario = userEvent.setup();
     renderPagina(datosDePrueba);
 
     await usuario.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]);
     await usuario.click(screen.getByRole('button', { name: /sí, eliminar/i }));
 
-    expect(screen.getByText(/1 de 1 registrados/)).toBeInTheDocument();
+    expect(screen.getByText(/no se puede eliminar/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 de 2 registrados/)).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: /cerrar mensaje/i }));
+    expect(screen.queryByText(/no se puede eliminar/i)).toBeNull();
   });
 
   it('invita a registrar un candidato cuando el listado está vacío', () => {
@@ -83,5 +106,20 @@ describe('Candidatos', () => {
     expect(
       screen.getByRole('heading', { name: /formulario nuevo candidato/i }),
     ).toBeInTheDocument();
+  });
+
+  it('la evaluadora consulta candidatos pero no puede crearlos, editarlos ni eliminarlos', () => {
+    renderPagina(datosDePrueba, '/candidatos', undefined, {
+      id: 2,
+      nombre: 'Evaluadora',
+      correo: 'evaluador@aquachile.cl',
+      rol: 'evaluador',
+    });
+
+    expect(screen.getByText(/2 de 2 registrados/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /nuevo candidato/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /nuevo candidato/i })).toBeNull();
   });
 });

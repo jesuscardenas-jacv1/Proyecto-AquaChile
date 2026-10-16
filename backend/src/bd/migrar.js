@@ -86,7 +86,11 @@ function migrar() {
     );
   `);
 
+}
+
+if (require.main === module) {
+  migrar();
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 
-migrar();
+module.exports = { migrar };

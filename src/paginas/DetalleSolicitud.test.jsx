@@ -3,19 +3,21 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DetalleSolicitud from './DetalleSolicitud';
-import { datosDePrueba } from '../pruebas/utilidades';
+import { datosDePrueba, USUARIO_TEST_DEFAULT } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
 
 const renderDetalle = (id = '3') =>
   render(
     <MemoryRouter initialEntries={[`/solicitudes/${id}`]}>
-      <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
-        <Routes>
-          <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
-          <Route path="/solicitudes" element={<h1>Listado de solicitudes</h1>} />
-        </Routes>
-      </ProveedorDatos>
+      <ProveedorAuth usuarioInicial={USUARIO_TEST_DEFAULT}>
+        <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+          <Routes>
+            <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
+            <Route path="/solicitudes" element={<h1>Listado de solicitudes</h1>} />
+          </Routes>
+        </ProveedorDatos>
+      </ProveedorAuth>
     </MemoryRouter>,
   );
 

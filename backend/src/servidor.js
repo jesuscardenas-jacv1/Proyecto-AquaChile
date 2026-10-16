@@ -10,9 +10,19 @@ const rutaEvaluaciones = require('./rutas/evaluaciones');
 const app = express();
 const PUERTO = process.env.PORT || 3001;
 
+/**
+ * Orígenes permitidos por CORS, separados por coma en CORS_ORIGENES.
+ * Por defecto solo el servidor de desarrollo de Vite.
+ */
+const ORIGENES_PERMITIDOS = (process.env.CORS_ORIGENES || 'http://localhost:5173')
+  .split(',')
+  .map((origen) => origen.trim())
+  .filter(Boolean);
+
 // 1. Middlewares globales
-app.use(cors());
-app.use(express.json());
+app.disable('x-powered-by');
+app.use(cors({ origin: ORIGENES_PERMITIDOS }));
+app.use(express.json({ limit: '100kb' }));
 
 // 2. Ruta de comprobación de salud (Healthcheck)
 app.get('/api/salud', (req, res) => {

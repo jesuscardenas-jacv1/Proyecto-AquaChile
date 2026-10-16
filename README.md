@@ -3,8 +3,9 @@
 MVP web desarrollado para el proyecto académico **DSY1104 – Desarrollo Full Stack II**
 (Evaluación Parcial 2), para la empresa **AquaChile** (Reclutamiento y Selección).
 
-En esta etapa se construye **solo el frontend** con **datos simulados** persistidos en
-`localStorage`. No hay backend, ni base de datos, ni autenticación real.
+El frontend funciona con **datos simulados** persistidos en `localStorage` y una autenticación
+local de demostración. En `backend/` hay además una **API REST** (Express + SQLite + JWT) con el
+mismo modelo de datos; por ahora el frontend **no la consume** (ver [`backend/README.md`](backend/README.md)).
 
 ## Stack
 
@@ -59,7 +60,7 @@ Evaluacion { id, solicitudId, fechaEvaluacion, resultado, observaciones, estado 
 ```
 
 Los datos se administran con `ProveedorDatos` (React Context) y se guardan en `localStorage`
-bajo la clave `aquachile_psicodelivery_v2`. En la primera visita se carga un conjunto de datos
+bajo la clave `aquachile_psicodelivery_v3`. En la primera visita se carga un conjunto de datos
 semilla con la **base de datos simulada** de AquaChile (100 evaluaciones, abr-2025 a mar-2026).
 
 ### Base de datos simulada
@@ -82,8 +83,9 @@ El script `scripts/importar-bd-simulada.mjs` la convierte en `src/datos/bdSimula
 
 Los catálogos de familias de cargo, resultados y reclutadoras (`constantes.js`) son los del Excel.
 El Excel no incluye correo ni teléfono, así que el script genera valores ficticios.
-Al cambiar el formato de los datos se subió la clave de `localStorage` a `v2`, para que los
-navegadores con datos antiguos carguen la nueva semilla.
+Cada vez que cambia el formato de los datos se sube la versión de la clave de `localStorage`
+(hoy `v3`, que agregó las etapas del Planner), para que los navegadores con datos antiguos
+carguen la nueva semilla.
 
 ## Estructura del proyecto
 
@@ -182,4 +184,8 @@ Los umbrales están configurados en `vite.config.js` (sentencias/líneas 80, ram
 
 ## Fuera de alcance
 
-Backend, base de datos, autenticación real, Copilot, Power Automate y Planner.
+Integración del frontend con la API del backend, almacenamiento real de adjuntos (CV y descriptor:
+hoy solo se guarda el nombre del archivo), Copilot, Power Automate y Microsoft Planner.
+
+> Las credenciales de demostración del frontend están en `src/datos/usuarios.js` y quedan
+> visibles en el bundle publicado: es una autenticación **simulada**, no usar claves reales.

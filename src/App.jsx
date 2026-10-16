@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import Layout from './componentes/layout/Layout';
 import Dashboard from './paginas/Dashboard';
 import Candidatos from './paginas/Candidatos';
@@ -53,7 +53,6 @@ export default function App() {
           <Route path="/solicitudes/:id/informe" element={<InformePsicolaboral />} />
           <Route path="/planner" element={<Planner />} />
           <Route path="/planner/informes" element={<InformesEnviados />} />
-          <Route path="/candidatos-inexistente" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NoEncontrada />} />
         </Route>
       </Route>
