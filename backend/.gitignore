@@ -1,6 +1,8 @@
 # Archivos de base de datos SQLite (no versionar la base en producción)
 datos.sqlite
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # Dependencias
 node_modules/
@@ -11,3 +13,6 @@ node_modules/
 
 # Logs
 *.log
+
+# Documentos guardados con el proveedor local
+documentos/

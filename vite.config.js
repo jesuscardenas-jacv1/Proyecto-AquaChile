@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -11,6 +12,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/pruebas/preparacion.js',
+    // El backend tiene sus propias pruebas con node:test.
+    exclude: [...configDefaults.exclude, 'backend/**'],
     css: false,
     coverage: {
       provider: 'v8',
