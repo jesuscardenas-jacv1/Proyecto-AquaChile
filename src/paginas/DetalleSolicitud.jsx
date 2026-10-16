@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
@@ -7,6 +8,8 @@ import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
+import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
+import { apiDocumentos } from '../servicios/apiDocumentos';
 
 /** Detalle de solicitud: datos del candidato, gestión de estado y evaluación. */
 export default function DetalleSolicitud() {
@@ -22,6 +25,8 @@ export default function DetalleSolicitud() {
     asignarProfesional,
     registrarEvaluacion,
   } = useDatos();
+  const [versionDocumentos, setVersionDocumentos] = useState(0);
+  const [avisoInforme, setAvisoInforme] = useState(null);
 
   const solicitud = obtenerSolicitud(id);
   const mensaje = ubicacion.state?.mensaje;
@@ -47,6 +52,36 @@ export default function DetalleSolicitud() {
   const candidato = obtenerCandidato(solicitud.candidatoId);
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
   const puedeEvaluar = ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado);
+  /**
+   * Registra la evaluación y guarda el informe oficial (PDF) en la carpeta de la solicitud.
+   * Si el servicio de documentos no responde, la evaluación queda registrada igual.
+   */
+  const guardarEvaluacion = async (datos) => {
+    const registro = registrarEvaluacion(solicitud.id, datos);
+    if (!apiDocumentos.conectado()) {
+      setAvisoInforme({
+        tipo: 'warning',
+        texto:
+          'Evaluación registrada. El informe no se guardó en la carpeta porque el servicio de documentos no está conectado.',
+      });
+      return;
+    }
+    setAvisoInforme({ tipo: 'info', texto: 'Evaluación registrada. Guardando el informe en la carpeta…' });
+    try {
+      await apiDocumentos.generarInforme(solicitud.id, { candidato, solicitud, evaluacion: registro });
+      setVersionDocumentos((version) => version + 1);
+      setAvisoInforme({
+        tipo: 'success',
+        texto: 'Evaluación registrada y el informe psicolaboral se guardó en la carpeta de la solicitud.',
+      });
+    } catch (error) {
+      setAvisoInforme({
+        tipo: 'warning',
+        texto: `Evaluación registrada, pero no se pudo guardar el informe en la carpeta: ${error.message}`,
+      });
+    }
+  };
+
   const datosSolicitud = [
     ['Ubicación', [solicitud.ubicacion, solicitud.unidad].filter(Boolean).join(' · ')],
     ['CECO', solicitud.ceco],
@@ -155,6 +190,12 @@ export default function DetalleSolicitud() {
         </div>
       </section>
 
+      <PanelDocumentos
+        solicitud={solicitud}
+        nombreCandidato={candidato?.nombre}
+        actualizacion={versionDocumentos}
+      />
+
       <section className="card border-0 shadow-sm">
         <div className="card-header bg-white d-flex flex-wrap justify-content-between gap-2 align-items-center">
           <h2 className="h6 mb-0">Evaluación psicolaboral</h2>
@@ -179,6 +220,12 @@ export default function DetalleSolicitud() {
           {/* Vista para el profesional evaluador (acceso clínico completo) */}
           {esEvaluador && (
             <>
+              {avisoInforme ? (
+                <Mensaje tipo={avisoInforme.tipo} alCerrar={() => setAvisoInforme(null)}>
+                  {avisoInforme.texto}
+                </Mensaje>
+              ) : null}
+
               {!puedeEvaluar ? (
                 <Mensaje tipo="info">
                   Para registrar o actualizar una evaluación, la solicitud debe estar en estado{' '}
@@ -198,7 +245,7 @@ export default function DetalleSolicitud() {
               {puedeEvaluar ? (
                 <FormularioEvaluacion
                   evaluacion={evaluacion}
-                  alGuardar={(datos) => registrarEvaluacion(solicitud.id, datos)}
+                  alGuardar={guardarEvaluacion}
                 />
               ) : null}
             </>

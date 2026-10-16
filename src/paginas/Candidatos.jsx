@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAuth } from '../datos/AuthContext';
 import ListaCandidatos from '../componentes/candidatos/ListaCandidatos';
 import Mensaje from '../componentes/comunes/Mensaje';
 
-/** Listado de candidatos con buscador y acceso a edición. */
+/** Listado de candidatos con buscador; cada uno abre su ficha con la carpeta de documentos. */
 export default function Candidatos() {
   const { candidatos, eliminarCandidato } = useDatos();
+  const { esAnalista } = useAuth();
   const navegar = useNavigate();
   const ubicacion = useLocation();
   const [confirmando, setConfirmando] = useState(null);
@@ -26,14 +28,16 @@ export default function Candidatos() {
           <h1 className="h4 mb-1">Candidatos</h1>
           <p className="text-secondary mb-0">Registro de postulants de AquaChile.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary align-self-start"
-          onClick={() => navegar('/candidatos/nuevo')}
-        >
-          <i className="bi bi-person-plus me-1" aria-hidden="true" />
-          Nuevo candidato
-        </button>
+        {esAnalista ? (
+          <button
+            type="button"
+            className="btn btn-primary align-self-start"
+            onClick={() => navegar('/candidatos/nuevo')}
+          >
+            <i className="bi bi-person-plus me-1" aria-hidden="true" />
+            Nuevo candidato
+          </button>
+        ) : null}
       </header>
 
       {mensaje ? (
@@ -62,8 +66,9 @@ export default function Candidatos() {
 
       <ListaCandidatos
         candidatos={candidatos}
-        alEditar={(candidato) => navegar(`/candidatos/${candidato.id}/editar`)}
-        alEliminar={(candidato) => setConfirmando(candidato)}
+        alEditar={esAnalista ? (candidato) => navegar(`/candidatos/${candidato.id}/editar`) : undefined}
+        alEliminar={esAnalista ? (candidato) => setConfirmando(candidato) : undefined}
+        mostrarNuevo={esAnalista}
       />
     </div>
   );
