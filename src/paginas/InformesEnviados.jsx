@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
-import { PROFESIONALES, RESULTADOS_EVALUACION } from '../datos/constantes';
+import { RECLUTADORES, RESULTADOS_EVALUACION } from '../datos/constantes';
 import {
   etapaDeSolicitud,
   filtrarInformes,
@@ -38,7 +38,7 @@ export default function InformesEnviados() {
   const criterios = {
     texto: parametros.get('q') ?? '',
     resultado: RESULTADOS_EVALUACION.includes(parametros.get('resultado')) ? parametros.get('resultado') : '',
-    solicitante: PROFESIONALES.includes(parametros.get('solicitante')) ? parametros.get('solicitante') : '',
+    solicitante: RECLUTADORES.includes(parametros.get('solicitante')) ? parametros.get('solicitante') : '',
     orden: ORDENES.some(({ valor }) => valor === parametros.get('orden')) ? parametros.get('orden') : 'recientes',
   };
 
@@ -186,7 +186,7 @@ export default function InformesEnviados() {
                 onChange={(evento) => cambiar('solicitante', evento.target.value)}
               >
                 <option value="">Todos los reclutadores/as</option>
-                {PROFESIONALES.map((nombre) => (
+                {RECLUTADORES.map((nombre) => (
                   <option key={nombre} value={nombre}>
                     {nombre}
                   </option>

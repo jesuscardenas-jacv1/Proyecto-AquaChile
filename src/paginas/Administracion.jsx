@@ -5,14 +5,14 @@ import {
   ESTADOS_SOLICITUD,
   FAMILIAS_CARGO,
   MODALIDADES_ENTREVISTA,
-  PROFESIONALES,
+  RECLUTADORES,
   RESULTADOS_EVALUACION,
 } from '../datos/constantes';
 import Mensaje from '../componentes/comunes/Mensaje';
 
 const CATALOGOS = [
   { titulo: 'Familias de cargo', valores: FAMILIAS_CARGO },
-  { titulo: 'Reclutadores/as', valores: PROFESIONALES },
+  { titulo: 'Reclutadores/as', valores: RECLUTADORES },
   { titulo: 'Estados de solicitud', valores: ESTADOS_SOLICITUD },
   { titulo: 'Resultados de evaluación', valores: RESULTADOS_EVALUACION },
   { titulo: 'Modalidades de entrevista', valores: MODALIDADES_ENTREVISTA },
@@ -27,10 +27,9 @@ export default function Administracion() {
   const [confirmando, setConfirmando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
 
-  const restablecer = () => {
-    reiniciarDatos();
+  const restablecer = async () => {
     setConfirmando(false);
-    setMensaje('Se restablecieron los datos de demostración.');
+    if (await reiniciarDatos()) setMensaje('Se restablecieron los datos de demostración.');
   };
 
   const totales = [

@@ -32,6 +32,22 @@ npm run importar:bd   # regenera los datos semilla desde el Excel de bd/
 
 El reporte de cobertura se genera en `cobertura/index.html` (abrir en el navegador).
 
+### Con backend y base de datos (modo integrado)
+
+```bash
+npm --prefix backend install
+npm run backend:migrar && npm run backend:semilla   # crea y llena SQLite con los datos de demostración
+npm run backend:dev                                 # API en http://localhost:3001
+npm run dev                                         # el frontend detecta el backend y usa la base de datos
+```
+
+El pie de página indica el modo: *"Datos guardados en la base de datos del servidor"* o, si el backend no
+responde (por ejemplo en GitHub Pages), *"Sin servidor: datos de demostración en este navegador"*.
+Para apuntar a otro backend, construir con `VITE_API_URL=https://.../api`.
+
+Pruebas del backend: `npm --prefix backend test` (smoke), `run test:roles`, `run test:integracion`
+y `run test:almacenamiento`.
+
 ## Publicación en GitHub Pages
 
 El workflow `.github/workflows/pages.yml` ejecuta las pruebas, construye la app y la publica en

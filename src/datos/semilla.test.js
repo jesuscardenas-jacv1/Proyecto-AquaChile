@@ -4,7 +4,7 @@ import {
   ESTADOS_EVALUACION,
   ESTADOS_SOLICITUD,
   FAMILIAS_CARGO,
-  PROFESIONALES,
+  RECLUTADORES,
   RESULTADOS_EVALUACION,
 } from './constantes';
 import { validarCandidato, validarEvaluacion, validarSolicitud } from '../dominio/validaciones';
@@ -46,7 +46,7 @@ describe('BD simulada (semilla)', () => {
     solicitudes.forEach((solicitud) => {
       expect(FAMILIAS_CARGO).toContain(solicitud.familiaCargo);
       expect(ESTADOS_SOLICITUD).toContain(solicitud.estado);
-      expect(PROFESIONALES).toContain(solicitud.profesionalResponsable);
+      expect(RECLUTADORES).toContain(solicitud.reclutador);
     });
     evaluaciones.forEach((evaluacion) => {
       expect(RESULTADOS_EVALUACION).toContain(evaluacion.resultado);

@@ -1,6 +1,5 @@
 import bdSimulada from './bdSimulada.json';
-import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner';
-import { candidatosDemoPostulaciones, ofertasDemo, postulacionesDemo } from './demoPostulaciones';
+import { construirSemilla } from './semillaBase';
 
 /**
  * Datos semilla: base de datos simulada de AquaChile (abr-2025 a mar-2026).
@@ -11,11 +10,6 @@ import { candidatosDemoPostulaciones, ofertasDemo, postulacionesDemo } from './d
  * solicitudes ficticias en curso (demoPlanner.js) para que el Planner de la
  * psicóloga muestre tarjetas en todas sus etapas, y ofertas con postulaciones
  * recibidas del portal "Trabaja con nosotros" (demoPostulaciones.js).
+ * El backend siembra SQLite con la misma función (semillaBase.js).
  */
-export const datosSemilla = {
-  candidatos: [...bdSimulada.candidatos, ...candidatosDemoPlanner, ...candidatosDemoPostulaciones],
-  solicitudes: [...bdSimulada.solicitudes, ...solicitudesDemoPlanner],
-  evaluaciones: bdSimulada.evaluaciones,
-  ofertas: ofertasDemo,
-  postulaciones: postulacionesDemo,
-};
+export const datosSemilla = construirSemilla(bdSimulada);

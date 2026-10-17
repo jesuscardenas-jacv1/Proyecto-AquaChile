@@ -12,10 +12,10 @@ import {
 } from './indicadoresEvaluacion';
 
 const solicitudes = [
-  { id: 1, familiaCargo: 'Técnico B C', profesionalResponsable: 'Carolina Muñoz', tipoEvaluacion: 'externa' },
-  { id: 2, familiaCargo: 'Técnico B C', profesionalResponsable: 'Javiera Soto', tipoEvaluacion: 'interna' },
-  { id: 3, familiaCargo: 'Jefatura', profesionalResponsable: 'Carolina Muñoz', tipoEvaluacion: 'interna' },
-  { id: 4, familiaCargo: 'Jefatura', profesionalResponsable: 'Javiera Soto', tipoEvaluacion: 'externa' },
+  { id: 1, familiaCargo: 'Técnico B C', reclutador: 'Carolina Muñoz', tipoEvaluacion: 'externa' },
+  { id: 2, familiaCargo: 'Técnico B C', reclutador: 'Javiera Soto', tipoEvaluacion: 'interna' },
+  { id: 3, familiaCargo: 'Jefatura', reclutador: 'Carolina Muñoz', tipoEvaluacion: 'interna' },
+  { id: 4, familiaCargo: 'Jefatura', reclutador: 'Javiera Soto', tipoEvaluacion: 'externa' },
 ];
 
 const evaluaciones = [

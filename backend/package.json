@@ -11,7 +11,8 @@
     "db:semilla": "node src/bd/semilla.js",
     "test": "node src/probar_api.js",
     "test:almacenamiento": "node --test src/almacenamiento/almacenamiento.test.js",
-    "test:roles": "node --test src/roles.test.js"
+    "test:roles": "node --test src/roles.test.js",
+    "test:integracion": "node --test src/integracion.test.js"
   },
   "keywords": [
     "aquachile",

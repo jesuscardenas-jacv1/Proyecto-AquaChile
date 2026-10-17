@@ -16,7 +16,7 @@ const BORDE_RESULTADO = {
  */
 export default function TarjetaInforme({ solicitud, candidato, evaluacion }) {
   const nombre = candidato?.nombre ?? 'Candidato eliminado';
-  const solicitante = solicitud.profesionalResponsable || 'Sin reclutador/a';
+  const solicitante = solicitud.reclutador || 'Sin reclutador/a';
   const resultado = evaluacion?.resultado;
   const dias = evaluacion?.diasRespuesta;
 

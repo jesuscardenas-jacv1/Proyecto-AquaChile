@@ -1,132 +1,101 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar, requerirRol, puedeVerNotasClinicas } = require('../middlewares/auth');
+const { autenticar, requerirRol } = require('../middlewares/auth');
+const { formatearCandidato, formatearEvaluacion, formatearSolicitud } = require('../bd/formatos');
 
 const router = express.Router();
 
-function formatearSolicitud(s) {
-  return {
-    id: s.id,
-    candidatoId: s.candidato_id,
-    candidatoNombre: s.candidato_nombre,
-    cargo: s.cargo,
-    familiaCargo: s.familia_cargo,
-    fechaSolicitud: s.fecha_solicitud,
-    estado: s.estado,
-    profesionalResponsable: s.profesional_responsable,
-    observaciones: s.observaciones,
-    tipoEvaluacion: s.tipo_evaluacion,
-    ubicacion: s.ubicacion,
-    unidad: s.unidad,
-    ceco: s.ceco,
-    requiereReferencias: Boolean(s.requiere_referencias),
-    referido: Boolean(s.referido),
-    cv: s.cv,
-    descriptorCargo: s.descriptor_cargo,
-    creadoEn: s.creado_en,
-  };
-}
+const ESTADOS = ['Pendiente', 'En proceso', 'Finalizada'];
+/** Etapas del Planner y el estado oficial que corresponde a cada una (igual que el frontend). */
+const ESTADO_DE_ETAPA = {
+  recibida: 'Pendiente',
+  agendada: 'En proceso',
+  realizada: 'En proceso',
+  informe: 'Finalizada',
+};
+const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+const obtener = (id) => db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
+const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
 
 /**
  * GET /api/solicitudes
- * Listado de solicitudes con filtros opcionales de estado, tipo y búsqueda
+ * Listado con filtros opcionales: estado, tipoEvaluacion, busqueda, responsable
+ * (psicóloga), desde y hasta (fecha de solicitud, yyyy-mm-dd, inclusivas).
  */
 router.get('/', autenticar, (req, res) => {
-  const { estado, tipoEvaluacion, busqueda } = req.query;
+  const { estado, tipoEvaluacion, busqueda, responsable, desde, hasta } = req.query;
 
   let query = `
-    SELECT s.*, c.nombre as candidato_nombre
+    SELECT s.*
     FROM solicitudes s
     LEFT JOIN candidatos c ON s.candidato_id = c.id
     WHERE 1=1
   `;
   const params = [];
 
-  if (estado && estado.trim()) {
+  if (texto(estado)) {
     query += ' AND s.estado = ?';
-    params.push(estado.trim());
+    params.push(texto(estado));
   }
-
-  if (tipoEvaluacion && tipoEvaluacion.trim()) {
+  if (texto(tipoEvaluacion)) {
     query += ' AND s.tipo_evaluacion = ?';
-    params.push(tipoEvaluacion.trim());
+    params.push(texto(tipoEvaluacion));
+  }
+  if (texto(responsable)) {
+    query += ' AND s.profesional_responsable = ?';
+    params.push(texto(responsable));
+  }
+  for (const [valor, operador] of [
+    [desde, '>='],
+    [hasta, '<='],
+  ]) {
+    if (!texto(valor)) continue;
+    if (!FECHA_ISO.test(texto(valor))) {
+      return res.status(400).json({ error: 'Las fechas deben tener el formato yyyy-mm-dd.' });
+    }
+    query += ` AND s.fecha_solicitud ${operador} ?`;
+    params.push(texto(valor));
+  }
+  if (texto(busqueda)) {
+    query +=
+      ' AND (c.nombre LIKE ? OR s.cargo LIKE ? OR s.reclutador LIKE ? OR s.profesional_responsable LIKE ?)';
+    const termino = `%${texto(busqueda)}%`;
+    params.push(termino, termino, termino, termino);
   }
 
-  if (busqueda && busqueda.trim()) {
-    query += ' AND (c.nombre LIKE ? OR s.cargo LIKE ? OR s.profesional_responsable LIKE ?)';
-    const term = `%${busqueda.trim()}%`;
-    params.push(term, term, term);
-  }
-
-  query += ' ORDER BY s.id DESC';
-
-  const rows = db.prepare(query).all(...params);
-  const solicitudes = rows.map(formatearSolicitud);
-
+  query += ' ORDER BY s.fecha_solicitud DESC, s.id DESC';
+  const solicitudes = db.prepare(query).all(...params).map(formatearSolicitud);
   res.json({ ok: true, total: solicitudes.length, solicitudes });
 });
 
 /**
  * GET /api/solicitudes/:id
- * Detalle completo de una solicitud, su candidato y su evaluación asociada
+ * Detalle de la solicitud, su candidato y su evaluación (sin notas clínicas para
+ * analista y jefatura).
  */
 router.get('/:id', autenticar, (req, res) => {
-  const id = parseInt(req.params.id, 10);
-
-  const s = db
-    .prepare(
-      `SELECT s.*, c.nombre as candidato_nombre
-       FROM solicitudes s
-       LEFT JOIN candidatos c ON s.candidato_id = c.id
-       WHERE s.id = ?`,
-    )
-    .get(id);
-
-  if (!s) {
+  const id = Number(req.params.id);
+  const solicitud = obtener(id);
+  if (!solicitud) {
     return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
   }
 
-  const candidato = db.prepare('SELECT * FROM candidatos WHERE id = ?').get(s.candidato_id);
+  const candidato = db.prepare('SELECT * FROM candidatos WHERE id = ?').get(solicitud.candidato_id);
   const evaluacion = db.prepare('SELECT * FROM evaluaciones WHERE solicitud_id = ?').get(id);
-
-  // Filtrado de confidencialidad médica/psicológica para analistas y jefatura
-  let evaluacionSanitizada = null;
-  if (evaluacion) {
-    evaluacionSanitizada = {
-      id: evaluacion.id,
-      solicitudId: evaluacion.solicitud_id,
-      fechaEvaluacion: evaluacion.fecha_evaluacion,
-      resultado: evaluacion.resultado,
-      estado: evaluacion.estado,
-      fechaInforme: evaluacion.fecha_informe,
-      diasRespuesta: evaluacion.dias_respuesta,
-      // Analista y jefatura no ven las observaciones clínicas
-      observaciones: puedeVerNotasClinicas(req.usuario.rol) ? evaluacion.observaciones : undefined,
-      confidencial: !puedeVerNotasClinicas(req.usuario.rol),
-    };
-  }
 
   res.json({
     ok: true,
-    solicitud: formatearSolicitud(s),
-    candidato: candidato
-      ? {
-          id: candidato.id,
-          nombre: candidato.nombre,
-          correo: candidato.correo,
-          telefono: candidato.telefono,
-          cargo: candidato.cargo,
-          familiaCargo: candidato.familia_cargo,
-          origen: candidato.origen,
-        }
-      : null,
-    evaluacion: evaluacionSanitizada,
+    solicitud: formatearSolicitud(solicitud),
+    candidato: candidato ? formatearCandidato(candidato) : null,
+    evaluacion: evaluacion ? formatearEvaluacion(evaluacion, req.usuario.rol) : null,
   });
 });
 
 /**
  * POST /api/solicitudes
- * Crear una nueva solicitud de evaluación (exclusivo para Analistas)
+ * Crear una solicitud de evaluación (analista). Queda Pendiente, en la etapa
+ * "recibida" del Planner.
  */
 router.post('/', autenticar, requerirRol('analista'), (req, res) => {
   const {
@@ -143,92 +112,121 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
     cv,
     descriptorCargo,
     observaciones,
+    reclutador,
     profesionalResponsable,
   } = req.body;
 
-  if (!candidatoId || !cargo || !familiaCargo) {
+  if (!candidatoId || !texto(cargo) || !texto(familiaCargo)) {
     return res.status(400).json({
       error: 'Debe especificar el candidato, el cargo y la familia de cargo.',
     });
   }
-
-  // Verificar que el candidato exista
-  const candidato = db.prepare('SELECT id FROM candidatos WHERE id = ?').get(candidatoId);
-  if (!candidato) {
+  if (fechaSolicitud && !FECHA_ISO.test(fechaSolicitud)) {
+    return res.status(400).json({ error: 'La fecha de solicitud debe tener el formato yyyy-mm-dd.' });
+  }
+  if (!db.prepare('SELECT id FROM candidatos WHERE id = ?').get(candidatoId)) {
     return res.status(404).json({ error: `El candidato #${candidatoId} no existe.` });
   }
 
-  const fechaHoy = new Date().toISOString().split('T')[0];
-
-  const stmt = db.prepare(`
-    INSERT INTO solicitudes (
-      candidato_id, cargo, familia_cargo, fecha_solicitud, estado,
-      profesional_responsable, observaciones, tipo_evaluacion, ubicacion,
-      unidad, ceco, requiere_referencias, referido, cv, descriptor_cargo
-    ) VALUES (?, ?, ?, ?, 'Pendiente', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const resultado = stmt.run(
-    candidatoId,
-    cargo.trim(),
-    familiaCargo.trim(),
-    fechaSolicitud || fechaHoy,
-    profesionalResponsable?.trim() || '',
-    observaciones?.trim() || '',
-    tipoEvaluacion?.trim() || 'externa',
-    ubicacion?.trim() || '',
-    unidad?.trim() || '',
-    ceco?.trim() || '',
-    requiereReferencias ? 1 : 0,
-    referido ? 1 : 0,
-    cv?.trim() || '',
-    descriptorCargo?.trim() || '',
-  );
-
-  const nueva = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(resultado.lastInsertRowid);
+  const resultado = db
+    .prepare(
+      `INSERT INTO solicitudes (
+        candidato_id, cargo, familia_cargo, fecha_solicitud, estado, etapa, reclutador,
+        profesional_responsable, observaciones, tipo_evaluacion, ubicacion, unidad, ceco,
+        requiere_referencias, referido, cv, descriptor_cargo
+      ) VALUES (?, ?, ?, ?, 'Pendiente', 'recibida', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      candidatoId,
+      texto(cargo),
+      texto(familiaCargo),
+      fechaSolicitud || new Date().toISOString().slice(0, 10),
+      texto(reclutador),
+      texto(profesionalResponsable),
+      texto(observaciones),
+      texto(tipoEvaluacion) || 'externa',
+      texto(ubicacion),
+      texto(unidad),
+      texto(ceco),
+      requiereReferencias ? 1 : 0,
+      referido === null || referido === undefined ? null : referido ? 1 : 0,
+      texto(cv),
+      texto(descriptorCargo),
+    );
 
   res.status(201).json({
     ok: true,
     mensaje: 'Solicitud creada exitosamente.',
-    solicitud: formatearSolicitud(nueva),
+    solicitud: formatearSolicitud(obtener(resultado.lastInsertRowid)),
   });
 });
 
 /**
  * PATCH /api/solicitudes/:id/estado
- * Cambiar el estado o el profesional responsable de una solicitud
+ * Cambia el estado y/o la psicóloga responsable ("" la deja sin asignar).
  */
 router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const { estado, profesionalResponsable } = req.body;
-
-  const s = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
-  if (!s) {
+  const id = Number(req.params.id);
+  const actual = obtener(id);
+  if (!actual) {
     return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
   }
 
-  const estadosValidos = ['Pendiente', 'En proceso', 'Finalizada'];
-  if (estado && !estadosValidos.includes(estado)) {
-    return res.status(400).json({
-      error: `Estado inválido. Debe ser uno de: ${estadosValidos.join(', ')}.`,
-    });
+  const { estado } = req.body;
+  if (estado !== undefined && !ESTADOS.includes(estado)) {
+    return res.status(400).json({ error: `Estado inválido. Debe ser uno de: ${ESTADOS.join(', ')}.` });
+  }
+  const responsable =
+    'profesionalResponsable' in req.body ? texto(req.body.profesionalResponsable) : actual.profesional_responsable;
+
+  db.prepare(
+    `UPDATE solicitudes
+     SET estado = ?, profesional_responsable = ?, actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(estado ?? actual.estado, responsable, id);
+
+  res.json({ ok: true, mensaje: 'Solicitud actualizada.', solicitud: formatearSolicitud(obtener(id)) });
+});
+
+/**
+ * PATCH /api/solicitudes/:id/etapa
+ * Mueve la solicitud en el Planner (evaluador) y sincroniza su estado oficial.
+ * Volver a "recibida" deja la entrevista nuevamente por coordinar.
+ */
+router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
+  const id = Number(req.params.id);
+  const actual = obtener(id);
+  if (!actual) {
+    return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
   }
 
-  db.prepare(`
-    UPDATE solicitudes
-    SET estado = COALESCE(?, estado),
-        profesional_responsable = COALESCE(?, profesional_responsable),
-        actualizado_en = datetime('now')
-    WHERE id = ?
-  `).run(estado || null, profesionalResponsable || null, id);
+  const { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista } = req.body;
+  if (!ESTADO_DE_ETAPA[etapa]) {
+    return res.status(400).json({
+      error: `Etapa inválida. Debe ser una de: ${Object.keys(ESTADO_DE_ETAPA).join(', ')}.`,
+    });
+  }
+  if (fechaEntrevista && !FECHA_ISO.test(fechaEntrevista)) {
+    return res.status(400).json({ error: 'La fecha de la entrevista debe tener el formato yyyy-mm-dd.' });
+  }
 
-  const actualizada = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
+  const agenda =
+    etapa === 'recibida'
+      ? { fecha: '', hora: '', modalidad: '' }
+      : {
+          fecha: texto(fechaEntrevista) || actual.fecha_entrevista,
+          hora: texto(horaEntrevista) || actual.hora_entrevista,
+          modalidad: texto(modalidadEntrevista) || actual.modalidad_entrevista,
+        };
 
-  res.json({
-    ok: true,
-    mensaje: 'Estado de la solicitud actualizado.',
-    solicitud: formatearSolicitud(actualizada),
-  });
+  db.prepare(
+    `UPDATE solicitudes
+     SET etapa = ?, estado = ?, fecha_entrevista = ?, hora_entrevista = ?, modalidad_entrevista = ?,
+         actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, id);
+
+  res.json({ ok: true, mensaje: 'Etapa actualizada.', solicitud: formatearSolicitud(obtener(id)) });
 });
 
 module.exports = router;

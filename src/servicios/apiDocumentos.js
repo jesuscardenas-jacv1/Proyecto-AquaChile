@@ -4,35 +4,10 @@
  * viven en disco local o en OneDrive / SharePoint vía Microsoft Graph.
  */
 
-export const URL_API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
-const CLAVE_TOKEN = 'aquachile_token_api';
+import { ErrorApi, URL_API, guardarToken, obtenerToken } from './api';
 
-/** Error de la API; `noDisponible` indica que el backend no está accesible. */
-export class ErrorApi extends Error {
-  constructor(mensaje, { status = 0, noDisponible = false } = {}) {
-    super(mensaje);
-    this.name = 'ErrorApi';
-    this.status = status;
-    this.noDisponible = noDisponible;
-  }
-}
-
-export function obtenerToken() {
-  try {
-    return sessionStorage.getItem(CLAVE_TOKEN);
-  } catch {
-    return null;
-  }
-}
-
-function guardarToken(token) {
-  try {
-    if (token) sessionStorage.setItem(CLAVE_TOKEN, token);
-    else sessionStorage.removeItem(CLAVE_TOKEN);
-  } catch {
-    // Sin sessionStorage la sección de documentos queda como no disponible.
-  }
-}
+// Se re-exportan para quien ya los importaba desde aquí.
+export { ErrorApi, URL_API, obtenerToken };
 
 /**
  * Obtiene un JWT del backend con las mismas credenciales del login.
@@ -143,6 +118,7 @@ export async function generarInforme(solicitudId, { candidato, solicitud, evalua
       cargo: solicitud.cargo,
       familiaCargo: solicitud.familiaCargo,
       fechaSolicitud: solicitud.fechaSolicitud,
+      reclutador: solicitud.reclutador ?? '',
       profesionalResponsable: solicitud.profesionalResponsable ?? '',
       ubicacion: solicitud.ubicacion ?? '',
       unidad: solicitud.unidad ?? '',

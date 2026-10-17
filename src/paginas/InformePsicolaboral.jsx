@@ -159,7 +159,7 @@ export default function InformePsicolaboral() {
               </div>
               <div className="col-6 col-sm-3">
                 <span className="text-secondary d-block">Reclutador/a solicitante:</span>
-                <span>{solicitud.profesionalResponsable || 'AquaChile'}</span>
+                <span>{solicitud.reclutador || 'AquaChile'}</span>
               </div>
               <div className="col-6 col-sm-3">
                 <span className="text-secondary d-block">Ubicación / Planta:</span>

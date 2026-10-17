@@ -61,7 +61,7 @@ export default function TarjetaPlanner({
   const acciones = accionesDisponibles(etapa);
   const aviso = avisoTarjeta(etapa, solicitud, hoy);
   const nombre = candidato?.nombre ?? 'Candidato eliminado';
-  const solicitante = solicitud.profesionalResponsable || 'Sin reclutador/a';
+  const solicitante = solicitud.reclutador || 'Sin reclutador/a';
 
   return (
     <article className="card border-0 shadow-sm planner-tarjeta" aria-label={`${nombre}, ${solicitud.cargo}`}>

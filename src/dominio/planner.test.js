@@ -156,8 +156,8 @@ describe('validarAgenda', () => {
 });
 
 describe('informes enviados', () => {
-  const informe = (id, nombre, resultado, fechaInforme, profesionalResponsable = 'Javiera Soto') => ({
-    solicitud: { id, cargo: 'Operario', familiaCargo: 'Operario', ubicacion: 'Planta Calbuco', profesionalResponsable },
+  const informe = (id, nombre, resultado, fechaInforme, reclutador = 'Javiera Soto') => ({
+    solicitud: { id, cargo: 'Operario', familiaCargo: 'Operario', ubicacion: 'Planta Calbuco', reclutador },
     candidato: { nombre },
     evaluacion: { resultado, fechaInforme },
   });

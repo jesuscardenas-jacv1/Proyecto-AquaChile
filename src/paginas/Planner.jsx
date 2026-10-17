@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
-import { ETAPAS_PLANNER, PROFESIONALES } from '../datos/constantes';
+import { ETAPAS_PLANNER, RECLUTADORES } from '../datos/constantes';
 import { agruparPorEtapa, etapaAnterior, hoyIso, obtenerEtapa, textoEntrevista } from '../dominio/planner';
 import { normalizar } from '../dominio/texto';
 import Mensaje from '../componentes/comunes/Mensaje';
@@ -40,11 +40,11 @@ export default function Planner() {
   const filtradas = useMemo(() => {
     const busqueda = normalizar(texto.trim());
     return solicitudes.filter((solicitud) => {
-      if (solicitante && solicitud.profesionalResponsable !== solicitante) return false;
+      if (solicitante && solicitud.reclutador !== solicitante) return false;
       if (!busqueda) return true;
       const candidato = candidatosPorId[solicitud.candidatoId];
       return normalizar(
-        [candidato?.nombre, solicitud.cargo, solicitud.familiaCargo, solicitud.profesionalResponsable].join(' '),
+        [candidato?.nombre, solicitud.cargo, solicitud.familiaCargo, solicitud.reclutador].join(' '),
       ).includes(busqueda);
     });
   }, [solicitudes, texto, solicitante, candidatosPorId]);
@@ -60,10 +60,10 @@ export default function Planner() {
 
   const nombreDe = (solicitud) => candidatosPorId[solicitud.candidatoId]?.nombre ?? 'el candidato';
 
-  const guardarAgenda = (agenda) => {
+  const guardarAgenda = async (agenda) => {
     const { solicitud, reagendar } = ventana;
-    moverEtapa(solicitud.id, 'agendada', agenda);
     setVentana(null);
+    if (!(await moverEtapa(solicitud.id, 'agendada', agenda))) return;
     setAviso({
       tipo: 'success',
       texto: `${reagendar ? 'Entrevista reagendada' : 'Entrevista agendada'}: ${nombreDe(solicitud)}. ${textoEntrevista(
@@ -72,17 +72,17 @@ export default function Planner() {
     });
   };
 
-  const marcarRealizada = (solicitud) => {
-    moverEtapa(solicitud.id, 'realizada');
+  const marcarRealizada = async (solicitud) => {
+    if (!(await moverEtapa(solicitud.id, 'realizada'))) return;
     setAviso({
       tipo: 'success',
       texto: `Entrevista de ${nombreDe(solicitud)} marcada como realizada. Siguiente paso: registrar la evaluación y el informe.`,
     });
   };
 
-  const retroceder = (solicitud, etapaActual) => {
+  const retroceder = async (solicitud, etapaActual) => {
     const destino = etapaAnterior(etapaActual);
-    moverEtapa(solicitud.id, destino);
+    if (!(await moverEtapa(solicitud.id, destino))) return;
     setAviso({
       tipo: 'info',
       texto: `${nombreDe(solicitud)} volvió a "${obtenerEtapa(destino).titulo}".`,
@@ -146,7 +146,7 @@ export default function Planner() {
                 onChange={(evento) => setSolicitante(evento.target.value)}
               >
                 <option value="">Todos los reclutadores/as</option>
-                {PROFESIONALES.map((nombre) => (
+                {RECLUTADORES.map((nombre) => (
                   <option key={nombre} value={nombre}>
                     {nombre}
                   </option>

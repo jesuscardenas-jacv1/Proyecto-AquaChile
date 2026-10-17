@@ -39,7 +39,7 @@ export function registrosEvaluados(solicitudes = [], evaluaciones = []) {
         resultado: evaluacion.resultado,
         tipo: solicitud.tipoEvaluacion ?? '',
         familia: solicitud.familiaCargo ?? '',
-        reclutador: solicitud.profesionalResponsable ?? '',
+        reclutador: solicitud.reclutador ?? '',
         mes: (evaluacion.fechaEvaluacion ?? '').slice(0, 7),
         diasRespuesta: evaluacion.diasRespuesta,
       };

@@ -19,11 +19,11 @@ describe('AuthContext', () => {
     expect(result.current.esEvaluador).toBe(false);
   });
 
-  it('permite autenticar un analista y actualiza los indicadores de rol', () => {
+  it('permite autenticar un analista y actualiza los indicadores de rol', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: wrapperConAuth });
 
-    act(() => {
-      const resp = result.current.iniciarSesion('analista@aquachile.cl', 'AquaChile2026!');
+    await act(async () => {
+      const resp = await result.current.iniciarSesion('analista@aquachile.cl', 'AquaChile2026!');
       expect(resp.ok).toBe(true);
     });
 
@@ -33,11 +33,11 @@ describe('AuthContext', () => {
     expect(result.current.usuarioActual.nombre).toBe('Carolina Muñoz');
   });
 
-  it('permite autenticar un evaluador y actualiza los indicadores de rol', () => {
+  it('permite autenticar un evaluador y actualiza los indicadores de rol', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: wrapperConAuth });
 
-    act(() => {
-      const resp = result.current.iniciarSesion('ignacia.valdes@aquachile.cl', 'AquaChile2026!');
+    await act(async () => {
+      const resp = await result.current.iniciarSesion('ignacia.valdes@aquachile.cl', 'AquaChile2026!');
       expect(resp.ok).toBe(true);
     });
 
@@ -47,11 +47,11 @@ describe('AuthContext', () => {
     expect(result.current.usuarioActual.cargo).toBe('Psicóloga Evaluadora');
   });
 
-  it('rechaza contraseñas incorrectas y no modifica la sesión', () => {
+  it('rechaza contraseñas incorrectas y no modifica la sesión', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: wrapperConAuth });
 
-    act(() => {
-      const resp = result.current.iniciarSesion('analista@aquachile.cl', 'erronea');
+    await act(async () => {
+      const resp = await result.current.iniciarSesion('analista@aquachile.cl', 'erronea');
       expect(resp.ok).toBe(false);
       expect(resp.error).toBeDefined();
     });
@@ -60,11 +60,11 @@ describe('AuthContext', () => {
     expect(result.current.usuarioActual).toBeNull();
   });
 
-  it('cierra la sesión correctamente', () => {
+  it('cierra la sesión correctamente', async () => {
     const { result } = renderHook(() => useAuth(), { wrapper: wrapperConAuth });
 
-    act(() => {
-      result.current.iniciarSesion('evaluador@aquachile.cl', 'AquaChile2026!');
+    await act(async () => {
+      await result.current.iniciarSesion('evaluador@aquachile.cl', 'AquaChile2026!');
     });
     expect(result.current.estaAutenticado).toBe(true);
 

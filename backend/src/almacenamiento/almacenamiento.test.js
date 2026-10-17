@@ -446,11 +446,33 @@ describe('portal de postulación: CV público y paso a evaluación', () => {
       body: cuerpo,
     });
 
+  let postulacionId;
+  let otraPostulacionId;
+  const postular = async (correo) => {
+    const respuesta = await fetch(`${base}/postulaciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ofertaId: 1,
+        nombre: 'Camilo Fuentealba',
+        correo,
+        telefono: '+56911112222',
+        ciudad: 'Calbuco',
+        origen: 'Externo',
+        consentimiento: true,
+        cvNombre: 'mi cv.pdf',
+      }),
+    });
+    return (await respuesta.json()).postulacion.id;
+  };
+
   before(async () => {
     raiz = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-portal-'));
     establecerAlmacenamiento(new AlmacenamientoLocal({ raiz }));
     servidor = app.listen(0);
     base = `http://localhost:${servidor.address().port}/api`;
+    postulacionId = await postular(`prueba.portal.${Date.now()}@correo.cl`);
+    otraPostulacionId = await postular(`prueba.portal.otra.${Date.now()}@correo.cl`);
   });
 
   after(async () => {
@@ -460,19 +482,24 @@ describe('portal de postulación: CV público y paso a evaluación', () => {
   });
 
   it('recibe el CV sin sesión y lo guarda en la carpeta de la postulación', async () => {
-    const respuesta = await subirCv(7001, 'mi cv.pdf');
+    const respuesta = await subirCv(postulacionId, 'mi cv.pdf');
     assert.equal(respuesta.status, 201);
-    assert.deepEqual(await fs.readdir(path.join(raiz, 'P7001 - Camilo Fuentealba')), ['CV - mi cv.pdf']);
+    const clave = `P${String(postulacionId).padStart(4, '0')}`;
+    assert.deepEqual(await fs.readdir(path.join(raiz, `${clave} - Camilo Fuentealba`)), ['CV - mi cv.pdf']);
   });
 
   it('solo acepta PDF o Word', async () => {
-    assert.equal((await subirCv(7002, 'foto.png')).status, 400);
-    assert.equal((await subirCv(7002, 'programa.exe')).status, 400);
+    assert.equal((await subirCv(otraPostulacionId, 'foto.png')).status, 400);
+    assert.equal((await subirCv(otraPostulacionId, 'programa.exe')).status, 400);
+  });
+
+  it('rechaza el CV de una postulación que no existe', async () => {
+    assert.equal((await subirCv(999999, 'cv.pdf')).status, 404);
   });
 
   it('el analista copia el CV a la carpeta de la solicitud; el evaluador no puede', async () => {
     const ruta = `${base}/solicitudes/9101/documentos/desde-postulacion`;
-    const cuerpo = JSON.stringify({ postulacionId: 7001, nombreCandidato: 'Camilo Fuentealba' });
+    const cuerpo = JSON.stringify({ postulacionId, nombreCandidato: 'Camilo Fuentealba' });
 
     const delEvaluador = await fetch(ruta, { method: 'POST', headers: cabeceras('evaluador'), body: cuerpo });
     assert.equal(delEvaluador.status, 403);

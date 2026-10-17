@@ -34,12 +34,12 @@ describe('Roles del caso académico', () => {
   it.each([
     ['admin@aquachile.cl', { esAdmin: true, esAnalista: true, esEvaluador: true, soloLectura: false }],
     ['jefatura@aquachile.cl', { esAdmin: false, esAnalista: false, esEvaluador: false, soloLectura: true }],
-  ])('%s inicia sesión con los permisos de su rol', (alias, permisos) => {
+  ])('%s inicia sesión con los permisos de su rol', async (alias, permisos) => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => <ProveedorAuth>{children}</ProveedorAuth>,
     });
-    act(() => {
-      expect(result.current.iniciarSesion(alias, 'AquaChile2026!').ok).toBe(true);
+    await act(async () => {
+      expect((await result.current.iniciarSesion(alias, 'AquaChile2026!')).ok).toBe(true);
     });
     expect(result.current).toMatchObject(permisos);
   });
@@ -62,7 +62,7 @@ describe('Jefatura en modo solo lectura', () => {
     renderComo('jefatura', '/solicitudes/1');
 
     expect(screen.getByLabelText('Estado')).toBeDisabled();
-    expect(screen.getByLabelText('Profesional responsable')).toBeDisabled();
+    expect(screen.getByLabelText('Psicóloga responsable')).toBeDisabled();
     expect(screen.getByText(/solo puede consultar/i)).toBeInTheDocument();
 
     expect(screen.getByText('Dictamen de la evaluación:')).toBeInTheDocument();
