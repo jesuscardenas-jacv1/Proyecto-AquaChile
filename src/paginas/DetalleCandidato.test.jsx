@@ -5,7 +5,7 @@ import DetalleCandidato from './DetalleCandidato';
 import Candidatos from './Candidatos';
 import { datosDePrueba, renderConContexto } from '../pruebas/utilidades';
 
-const evaluador = { id: 2, nombre: 'María Victoria Bustamante', rol: 'evaluador' };
+const evaluador = { id: 2, nombre: 'Ignacia Valdés Ortiz', rol: 'evaluador' };
 const analista = { id: 1, nombre: 'Carolina Muñoz', rol: 'analista' };
 
 function renderFicha(ruta, usuario = evaluador) {

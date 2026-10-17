@@ -139,7 +139,7 @@ src/
 | Rol | Correo / Alias | Contraseña | Funciones |
 | --- | --- | --- | --- |
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
-| **Profesional Evaluador** | `mvictoria.bustamante@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
+| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
 | **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración (`/administracion`). |
 | **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen (sin notas clínicas). |
 

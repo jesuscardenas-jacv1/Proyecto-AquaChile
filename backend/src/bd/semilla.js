@@ -46,8 +46,8 @@ function sembrar() {
 
     stmtUsuario.run(
       2,
-      'María Victoria Bustamante',
-      'mvictoria.bustamante@aquachile.cl',
+      'Ignacia Valdés Ortiz',
+      'ignacia.valdes@aquachile.cl',
       'evaluador@aquachile.cl',
       passwordHash,
       'evaluador',

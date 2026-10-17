@@ -44,8 +44,8 @@ export const USUARIOS = [
   },
   {
     id: 2,
-    nombre: 'María Victoria Bustamante',
-    correo: 'mvictoria.bustamante@aquachile.cl',
+    nombre: 'Ignacia Valdés Ortiz',
+    correo: 'ignacia.valdes@aquachile.cl',
     alias: 'evaluador@aquachile.cl',
     contrasena: 'AquaChile2026!',
     rol: 'evaluador',

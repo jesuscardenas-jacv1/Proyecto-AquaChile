@@ -42,7 +42,7 @@ npm test
 | Perfil | Correo Nominal | Alias | Contraseña | Rol RBAC |
 |---|---|---|---|---|
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl` | `analista@aquachile.cl` | `AquaChile2026!` | `analista` |
-| **Psicóloga Evaluadora** | `mvictoria.bustamante@aquachile.cl` | `evaluador@aquachile.cl` | `AquaChile2026!` | `evaluador` |
+| **Psicóloga Evaluadora** | `ignacia.valdes@aquachile.cl` | `evaluador@aquachile.cl` | `AquaChile2026!` | `evaluador` |
 
 ---
 

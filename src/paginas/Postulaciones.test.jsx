@@ -9,7 +9,7 @@ import { datosPortal, renderConContexto } from '../pruebas/utilidades';
 
 const analista = { id: 1, nombre: 'Carolina Muñoz', rol: 'analista' };
 const jefatura = { id: 4, nombre: 'Patricia Saavedra', rol: 'jefatura' };
-const evaluador = { id: 2, nombre: 'María Victoria', rol: 'evaluador' };
+const evaluador = { id: 2, nombre: 'Ignacia Valdés', rol: 'evaluador' };
 
 const renderFlujo = (ruta, usuario = analista) =>
   renderConContexto(

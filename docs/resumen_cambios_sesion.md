@@ -29,7 +29,7 @@ Durante esta jornada se desarrollaron e integraron 3 grandes componentes arquite
 | Rol | Correo Nominal | Alias | Contraseña | Permisos |
 |---|---|---|---|---|
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl` | `analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictámenes. |
-| **Psicóloga Evaluadora** | `mvictoria.bustamante@aquachile.cl` | `evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, registra evaluaciones y observaciones clínicas. |
+| **Psicóloga Evaluadora** | `ignacia.valdes@aquachile.cl` | `evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, registra evaluaciones y observaciones clínicas. |
 
 ---
 
