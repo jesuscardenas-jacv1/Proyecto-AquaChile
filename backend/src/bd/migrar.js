@@ -10,22 +10,51 @@
  */
 const db = require('./conexion');
 
-function migrar() {
-  db.exec(`
-    -- -------------------------------------------------------
-    -- Tabla: usuarios (autenticación y control de acceso)
-    -- -------------------------------------------------------
-    CREATE TABLE IF NOT EXISTS usuarios (
+/** Los 4 roles del caso académico (sección 4.3). */
+const ROLES = ['admin', 'analista', 'evaluador', 'jefatura'];
+
+function tablaUsuarios(nombre) {
+  return `CREATE TABLE IF NOT EXISTS ${nombre} (
       id               INTEGER PRIMARY KEY AUTOINCREMENT,
       nombre           TEXT    NOT NULL,
       correo           TEXT    NOT NULL UNIQUE,
       alias            TEXT    UNIQUE,
       contrasena_hash  TEXT    NOT NULL,
-      rol              TEXT    NOT NULL CHECK(rol IN ('analista', 'evaluador')),
+      rol              TEXT    NOT NULL CHECK(rol IN (${ROLES.map((rol) => `'${rol}'`).join(', ')})),
       cargo            TEXT,
       unidad           TEXT,
       creado_en        TEXT    NOT NULL DEFAULT (datetime('now'))
-    );
+    );`;
+}
+
+/**
+ * SQLite no permite cambiar un CHECK: si la tabla usuarios viene de una versión
+ * con menos roles, se recrea conservando sus filas.
+ */
+function actualizarRolesUsuarios() {
+  const { sql } = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'usuarios'").get();
+  if (ROLES.every((rol) => sql.includes(`'${rol}'`))) return;
+
+  db.exec('BEGIN TRANSACTION;');
+  try {
+    db.exec(tablaUsuarios('usuarios_nueva'));
+    db.exec('INSERT INTO usuarios_nueva SELECT * FROM usuarios;');
+    db.exec('DROP TABLE usuarios;');
+    db.exec('ALTER TABLE usuarios_nueva RENAME TO usuarios;');
+    db.exec('COMMIT;');
+    console.log('   🔄 Tabla usuarios actualizada con los roles admin y jefatura.');
+  } catch (error) {
+    db.exec('ROLLBACK;');
+    throw error;
+  }
+}
+
+function migrar() {
+  db.exec(`
+    -- -------------------------------------------------------
+    -- Tabla: usuarios (autenticación y control de acceso)
+    -- -------------------------------------------------------
+    ${tablaUsuarios('usuarios')}
 
     -- -------------------------------------------------------
     -- Tabla: candidatos
@@ -86,6 +115,7 @@ function migrar() {
     );
   `);
 
+  actualizarRolesUsuarios();
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

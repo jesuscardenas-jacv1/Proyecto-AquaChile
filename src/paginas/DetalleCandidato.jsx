@@ -14,10 +14,17 @@ import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
 export default function DetalleCandidato() {
   const { id } = useParams();
   const navegar = useNavigate();
-  const { esAnalista } = useAuth();
+  const { esAnalista, soloEnEvaluacion } = useAuth();
   const { obtenerCandidato, solicitudes, obtenerEvaluacionDeSolicitud } = useDatos();
 
-  const candidato = obtenerCandidato(id);
+  const encontrado = obtenerCandidato(id);
+  // El evaluador no accede a postulantes que aún no pasan a evaluación.
+  const candidato =
+    encontrado &&
+    (!soloEnEvaluacion ||
+      solicitudes.some((solicitud) => Number(solicitud.candidatoId) === encontrado.id))
+      ? encontrado
+      : null;
 
   if (!candidato) {
     return (

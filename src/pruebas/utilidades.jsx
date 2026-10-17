@@ -196,3 +196,63 @@ export const datosDemo = {
     },
   ],
 };
+
+/** Datos de prueba con el portal: 2 ofertas, una postulación recibida y una descartada. */
+export const datosPortal = {
+  ...datosDePrueba,
+  candidatos: [
+    ...datosDePrueba.candidatos,
+    {
+      id: 20,
+      nombre: 'Camilo Fuentealba',
+      correo: 'camilo.f@correo.cl',
+      telefono: '+56930002201',
+      cargo: 'Monitor Producción',
+      familiaCargo: 'Técnico B C',
+      origen: 'Externo',
+    },
+    {
+      id: 21,
+      nombre: 'Josefa Barría',
+      correo: 'josefa.b@correo.cl',
+      telefono: '+56930002204',
+      cargo: 'Técnico Eléctrico',
+      familiaCargo: 'Técnico A',
+      origen: 'Externo',
+    },
+  ],
+  ofertas: [
+    {
+      id: 1,
+      titulo: 'Monitor Producción - Planta Calbuco',
+      area: 'Industrial',
+      cargo: 'Monitor Producción',
+      familiaCargo: 'Técnico B C',
+      ubicacion: 'Planta Calbuco',
+      region: 'Los Lagos',
+      fechaPublicacion: '2026-10-01',
+      descripcion: 'Coordinar equipos de línea.',
+      requisitos: ['Técnico de nivel medio'],
+      jornada: 'Jornada completa',
+      estado: 'Abierta',
+    },
+    {
+      id: 2,
+      titulo: 'Técnico Eléctrico - Puerto Natales',
+      area: 'Producción',
+      cargo: 'Técnico Eléctrico',
+      familiaCargo: 'Técnico A',
+      ubicacion: 'Planta Magallanes',
+      region: 'Magallanes',
+      fechaPublicacion: '2026-10-05',
+      descripcion: 'Mantención eléctrica.',
+      requisitos: [],
+      jornada: 'Jornada completa',
+      estado: 'Abierta',
+    },
+  ],
+  postulaciones: [
+    { id: 1, ofertaId: 1, candidatoId: 20, fechaPostulacion: '2026-10-02', estado: 'Recibida', ciudad: 'Calbuco', cvNombre: 'cv_camilo.pdf', solicitudId: null },
+    { id: 2, ofertaId: 2, candidatoId: 21, fechaPostulacion: '2026-10-06', estado: 'Descartada', ciudad: 'Punta Arenas', cvNombre: 'cv_josefa.pdf', solicitudId: null },
+  ],
+};

@@ -2,21 +2,24 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
+import { ROLES } from '../../datos/usuarios';
 
 /**
  * Barra de navegación colapsable de Bootstrap con control de acceso por roles.
  */
 export default function Navbar() {
   const [abierto, setAbierto] = useState(false);
-  const { usuarioActual, esAnalista, cerrarSesion } = useAuth();
+  const { usuarioActual, esAnalista, esAdmin, esJefatura, cerrarSesion } = useAuth();
   const navegar = useNavigate();
 
   const enlaces = [
     { ruta: '/', etiqueta: 'Dashboard', exacto: true },
+    ...(esAnalista || esJefatura ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones' }] : []),
     { ruta: '/candidatos', etiqueta: 'Candidatos' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes' },
     { ruta: '/planner', etiqueta: 'Planner' },
     ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud' }] : []),
+    ...(esAdmin ? [{ ruta: '/administracion', etiqueta: 'Administración' }] : []),
   ];
 
   const clasesEnlace = ({ isActive }) =>
@@ -71,7 +74,7 @@ export default function Navbar() {
                     className="badge bg-light text-primary fw-medium px-2 py-1"
                     title={`Perfil: ${usuarioActual.cargo || usuarioActual.rol}`}
                   >
-                    {usuarioActual.rol === 'analista' ? 'Analista' : 'Evaluador'}
+                    {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
                   </span>
                   <span className="small text-white-50 d-none d-xl-inline">
                     {usuarioActual.nombre}

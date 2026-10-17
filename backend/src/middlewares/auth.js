@@ -27,7 +27,8 @@ function autenticar(req, res, next) {
 }
 
 /**
- * Middleware para restringir acceso según rol RBAC ('analista', 'evaluador', 'admin')
+ * Middleware para restringir acceso según rol RBAC ('admin', 'analista', 'evaluador', 'jefatura').
+ * El admin pasa siempre; la jefatura solo consulta, por eso no se incluye en rutas de escritura.
  */
 function requerirRol(...rolesPermitidos) {
   return (req, res, next) => {
@@ -45,8 +46,17 @@ function requerirRol(...rolesPermitidos) {
   };
 }
 
+/**
+ * Solo el profesional evaluador (y el administrador) ve las observaciones clínicas;
+ * el analista y la jefatura ven únicamente el dictamen.
+ */
+function puedeVerNotasClinicas(rol) {
+  return rol === 'evaluador' || rol === 'admin';
+}
+
 module.exports = {
   autenticar,
   requerirRol,
+  puedeVerNotasClinicas,
   JWT_SECRETO,
 };

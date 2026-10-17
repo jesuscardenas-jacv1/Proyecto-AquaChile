@@ -24,6 +24,13 @@ export const ARCHIVOS_PERMITIDOS = {
   tamanoMaximoMb: 10,
 };
 
+/** CV del portal de postulación: solo documentos (PDF o Word), hasta 5 MB. */
+export const ARCHIVOS_CV = {
+  extensiones: '.pdf,.doc,.docx',
+  descripcion: 'PDF o Word',
+  tamanoMaximoMb: 5,
+};
+
 export const ESTADOS_SOLICITUD = ['Pendiente', 'En proceso', 'Finalizada'];
 
 export const ESTADOS_EVALUACION = ['Pendiente', 'Realizada'];

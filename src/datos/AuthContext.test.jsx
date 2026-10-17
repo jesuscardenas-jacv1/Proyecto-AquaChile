@@ -37,7 +37,7 @@ describe('AuthContext', () => {
     const { result } = renderHook(() => useAuth(), { wrapper: wrapperConAuth });
 
     act(() => {
-      const resp = result.current.iniciarSesion('mvictoria.bustamante@aquachile.cl', 'AquaChile2026!');
+      const resp = result.current.iniciarSesion('ignacia.valdes@aquachile.cl', 'AquaChile2026!');
       expect(resp.ok).toBe(true);
     });
 

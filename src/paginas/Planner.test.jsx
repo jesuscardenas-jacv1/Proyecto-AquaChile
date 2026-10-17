@@ -7,7 +7,7 @@ import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
 import { datosDePrueba, USUARIO_TEST_DEFAULT } from '../pruebas/utilidades';
 
-const EVALUADORA = { ...USUARIO_TEST_DEFAULT, rol: 'evaluador', nombre: 'María Victoria Bustamante' };
+const EVALUADORA = { ...USUARIO_TEST_DEFAULT, rol: 'evaluador', nombre: 'Ignacia Valdés Ortiz' };
 const ANALISTA = { ...USUARIO_TEST_DEFAULT, rol: 'analista', nombre: 'Carolina Muñoz' };
 
 // datosDePrueba: #1 María (Finalizada), #2 Juan (En proceso), #3 María (Pendiente).

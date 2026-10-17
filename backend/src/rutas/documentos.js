@@ -7,6 +7,8 @@ const {
   TAMANO_MAXIMO_BYTES,
   ErrorAlmacenamiento,
   claveCarpeta,
+  claveCarpetaPostulacion,
+  categoriaDeArchivo,
   nombreArchivo,
   nombreCarpeta,
   validarArchivo,
@@ -163,6 +165,47 @@ router.post(
     );
 
     res.status(201).json({ ok: true, carpeta, archivo: { ...archivo, puedeEliminar: true } });
+  }),
+);
+
+/**
+ * POST /api/solicitudes/:id/documentos/desde-postulacion
+ * Cuerpo JSON: { postulacionId, nombreCandidato }. Copia el CV que el postulante subió
+ * en el portal a la carpeta de la solicitud (al pasarlo a evaluación). Solo analista.
+ */
+router.post(
+  '/desde-postulacion',
+  autenticar,
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    if (!puedeGestionar(req.usuario, 'cv')) {
+      throw new ErrorAlmacenamiento('Solo el analista puede pasar postulaciones a evaluación.', 403);
+    }
+    const postulacionId = Number(req.body?.postulacionId);
+    if (!Number.isInteger(postulacionId) || postulacionId <= 0) {
+      throw new ErrorAlmacenamiento('Id de postulación inválido.', 400);
+    }
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const origen = await almacenamiento.obtenerCarpeta(claveCarpetaPostulacion(postulacionId), null);
+    const archivosCv = origen
+      ? (await almacenamiento.listarArchivos(origen)).filter((archivo) => categoriaDeArchivo(archivo.nombre) === 'cv')
+      : [];
+    if (archivosCv.length === 0) {
+      throw new ErrorAlmacenamiento('La postulación no tiene un currículum guardado en el servidor.', 404);
+    }
+
+    const nombre = nombreCandidato(req, id, req.body?.nombreCandidato);
+    const destino = await almacenamiento.obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), {
+      crear: true,
+    });
+    const copiados = [];
+    for (const archivo of archivosCv) {
+      const { contenido } = await almacenamiento.descargarArchivo(origen, archivo.id);
+      copiados.push(await almacenamiento.subirArchivo(destino, archivo.nombre, contenido));
+    }
+
+    res.status(201).json({ ok: true, carpeta: destino, archivos: copiados });
   }),
 );
 

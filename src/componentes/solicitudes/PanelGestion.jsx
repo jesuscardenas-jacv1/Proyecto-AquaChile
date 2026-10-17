@@ -4,8 +4,14 @@ import { ESTADOS_SOLICITUD, PROFESIONALES } from '../../datos/constantes';
  * Panel para asignar profesional responsable y cambiar el estado de la solicitud.
  * Los valores se leen siempre de la solicitud y cada cambio se guarda al momento,
  * así el panel refleja los cambios automáticos (p. ej. al registrar una evaluación).
+ * Con `soloLectura` (perfil jefatura) muestra los valores sin permitir cambios.
  */
-export default function PanelGestion({ solicitud, alAsignarProfesional, alCambiarEstado }) {
+export default function PanelGestion({
+  solicitud,
+  alAsignarProfesional,
+  alCambiarEstado,
+  soloLectura = false,
+}) {
   return (
     <section className="card border-0 shadow-sm">
       <div className="card-header bg-white">
@@ -21,6 +27,7 @@ export default function PanelGestion({ solicitud, alAsignarProfesional, alCambia
               id="estado-solicitud"
               className="form-select"
               value={solicitud.estado}
+              disabled={soloLectura}
               onChange={(evento) => alCambiarEstado(evento.target.value)}
             >
               {ESTADOS_SOLICITUD.map((item) => (
@@ -39,6 +46,7 @@ export default function PanelGestion({ solicitud, alAsignarProfesional, alCambia
               id="profesional-responsable"
               className="form-select"
               value={solicitud.profesionalResponsable ?? ''}
+              disabled={soloLectura}
               onChange={(evento) => alAsignarProfesional(evento.target.value)}
             >
               <option value="">Sin asignar</option>
@@ -50,7 +58,11 @@ export default function PanelGestion({ solicitud, alAsignarProfesional, alCambia
             </select>
           </div>
         </div>
-        <p className="form-text mb-0 mt-3">Los cambios se guardan automáticamente.</p>
+        <p className="form-text mb-0 mt-3">
+          {soloLectura
+            ? 'Su perfil solo puede consultar el estado y el responsable.'
+            : 'Los cambios se guardan automáticamente.'}
+        </p>
       </div>
     </section>
   );

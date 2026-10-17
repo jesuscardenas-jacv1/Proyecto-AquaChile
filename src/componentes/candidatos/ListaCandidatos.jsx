@@ -7,13 +7,15 @@ import EstadoVacio from '../comunes/EstadoVacio';
  * Listado de candidatos con buscador.
  * En pantallas grandes muestra tabla y en pantallas pequeñas tarjetas.
  * El nombre lleva a la ficha del candidato; editar, eliminar y registrar solo
- * aparecen si se entregan sus acciones (perfil analista).
+ * aparecen si se entregan sus acciones (perfil analista). Con `enEvaluacion` (Set de ids)
+ * marca quién ya pasó a evaluación y quién sigue como postulante.
  */
 export default function ListaCandidatos({
   candidatos = [],
   alEditar,
   alEliminar,
   mostrarNuevo = true,
+  enEvaluacion,
 }) {
   const [busqueda, setBusqueda] = useState('');
   const visibles = filtrarCandidatos(candidatos, busqueda);
@@ -80,6 +82,17 @@ export default function ListaCandidatos({
                     <td>{candidato.id}</td>
                     <td className="fw-semibold">
                       <Link to={`/candidatos/${candidato.id}`}>{candidato.nombre}</Link>
+                      {enEvaluacion ? (
+                        <span
+                          className={`badge ms-2 fw-normal ${
+                            enEvaluacion.has(candidato.id)
+                              ? 'bg-primary-subtle text-primary-emphasis'
+                              : 'bg-light text-secondary border'
+                          }`}
+                        >
+                          {enEvaluacion.has(candidato.id) ? 'En evaluación' : 'Postulante'}
+                        </span>
+                      ) : null}
                     </td>
                     <td>{candidato.correo}</td>
                     <td>{candidato.telefono}</td>
