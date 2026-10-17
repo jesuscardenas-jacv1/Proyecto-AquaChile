@@ -71,7 +71,8 @@ OneDrive/SharePoint, IA para informes.
 | 3 · MVP desplegado | 30 nov – 5 dic 2026 | Flujo completo integrado, probado y desplegado gratis |
 
 La rúbrica EP2 pide pruebas con **Jasmine y Karma** (10 pruebas como referencia de "muy buen desempeño").
-El proyecto usa **Vitest + Testing Library**: confirmar con el docente si se acepta.
+El docente dejó la herramienta a elección del equipo (oct 2026): se usa **Vitest + Testing Library**,
+equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, cobertura con v8).
 
 ## Stack y estructura
 
