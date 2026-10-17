@@ -619,6 +619,10 @@ h1, h2, h3, h4, h5, h6,
   --austral-verde: #89c4a6;
   --austral-ocre: #e8c574;
   --austral-rojo: #e5837c;
+  --austral-titulo: #ffffff;
+  --austral-enlace: #b6c9dc;
+  --austral-hover-texto: #ffffff;
+  --austral-entrada: #121e27;
 
   --bs-body-bg: var(--austral-fondo);
   --bs-body-color: var(--austral-texto);
@@ -686,7 +690,7 @@ h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--austral-titulo);
   letter-spacing: -0.01em;
 }
 
@@ -728,7 +732,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .text-primary {
-  color: #b6c9dc !important;
+  color: var(--austral-enlace) !important;
 }
 
 .text-secondary,
@@ -757,7 +761,7 @@ h1, h2, h3, h4, h5, h6,
   --bs-btn-color: #ffffff;
   --bs-btn-bg: var(--austral-acento);
   --bs-btn-border-color: var(--austral-acento);
-  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-color: var(--austral-hover-texto);
   --bs-btn-hover-bg: var(--austral-acento-hover);
   --bs-btn-hover-border-color: var(--austral-acento-hover);
   --bs-btn-focus-shadow-rgb: 254, 80, 0;
@@ -773,7 +777,7 @@ h1, h2, h3, h4, h5, h6,
 .btn-outline-light {
   --bs-btn-color: var(--austral-texto);
   --bs-btn-border-color: var(--austral-borde-activo);
-  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-color: var(--austral-hover-texto);
   --bs-btn-hover-bg: var(--austral-activa);
   --bs-btn-hover-border-color: var(--austral-pizarra);
   --bs-btn-active-bg: var(--austral-activa);
@@ -784,7 +788,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .btn-link {
-  color: #b6c9dc;
+  color: var(--austral-enlace);
 }
 
 .btn-outline-danger {
@@ -792,7 +796,7 @@ h1, h2, h3, h4, h5, h6,
   --bs-btn-border-color: #7a3430;
   --bs-btn-hover-bg: rgba(181, 82, 74, 0.2);
   --bs-btn-hover-border-color: var(--austral-rojo);
-  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-color: var(--austral-hover-texto);
 }
 
 .btn-outline-success {
@@ -800,14 +804,14 @@ h1, h2, h3, h4, h5, h6,
   --bs-btn-border-color: #2f5d48;
   --bs-btn-hover-bg: rgba(79, 138, 110, 0.2);
   --bs-btn-hover-border-color: #4f8a6e;
-  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-color: var(--austral-hover-texto);
 }
 
 /* Formularios: fondo hundido y foco con borde pizarra, sin resplandor. */
 .form-control,
 .form-select,
 .input-group-text {
-  background-color: #121e27;
+  background-color: var(--austral-entrada);
   border-color: var(--austral-borde);
   color: var(--austral-texto);
 }
@@ -819,7 +823,7 @@ h1, h2, h3, h4, h5, h6,
 
 .form-control:focus,
 .form-select:focus {
-  background-color: #121e27;
+  background-color: var(--austral-entrada);
   color: var(--austral-texto);
   border-color: #6f8294;
   box-shadow: 0 0 0 1px #6f8294;
@@ -891,11 +895,11 @@ h1, h2, h3, h4, h5, h6,
 .alert-info {
   background-color: rgba(66, 85, 99, 0.25);
   border-color: var(--austral-pizarra);
-  color: #cbd3d8;
+  color: var(--austral-texto);
 }
 
 .progress {
-  --bs-progress-bg: #223647;
+  --bs-progress-bg: var(--austral-borde);
   --bs-progress-bar-bg: var(--austral-acento);
 }
 
@@ -1125,11 +1129,11 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .planner-tarjeta-nombre {
-  color: #ffffff;
+  color: var(--austral-titulo);
 }
 
 .planner-tarjeta-nombre:hover {
-  color: #b6c9dc;
+  color: var(--austral-enlace);
 }
 
 .planner-avatar {
@@ -1137,4 +1141,90 @@ h1, h2, h3, h4, h5, h6,
   color: var(--austral-texto);
   border: 1px solid var(--austral-borde-activo);
   border-radius: 3px;
+}
+
+/* Contenido principal con fondo claro (blanco cálido). La barra lateral y el pie
+   se mantienen oscuros para enmarcar la pantalla. Redefine los tokens solo aquí. */
+.app-principal {
+  --austral-fondo: #f4f2ef;
+  --austral-superficie: #e9e5df;
+  --austral-tarjeta: #ffffff;
+  --austral-elevada: #f7f5f2;
+  --austral-activa: #ece8e3;
+  --austral-borde: #d9d4cd;
+  --austral-borde-activo: #b8b1a8;
+  --austral-texto: #16252f;
+  --austral-texto-suave: #5c6b76;
+  --austral-titulo: #0e1a22;
+  --austral-enlace: #2c4a5e;
+  --austral-hover-texto: #0e1a22;
+  --austral-entrada: #ffffff;
+  --austral-verde: #2f6f52;
+  --austral-ocre: #7d5e17;
+  --austral-rojo: #a13f37;
+
+  --bs-body-bg: var(--austral-fondo);
+  --bs-body-color: var(--austral-texto);
+  --bs-body-color-rgb: 22, 37, 47;
+  --bs-emphasis-color: var(--austral-titulo);
+  --bs-heading-color: var(--austral-titulo);
+  --bs-secondary-color: var(--austral-texto-suave);
+  --bs-secondary-rgb: 92, 107, 118;
+  --bs-secondary-bg: #ffffff;
+  --bs-tertiary-bg: var(--austral-superficie);
+  --bs-tertiary-bg-rgb: 233, 229, 223;
+  --bs-tertiary-color: var(--austral-texto-suave);
+  --bs-card-bg: #ffffff;
+  --bs-card-border-color: var(--austral-borde);
+  --bs-card-cap-bg: var(--austral-elevada);
+  --bs-border-color: var(--austral-borde);
+  --bs-link-color: var(--austral-enlace);
+  --bs-link-color-rgb: 44, 74, 94;
+  --bs-link-hover-color: var(--austral-titulo);
+  --bs-link-hover-color-rgb: 14, 26, 34;
+  --bs-focus-ring-color: rgba(66, 85, 99, 0.25);
+  --bs-table-bg: #ffffff;
+  --bs-table-striped-bg: var(--austral-elevada);
+  --bs-table-hover-bg: #efebe6;
+  --bs-table-border-color: var(--austral-borde);
+  --bs-table-color: var(--austral-texto);
+  --bs-table-striped-color: var(--austral-texto);
+  --bs-table-hover-color: var(--austral-texto);
+  --bs-table-active-bg: var(--austral-activa);
+  --bs-table-active-color: var(--austral-texto);
+  --bs-form-control-bg: #ffffff;
+  --bs-modal-bg: #ffffff;
+  --bs-modal-border-color: var(--austral-borde);
+  --bs-dropdown-bg: #ffffff;
+  --bs-pagination-bg: #ffffff;
+  --bs-pagination-color: var(--austral-texto);
+  --bs-pagination-hover-bg: #f1eee9;
+  --bs-pagination-border-color: var(--austral-borde);
+  --bs-pagination-disabled-bg: var(--austral-fondo);
+  --bs-pagination-disabled-color: #9aa4ac;
+  --bs-breadcrumb-item-active-color: var(--austral-texto-suave);
+
+  background-color: var(--austral-fondo);
+  color: var(--austral-texto);
+}
+
+.app-principal .card-header,
+.app-principal .card-footer {
+  background-color: var(--austral-elevada);
+}
+
+.app-principal .btn-outline-primary,
+.app-principal .btn-outline-secondary,
+.app-principal .btn-outline-light {
+  background-color: #ffffff;
+  --bs-btn-color: var(--austral-texto);
+}
+
+.app-principal .table-light {
+  --bs-table-bg: var(--austral-elevada);
+}
+
+.app-principal .planner-contador {
+  background-color: #ffffff;
+  color: var(--austral-titulo);
 }
