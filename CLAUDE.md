@@ -10,6 +10,12 @@ Digitaliza el flujo de evaluación psicolaboral:
 
 **Registro de candidato → Creación de solicitud → Gestión de evaluación → Actualización de estado → Consulta**
 
+En la app el flujo parte antes, como en AquaChile:
+
+1. El postulante postula a una oferta en el portal público **"Trabaja con nosotros"** (`/trabaja-con-nosotros`), sin sesión, con su CV.
+2. El analista revisa la bandeja **Postulaciones** y elige a quién **pasar a evaluación** (abre la solicitud ya completada) o descarta.
+3. El evaluador solo ve en **Candidatos** a quienes pasaron a evaluación, con su carpeta (CV, descriptor, informe).
+
 Es un **prototipo académico**, no un sistema productivo. Todo dato debe ser **ficticio**.
 
 ## Documentación fuente (fuera del repo)

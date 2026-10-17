@@ -13,6 +13,10 @@ import Planner from './paginas/Planner';
 import InformesEnviados from './paginas/InformesEnviados';
 import Login from './paginas/Login';
 import Administracion from './paginas/Administracion';
+import Postulaciones from './paginas/Postulaciones';
+import PortalOfertas from './paginas/portal/PortalOfertas';
+import PortalOferta from './paginas/portal/PortalOferta';
+import LayoutPublico from './componentes/layout/LayoutPublico';
 import NoEncontrada from './paginas/NoEncontrada';
 import RutaProtegida from './componentes/comunes/RutaProtegida';
 
@@ -21,6 +25,12 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+
+      {/* Portal público de postulación (no requiere sesión) */}
+      <Route element={<LayoutPublico />}>
+        <Route path="/trabaja-con-nosotros" element={<PortalOfertas />} />
+        <Route path="/trabaja-con-nosotros/ofertas/:id" element={<PortalOferta />} />
+      </Route>
 
       <Route element={<RutaProtegida />}>
         <Route element={<Layout />}>
@@ -40,6 +50,14 @@ export default function App() {
             element={
               <RutaProtegida rolesPermitidos={['analista']}>
                 <EditarCandidato />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/postulaciones"
+            element={
+              <RutaProtegida rolesPermitidos={['analista', 'jefatura']}>
+                <Postulaciones />
               </RutaProtegida>
             }
           />

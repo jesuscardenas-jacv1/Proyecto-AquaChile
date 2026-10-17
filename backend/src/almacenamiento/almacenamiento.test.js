@@ -427,3 +427,75 @@ describe('informe psicolaboral en PDF', () => {
     assert.equal(nombreArchivoInforme(12, ''), 'S0012.pdf');
   });
 });
+
+describe('portal de postulación: CV público y paso a evaluación', () => {
+  const app = require('../servidor');
+  const { JWT_SECRETO } = require('../middlewares/auth');
+  let servidor;
+  let raiz;
+  let base;
+
+  const cabeceras = (rol) => ({
+    Authorization: `Bearer ${jwt.sign({ id: 1, nombre: 'Prueba', rol }, JWT_SECRETO)}`,
+    'Content-Type': 'application/json',
+  });
+  const subirCv = (postulacionId, nombre, cuerpo = Buffer.from('%PDF cv')) =>
+    fetch(`${base}/postulaciones/${postulacionId}/cv?nombre=${encodeURIComponent(nombre)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf', 'X-Candidato': encodeURIComponent('Camilo Fuentealba') },
+      body: cuerpo,
+    });
+
+  before(async () => {
+    raiz = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-portal-'));
+    establecerAlmacenamiento(new AlmacenamientoLocal({ raiz }));
+    servidor = app.listen(0);
+    base = `http://localhost:${servidor.address().port}/api`;
+  });
+
+  after(async () => {
+    servidor.close();
+    establecerAlmacenamiento(null);
+    await fs.rm(raiz, { recursive: true, force: true });
+  });
+
+  it('recibe el CV sin sesión y lo guarda en la carpeta de la postulación', async () => {
+    const respuesta = await subirCv(7001, 'mi cv.pdf');
+    assert.equal(respuesta.status, 201);
+    assert.deepEqual(await fs.readdir(path.join(raiz, 'P7001 - Camilo Fuentealba')), ['CV - mi cv.pdf']);
+  });
+
+  it('solo acepta PDF o Word', async () => {
+    assert.equal((await subirCv(7002, 'foto.png')).status, 400);
+    assert.equal((await subirCv(7002, 'programa.exe')).status, 400);
+  });
+
+  it('el analista copia el CV a la carpeta de la solicitud; el evaluador no puede', async () => {
+    const ruta = `${base}/solicitudes/9101/documentos/desde-postulacion`;
+    const cuerpo = JSON.stringify({ postulacionId: 7001, nombreCandidato: 'Camilo Fuentealba' });
+
+    const delEvaluador = await fetch(ruta, { method: 'POST', headers: cabeceras('evaluador'), body: cuerpo });
+    assert.equal(delEvaluador.status, 403);
+
+    const delAnalista = await fetch(ruta, { method: 'POST', headers: cabeceras('analista'), body: cuerpo });
+    const datos = await delAnalista.json();
+    assert.equal(delAnalista.status, 201);
+    assert.equal(datos.carpeta.nombre, 'S9101 - Camilo Fuentealba');
+    assert.deepEqual(datos.archivos.map((a) => a.nombre), ['CV - mi cv.pdf']);
+  });
+
+  it('avisa si la postulación no tiene CV en el servidor', async () => {
+    const respuesta = await fetch(`${base}/solicitudes/9102/documentos/desde-postulacion`, {
+      method: 'POST',
+      headers: cabeceras('analista'),
+      body: JSON.stringify({ postulacionId: 7999 }),
+    });
+    assert.equal(respuesta.status, 404);
+  });
+
+  it('limita los envíos públicos por IP', async () => {
+    const estados = [];
+    for (let i = 0; i < 10; i += 1) estados.push((await subirCv(7100 + i, 'cv.pdf')).status);
+    assert.ok(estados.includes(429));
+  });
+});

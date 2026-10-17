@@ -1,5 +1,6 @@
 import bdSimulada from './bdSimulada.json';
 import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner';
+import { candidatosDemoPostulaciones, ofertasDemo, postulacionesDemo } from './demoPostulaciones';
 
 /**
  * Datos semilla: base de datos simulada de AquaChile (abr-2025 a mar-2026).
@@ -8,10 +9,13 @@ import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner';
  *
  * Como todas las solicitudes del Excel ya están finalizadas, se suman algunas
  * solicitudes ficticias en curso (demoPlanner.js) para que el Planner de la
- * psicóloga muestre tarjetas en todas sus etapas.
+ * psicóloga muestre tarjetas en todas sus etapas, y ofertas con postulaciones
+ * recibidas del portal "Trabaja con nosotros" (demoPostulaciones.js).
  */
 export const datosSemilla = {
-  candidatos: [...bdSimulada.candidatos, ...candidatosDemoPlanner],
+  candidatos: [...bdSimulada.candidatos, ...candidatosDemoPlanner, ...candidatosDemoPostulaciones],
   solicitudes: [...bdSimulada.solicitudes, ...solicitudesDemoPlanner],
   evaluaciones: bdSimulada.evaluaciones,
+  ofertas: ofertasDemo,
+  postulaciones: postulacionesDemo,
 };

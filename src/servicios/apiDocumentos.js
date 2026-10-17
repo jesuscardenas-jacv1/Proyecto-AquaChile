@@ -161,6 +161,38 @@ export async function generarInforme(solicitudId, { candidato, solicitud, evalua
   return respuesta.json();
 }
 
+/**
+ * Sube el CV de una postulación desde el portal público (sin sesión).
+ * Devuelve false si el backend no está disponible: la postulación queda igual
+ * registrada y el analista puede subir el CV después.
+ */
+export async function subirCvPostulacion(postulacionId, archivo, nombreCandidato) {
+  const parametros = new URLSearchParams({ nombre: archivo.name });
+  try {
+    const respuesta = await fetch(`${URL_API}/postulaciones/${postulacionId}/cv?${parametros}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': archivo.type || 'application/octet-stream',
+        'X-Candidato': encodeURIComponent(nombreCandidato ?? ''),
+      },
+      body: archivo,
+    });
+    return respuesta.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Copia el CV de la postulación a la carpeta de la solicitud recién creada. */
+export async function traerCvDePostulacion(solicitudId, postulacionId, nombreCandidato) {
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/desde-postulacion`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify({ postulacionId, nombreCandidato }),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return respuesta.json();
+}
+
 export const apiDocumentos = {
   conectado: () => Boolean(obtenerToken()),
   listar: listarDocumentos,
@@ -168,4 +200,5 @@ export const apiDocumentos = {
   descargar: descargarDocumento,
   eliminar: eliminarDocumento,
   generarInforme,
+  traerCvDePostulacion,
 };

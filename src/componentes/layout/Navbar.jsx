@@ -9,11 +9,12 @@ import { ROLES } from '../../datos/usuarios';
  */
 export default function Navbar() {
   const [abierto, setAbierto] = useState(false);
-  const { usuarioActual, esAnalista, esAdmin, cerrarSesion } = useAuth();
+  const { usuarioActual, esAnalista, esAdmin, esJefatura, cerrarSesion } = useAuth();
   const navegar = useNavigate();
 
   const enlaces = [
     { ruta: '/', etiqueta: 'Dashboard', exacto: true },
+    ...(esAnalista || esJefatura ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones' }] : []),
     { ruta: '/candidatos', etiqueta: 'Candidatos' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes' },
     { ruta: '/planner', etiqueta: 'Planner' },

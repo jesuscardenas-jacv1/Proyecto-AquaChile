@@ -53,7 +53,24 @@ describe('DetalleCandidato', () => {
     expect(screen.getByText('Detalle de solicitud')).toBeInTheDocument();
   });
 
-  it('avisa cuando el candidato no tiene solicitudes', () => {
+  it('avisa al analista cuando el candidato aún no tiene solicitudes', () => {
+    renderConContexto(
+      <Routes>
+        <Route path="/candidatos/:id" element={<DetalleCandidato />} />
+      </Routes>,
+      {
+        ruta: '/candidatos/9',
+        datosIniciales: {
+          ...datosDePrueba,
+          candidatos: [...datosDePrueba.candidatos, { ...datosDePrueba.candidatos[0], id: 9 }],
+        },
+        usuario: analista,
+      },
+    );
+    expect(screen.getByText('Sin solicitudes de evaluación')).toBeInTheDocument();
+  });
+
+  it('el evaluador no accede a un postulante que no pasó a evaluación', () => {
     renderConContexto(
       <Routes>
         <Route path="/candidatos/:id" element={<DetalleCandidato />} />
@@ -67,7 +84,7 @@ describe('DetalleCandidato', () => {
         usuario: evaluador,
       },
     );
-    expect(screen.getByText('Sin solicitudes de evaluación')).toBeInTheDocument();
+    expect(screen.getByText('Candidato no encontrado')).toBeInTheDocument();
   });
 
   it('informa si el candidato no existe', () => {

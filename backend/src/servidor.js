@@ -7,6 +7,7 @@ const rutaCandidatos = require('./rutas/candidatos');
 const rutaSolicitudes = require('./rutas/solicitudes');
 const rutaEvaluaciones = require('./rutas/evaluaciones');
 const rutaDocumentos = require('./rutas/documentos');
+const rutaPostulaciones = require('./rutas/postulaciones');
 
 const app = express();
 const PUERTO = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.get('/api/salud', (req, res) => {
 app.use('/api/auth', rutaAuth);
 app.use('/api/candidatos', rutaCandidatos);
 app.use('/api/solicitudes/:id/documentos', rutaDocumentos);
+app.use('/api/postulaciones', rutaPostulaciones);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);
 
