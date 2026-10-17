@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAuth } from '../datos/AuthContext';
 import {
   contarPor,
   promedioDiasRespuesta,
@@ -26,6 +27,7 @@ const PLURAL_ESTADO = {
 /** Dashboard con indicadores simples del proceso de evaluación. */
 export default function Dashboard() {
   const { solicitudes, candidatos, evaluaciones } = useDatos();
+  const { esAnalista } = useAuth();
   const navegar = useNavigate();
   const [seleccionada, setSeleccionada] = useState(null);
 
@@ -127,14 +129,16 @@ export default function Dashboard() {
             Resumen del proceso de evaluación psicolaboral de AquaChile.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary align-self-start"
-          onClick={() => navegar('/solicitudes/nueva')}
-        >
-          <i className="bi bi-plus-lg me-1" aria-hidden="true" />
-          Nueva solicitud
-        </button>
+        {esAnalista ? (
+          <button
+            type="button"
+            className="btn btn-primary align-self-start"
+            onClick={() => navegar('/solicitudes/nueva')}
+          >
+            <i className="bi bi-plus-lg me-1" aria-hidden="true" />
+            Nueva solicitud
+          </button>
+        ) : null}
       </header>
 
       <div className="row g-3">

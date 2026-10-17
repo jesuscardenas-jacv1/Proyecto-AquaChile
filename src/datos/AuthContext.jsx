@@ -58,8 +58,13 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
     () => ({
       usuarioActual,
       estaAutenticado: Boolean(usuarioActual),
+      // El administrador académico puede hacer todo lo del analista y del evaluador.
+      esAdmin: usuarioActual?.rol === 'admin',
       esAnalista: usuarioActual?.rol === 'analista' || usuarioActual?.rol === 'admin',
       esEvaluador: usuarioActual?.rol === 'evaluador' || usuarioActual?.rol === 'admin',
+      // La jefatura solo consulta: no modifica datos.
+      esJefatura: usuarioActual?.rol === 'jefatura',
+      soloLectura: usuarioActual?.rol === 'jefatura',
       iniciarSesion,
       cerrarSesion,
     }),
@@ -82,8 +87,11 @@ export function useAuth() {
         cargo: 'Administrador Demo',
       },
       estaAutenticado: true,
+      esAdmin: true,
       esAnalista: true,
       esEvaluador: true,
+      esJefatura: false,
+      soloLectura: false,
       iniciarSesion: () => ({ ok: true }),
       cerrarSesion: () => {},
     };

@@ -22,7 +22,7 @@ const DESCRIPCIONES_DICTAMEN = {
 export default function InformePsicolaboral() {
   const { id } = useParams();
   const navegar = useNavigate();
-  const { esAnalista, esEvaluador } = useAuth();
+  const { esEvaluador } = useAuth();
   const { obtenerSolicitud, obtenerCandidato, obtenerEvaluacionDeSolicitud } = useDatos();
 
   const solicitud = obtenerSolicitud(id);
@@ -184,7 +184,7 @@ export default function InformePsicolaboral() {
                     'Evaluación completada mediante entrevista por competencias y revisión de antecedentes curriculares.'}
                 </p>
               </div>
-            ) : esAnalista ? (
+            ) : (
               <div className="alert alert-light border small text-secondary mb-0">
                 <div className="d-flex align-items-center gap-2 mb-1">
                   <i className="bi bi-shield-lock-fill text-primary" aria-hidden="true" />
@@ -194,7 +194,7 @@ export default function InformePsicolaboral() {
                 confidencialidad profesional por el equipo de psicólogos evaluadores. El dictamen
                 técnico oficial se presenta a continuación.
               </div>
-            ) : null}
+            )}
           </section>
 
           {/* Sección 4: Dictamen Oficial */}

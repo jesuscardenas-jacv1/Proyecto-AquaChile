@@ -16,7 +16,7 @@ export default function DetalleSolicitud() {
   const { id } = useParams();
   const navegar = useNavigate();
   const ubicacion = useLocation();
-  const { esAnalista, esEvaluador } = useAuth();
+  const { esEvaluador, soloLectura } = useAuth();
   const {
     obtenerSolicitud,
     obtenerCandidato,
@@ -164,6 +164,7 @@ export default function DetalleSolicitud() {
             solicitud={solicitud}
             alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
             alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
+            soloLectura={soloLectura}
           />
         </div>
       </div>
@@ -251,8 +252,8 @@ export default function DetalleSolicitud() {
             </>
           )}
 
-          {/* Vista para el analista de reclutamiento (solo dictamen final, observaciones confidenciales) */}
-          {esAnalista && !esEvaluador && (
+          {/* Analista y jefatura: solo el dictamen final, las observaciones son confidenciales */}
+          {!esEvaluador && (
             <>
               {evaluacion ? (
                 <div className="d-flex flex-column gap-2">

@@ -1,11 +1,11 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar, requerirRol } = require('../middlewares/auth');
+const { autenticar, requerirRol, puedeVerNotasClinicas } = require('../middlewares/auth');
 
 const router = express.Router();
 
 function formatearEvaluacion(e, rolUsuario) {
-  const esAnalista = rolUsuario === 'analista';
+  const confidencial = !puedeVerNotasClinicas(rolUsuario);
 
   return {
     id: e.id,
@@ -15,9 +15,9 @@ function formatearEvaluacion(e, rolUsuario) {
     estado: e.estado,
     fechaInforme: e.fecha_informe,
     diasRespuesta: e.dias_respuesta,
-    // Ocultar observaciones clínicas cualitativas al analista
-    observaciones: esAnalista ? undefined : e.observaciones,
-    confidencial: esAnalista,
+    // Ocultar observaciones clínicas cualitativas al analista y a la jefatura
+    observaciones: confidencial ? undefined : e.observaciones,
+    confidencial,
     creadoEn: e.creado_en,
   };
 }

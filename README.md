@@ -120,7 +120,7 @@ src/
 | Ruta | Vista | Acceso por Rol |
 | --- | --- | --- |
 | `/login` | Inicio de sesión corporativo | No autenticado |
-| `/` | Dashboard con indicadores y KPIs generales | Analista y Evaluador |
+| `/` | Dashboard con indicadores y KPIs generales | Todos los roles |
 | `/candidatos` | Directorio de candidatos con búsqueda | Analista y Evaluador |
 | `/candidatos/nuevo` | Formulario de registro de candidato | Exclusivo Analista |
 | `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
@@ -128,6 +128,7 @@ src/
 | `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
 | `/solicitudes/:id` | Ficha, panel de gestión y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
 | `/solicitudes/:id/informe` | Informe Psicolaboral Oficial imprimible (PDF) | Analista y Evaluador (con membrete oficial y firmas) |
+| `/administracion` | Usuarios de prueba, roles, catálogos y datos de demostración | Exclusivo Administrador |
 | `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
 
 ## Usuarios de demostración (AquaChile)
@@ -136,6 +137,8 @@ src/
 | --- | --- | --- | --- |
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
 | **Profesional Evaluador** | `mvictoria.bustamante@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
+| **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración (`/administracion`). |
+| **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen (sin notas clínicas). |
 
 ## Flujo principal a demostrar
 
