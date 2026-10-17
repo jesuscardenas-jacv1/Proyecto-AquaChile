@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar, requerirRol } = require('../middlewares/auth');
+const { autenticar, requerirRol, puedeVerNotasClinicas } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -89,7 +89,7 @@ router.get('/:id', autenticar, (req, res) => {
   const candidato = db.prepare('SELECT * FROM candidatos WHERE id = ?').get(s.candidato_id);
   const evaluacion = db.prepare('SELECT * FROM evaluaciones WHERE solicitud_id = ?').get(id);
 
-  // Filtrado de confidencialidad médica/psicológica para analistas
+  // Filtrado de confidencialidad médica/psicológica para analistas y jefatura
   let evaluacionSanitizada = null;
   if (evaluacion) {
     evaluacionSanitizada = {
@@ -100,12 +100,9 @@ router.get('/:id', autenticar, (req, res) => {
       estado: evaluacion.estado,
       fechaInforme: evaluacion.fecha_informe,
       diasRespuesta: evaluacion.dias_respuesta,
-      // Si el usuario es analista (y no evaluador ni admin), ocultamos las observaciones clínicas
-      observaciones:
-        req.usuario.rol === 'analista' && req.usuario.rol !== 'admin'
-          ? undefined
-          : evaluacion.observaciones,
-      confidencial: req.usuario.rol === 'analista' && req.usuario.rol !== 'admin',
+      // Analista y jefatura no ven las observaciones clínicas
+      observaciones: puedeVerNotasClinicas(req.usuario.rol) ? evaluacion.observaciones : undefined,
+      confidencial: !puedeVerNotasClinicas(req.usuario.rol),
     };
   }
 
@@ -201,7 +198,7 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
  * PATCH /api/solicitudes/:id/estado
  * Cambiar el estado o el profesional responsable de una solicitud
  */
-router.patch('/:id/estado', autenticar, (req, res) => {
+router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { estado, profesionalResponsable } = req.body;
 

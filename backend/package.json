@@ -10,7 +10,8 @@
     "db:migrar": "node src/bd/migrar.js",
     "db:semilla": "node src/bd/semilla.js",
     "test": "node src/probar_api.js",
-    "test:almacenamiento": "node --test src/almacenamiento/almacenamiento.test.js"
+    "test:almacenamiento": "node --test src/almacenamiento/almacenamiento.test.js",
+    "test:roles": "node --test src/roles.test.js"
   },
   "keywords": [
     "aquachile",
