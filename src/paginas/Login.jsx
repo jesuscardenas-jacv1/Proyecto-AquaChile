@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../datos/AuthContext';
 import logoAquaChile from '../assets/logo-aquachile-blanco.png';
 
@@ -159,6 +159,11 @@ export default function Login() {
           <small className="text-secondary" style={{ fontSize: '0.75rem' }}>
             Acceso restringido a personal autorizado de AquaChile.
           </small>
+          <div className="mt-2">
+            <Link to="/trabaja-con-nosotros" className="small">
+              ¿Buscas trabajo? Revisa nuestras ofertas
+            </Link>
+          </div>
         </div>
       </div>
     </div>

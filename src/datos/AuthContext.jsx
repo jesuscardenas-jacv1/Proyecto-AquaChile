@@ -65,6 +65,8 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
       // La jefatura solo consulta: no modifica datos.
       esJefatura: usuarioActual?.rol === 'jefatura',
       soloLectura: usuarioActual?.rol === 'jefatura',
+      // El evaluador solo ve a los candidatos que el analista pasó a evaluación.
+      soloEnEvaluacion: usuarioActual?.rol === 'evaluador',
       iniciarSesion,
       cerrarSesion,
     }),
@@ -92,6 +94,7 @@ export function useAuth() {
       esEvaluador: true,
       esJefatura: false,
       soloLectura: false,
+      soloEnEvaluacion: false,
       iniciarSesion: () => ({ ok: true }),
       cerrarSesion: () => {},
     };

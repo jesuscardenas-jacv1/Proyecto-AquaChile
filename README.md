@@ -120,8 +120,11 @@ src/
 | Ruta | Vista | Acceso por Rol |
 | --- | --- | --- |
 | `/login` | Inicio de sesión corporativo | No autenticado |
+| `/trabaja-con-nosotros` | Portal público con ofertas laborales por área | Público (sin sesión) |
+| `/trabaja-con-nosotros/ofertas/:id` | Detalle de la oferta y formulario de postulación con CV | Público (sin sesión) |
+| `/postulaciones` | Bandeja de postulaciones: pasar a evaluación o descartar | Analista y Admin (Jefatura solo lectura) |
 | `/` | Dashboard con indicadores y KPIs generales | Todos los roles |
-| `/candidatos` | Directorio de candidatos con búsqueda | Analista y Evaluador |
+| `/candidatos` | Directorio de candidatos con búsqueda | Todos; el Evaluador solo ve a quienes pasaron a evaluación |
 | `/candidatos/nuevo` | Formulario de registro de candidato | Exclusivo Analista |
 | `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
 | `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
