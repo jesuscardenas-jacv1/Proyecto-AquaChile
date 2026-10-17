@@ -24,7 +24,7 @@ export default function ColumnaPlanner({ etapa, cantidad, completadas = false, e
           <i className={`bi ${etapa.icono}`} aria-hidden="true" />
           {etapa.titulo}
         </h2>
-        <span className="badge rounded-pill bg-white text-primary border" aria-label={`${cantidad} solicitudes`}>
+        <span className="planner-contador" aria-label={`${cantidad} solicitudes`}>
           {cantidad}
         </span>
       </header>
