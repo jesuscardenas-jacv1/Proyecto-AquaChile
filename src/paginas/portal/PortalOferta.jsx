@@ -12,7 +12,7 @@ import Mensaje from '../../componentes/comunes/Mensaje';
  */
 export default function PortalOferta({ subirCv = subirCvPostulacion }) {
   const { id } = useParams();
-  const { obtenerOferta, postular } = useDatos();
+  const { obtenerOferta, postular, errorOperacion, cargando } = useDatos();
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState(null);
@@ -24,6 +24,15 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
       Ver todas las ofertas
     </Link>
   );
+
+  if (cargando && !oferta) {
+    return (
+      <p className="text-secondary" role="status">
+        <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
+        Cargando la oferta…
+      </p>
+    );
+  }
 
   if (!oferta || oferta.estado !== 'Abierta') {
     return (
@@ -40,7 +49,13 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
     setEnviando(true);
     setError(null);
     try {
-      const { postulacion } = postular(oferta.id, datos);
+      const respuesta = await postular(oferta.id, datos);
+      // El servidor rechazó la postulación: el motivo queda en errorOperacion.
+      if (!respuesta) {
+        setError('servidor');
+        return;
+      }
+      const { postulacion } = respuesta;
       const cvGuardado = await subirCv(postulacion.id, cv, datos.nombre);
       setResultado({ nombre: datos.nombre, cvGuardado });
     } catch (excepcion) {
@@ -116,7 +131,9 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
             <>
               {error ? (
                 <Mensaje tipo="danger" titulo="No se pudo enviar la postulación">
-                  {error}
+                  {error === 'servidor'
+                    ? errorOperacion ?? 'Intenta nuevamente en unos minutos.'
+                    : error}
                 </Mensaje>
               ) : null}
               <FormularioPostulacion alEnviar={enviar} enviando={enviando} />

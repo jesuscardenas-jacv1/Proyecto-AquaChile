@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 import PanelEvaluaciones from './PanelEvaluaciones';
 
 const solicitudes = [
-  { id: 1, familiaCargo: 'Técnico B C', profesionalResponsable: 'Carolina Muñoz', tipoEvaluacion: 'externa' },
-  { id: 2, familiaCargo: 'Jefatura', profesionalResponsable: 'Javiera Soto', tipoEvaluacion: 'interna' },
-  { id: 3, familiaCargo: 'Jefatura', profesionalResponsable: 'Javiera Soto', tipoEvaluacion: 'interna' },
+  { id: 1, familiaCargo: 'Técnico B C', reclutador: 'Carolina Muñoz', tipoEvaluacion: 'externa' },
+  { id: 2, familiaCargo: 'Jefatura', reclutador: 'Javiera Soto', tipoEvaluacion: 'interna' },
+  { id: 3, familiaCargo: 'Jefatura', reclutador: 'Javiera Soto', tipoEvaluacion: 'interna' },
 ];
 
 const evaluaciones = [

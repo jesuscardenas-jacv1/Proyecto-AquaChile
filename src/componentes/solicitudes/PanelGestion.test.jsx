@@ -11,12 +11,13 @@ const solicitud = {
   familiaCargo: 'Técnico B C',
   fechaSolicitud: '2026-09-01',
   estado: 'Pendiente',
+  reclutador: 'Carolina Muñoz',
   profesionalResponsable: '',
   observaciones: '',
 };
 
 describe('PanelGestion', () => {
-  it('muestra el estado y el profesional de la solicitud', () => {
+  it('muestra el estado y la psicóloga responsable de la solicitud', () => {
     renderConContexto(
       <PanelGestion
         solicitud={solicitud}
@@ -27,7 +28,7 @@ describe('PanelGestion', () => {
     );
 
     expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Pendiente');
-    expect(screen.getByLabelText(/profesional responsable/i)).toHaveValue('');
+    expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('');
   });
 
   it('notifica el cambio de estado y de profesional', async () => {
@@ -47,8 +48,8 @@ describe('PanelGestion', () => {
     await usuario.selectOptions(screen.getByLabelText(/^estado$/i), 'En proceso');
     expect(alCambiarEstado).toHaveBeenCalledWith('En proceso');
 
-    await usuario.selectOptions(screen.getByLabelText(/profesional responsable/i), 'Carolina Muñoz');
-    expect(alAsignarProfesional).toHaveBeenCalledWith('Carolina Muñoz');
+    await usuario.selectOptions(screen.getByLabelText(/psicóloga responsable/i), 'Ignacia Valdés Ortiz');
+    expect(alAsignarProfesional).toHaveBeenCalledWith('Ignacia Valdés Ortiz');
   });
 
   it('refleja el estado actual de la solicitud cuando cambia desde fuera', () => {
@@ -62,14 +63,14 @@ describe('PanelGestion', () => {
 
     rerender(
       <PanelGestion
-        solicitud={{ ...solicitud, estado: 'Finalizada', profesionalResponsable: 'Javiera Soto' }}
+        solicitud={{ ...solicitud, estado: 'Finalizada', profesionalResponsable: 'Paula Henríquez Lagos' }}
         alAsignarProfesional={vi.fn()}
         alCambiarEstado={vi.fn()}
       />,
     );
 
     expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
-    expect(screen.getByLabelText(/profesional responsable/i)).toHaveValue('Javiera Soto');
+    expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Paula Henríquez Lagos');
   });
 
   it('ofrece los tres estados del flujo de trabajo', () => {

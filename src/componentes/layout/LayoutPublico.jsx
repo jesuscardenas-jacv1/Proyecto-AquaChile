@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom';
 import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import PiePagina from './PiePagina';
+import EstadoServidor from '../comunes/EstadoServidor';
 import ScrollAlInicio from './ScrollAlInicio';
 
 /** Estructura del portal público "Trabaja con nosotros" (sin sesión). */
@@ -21,6 +22,7 @@ export default function LayoutPublico() {
         </div>
       </header>
       <main className="container py-4 flex-grow-1">
+        <EstadoServidor />
         <Outlet />
       </main>
       <PiePagina />

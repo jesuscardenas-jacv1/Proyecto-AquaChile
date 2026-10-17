@@ -30,8 +30,8 @@ export default function Postulaciones() {
   const visibles = filtrarPostulaciones(postulaciones, { ofertas, candidatos }, criterios);
   const cambiar = (campo, valor) => setCriterios((actual) => ({ ...actual, [campo]: valor }));
 
-  const cambiarEstado = (postulacion, estado) => {
-    actualizarPostulacion(postulacion.id, { estado });
+  const cambiarEstado = async (postulacion, estado) => {
+    if (!(await actualizarPostulacion(postulacion.id, { estado }))) return;
     setMensaje(
       estado === 'Descartada'
         ? `Se descartó la postulación de ${postulacion.candidato?.nombre}.`

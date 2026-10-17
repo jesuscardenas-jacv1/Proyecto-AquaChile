@@ -126,7 +126,7 @@ describe('FormularioSolicitud', () => {
     expect(alGuardar).toHaveBeenCalledWith(
       expect.objectContaining({
         candidatoId: '1',
-        profesionalResponsable: 'Carolina Muñoz',
+        reclutador: 'Carolina Muñoz',
         origen: 'Interno',
         tipoEvaluacion: 'interna',
         cargo: 'Jefe de Centro',

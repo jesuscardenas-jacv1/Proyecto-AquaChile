@@ -1,30 +1,43 @@
 import { useState } from 'react';
-import { ESTADOS_SOLICITUD, FAMILIAS_CARGO } from '../../datos/constantes';
-import { filtrarSolicitudes } from '../../dominio/consultas';
+import { ESTADOS_SOLICITUD, EVALUADORES, FAMILIAS_CARGO } from '../../datos/constantes';
+import { SIN_RESPONSABLE, filtrarSolicitudes } from '../../dominio/consultas';
 import { formatearFecha } from '../../dominio/formateo';
 import EstadoVacio from '../comunes/EstadoVacio';
 import EtiquetaEstado from '../comunes/EtiquetaEstado';
 
 /**
- * Listado de solicitudes con búsqueda por texto y filtros por estado y familia.
+ * Listado de solicitudes con búsqueda por texto y filtros por estado, familia,
+ * psicóloga responsable y rango de fechas. `responsableInicial` permite que la
+ * evaluadora parta viendo solo las solicitudes asignadas a ella.
  */
 export default function ListaSolicitudes({
   solicitudes = [],
   candidatos = [],
   alAbrir,
   estadoInicial = '',
+  responsableInicial = '',
 }) {
   const [texto, setTexto] = useState('');
   const [estado, setEstado] = useState(estadoInicial);
   const [familiaCargo, setFamiliaCargo] = useState('');
+  const [responsable, setResponsable] = useState(responsableInicial);
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
 
-  const visibles = filtrarSolicitudes(solicitudes, { texto, estado, familiaCargo }, candidatos);
+  const visibles = filtrarSolicitudes(
+    solicitudes,
+    { texto, estado, familiaCargo, responsable, desde, hasta },
+    candidatos,
+  );
   const nombreCandidato = (id) => candidatos.find((c) => c.id === Number(id))?.nombre ?? 'Sin candidato';
 
   const limpiarFiltros = () => {
     setTexto('');
     setEstado('');
     setFamiliaCargo('');
+    setResponsable('');
+    setDesde('');
+    setHasta('');
   };
 
   return (
@@ -40,7 +53,7 @@ export default function ListaSolicitudes({
               id="buscar-solicitud"
               type="search"
               className="form-control form-control-sm"
-              placeholder="Candidato, cargo o profesional"
+              placeholder="Candidato, cargo, reclutador o psicóloga"
               value={texto}
               onChange={(evento) => setTexto(evento.target.value)}
             />
@@ -63,7 +76,7 @@ export default function ListaSolicitudes({
               ))}
             </select>
           </div>
-          <div className="col-6 col-lg-3">
+          <div className="col-6 col-lg-4">
             <label className="form-label small mb-1" htmlFor="filtro-familia">
               Familia
             </label>
@@ -80,6 +93,53 @@ export default function ListaSolicitudes({
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+        <div className="row g-2 mt-0">
+          <div className="col-12 col-lg-5">
+            <label className="form-label small mb-1" htmlFor="filtro-responsable">
+              Psicóloga responsable
+            </label>
+            <select
+              id="filtro-responsable"
+              className="form-select form-select-sm"
+              value={responsable}
+              onChange={(evento) => setResponsable(evento.target.value)}
+            >
+              <option value="">Todas</option>
+              {EVALUADORES.map((nombre) => (
+                <option key={nombre} value={nombre}>
+                  {nombre}
+                </option>
+              ))}
+              <option value={SIN_RESPONSABLE}>Sin asignar</option>
+            </select>
+          </div>
+          <div className="col-6 col-lg-3">
+            <label className="form-label small mb-1" htmlFor="filtro-desde">
+              Desde
+            </label>
+            <input
+              id="filtro-desde"
+              type="date"
+              className="form-control form-control-sm"
+              value={desde}
+              max={hasta || undefined}
+              onChange={(evento) => setDesde(evento.target.value)}
+            />
+          </div>
+          <div className="col-6 col-lg-3">
+            <label className="form-label small mb-1" htmlFor="filtro-hasta">
+              Hasta
+            </label>
+            <input
+              id="filtro-hasta"
+              type="date"
+              className="form-control form-control-sm"
+              value={hasta}
+              min={desde || undefined}
+              onChange={(evento) => setHasta(evento.target.value)}
+            />
           </div>
           <div className="col-12 col-lg-1 d-flex align-items-end">
             <button
@@ -115,7 +175,7 @@ export default function ListaSolicitudes({
                 <th scope="col">Familia</th>
                 <th scope="col">Fecha</th>
                 <th scope="col">Estado</th>
-                <th scope="col">Profesional</th>
+                <th scope="col">Responsable</th>
                 <th scope="col" className="text-end">
                   Acción
                 </th>

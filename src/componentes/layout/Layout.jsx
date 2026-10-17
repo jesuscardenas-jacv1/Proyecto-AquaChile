@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import PiePagina from './PiePagina';
+import EstadoServidor from '../comunes/EstadoServidor';
 import ScrollAlInicio from './ScrollAlInicio';
 
 /** Estructura general: navbar, contenido principal y pie de página. */
@@ -10,6 +11,7 @@ export default function Layout() {
       <ScrollAlInicio />
       <Navbar />
       <main className="container py-4 flex-grow-1">
+        <EstadoServidor />
         <Outlet />
       </main>
       <PiePagina />

@@ -57,7 +57,8 @@ export default function DetalleSolicitud() {
    * Si el servicio de documentos no responde, la evaluación queda registrada igual.
    */
   const guardarEvaluacion = async (datos) => {
-    const registro = registrarEvaluacion(solicitud.id, datos);
+    const registro = await registrarEvaluacion(solicitud.id, datos);
+    if (!registro) return;
     if (!apiDocumentos.conectado()) {
       setAvisoInforme({
         tipo: 'warning',

@@ -4,7 +4,7 @@ import {
   FAMILIAS_CARGO,
   OPCIONES_SI_NO,
   ORIGENES_CANDIDATO,
-  PROFESIONALES,
+  RECLUTADORES,
 } from '../../datos/constantes';
 import { CARGOS, UBICACIONES, buscarCargo, unidadDeUbicacion } from '../../datos/catalogos';
 import { normalizar } from '../../dominio/texto';
@@ -12,7 +12,7 @@ import { hayErrores, validarFormularioSolicitud } from '../../dominio/validacion
 import Mensaje from '../comunes/Mensaje';
 
 const camposIniciales = () => ({
-  profesionalResponsable: '',
+  reclutador: '',
   candidatoId: '',
   nombreCandidato: '',
   correo: '',
@@ -246,12 +246,12 @@ export default function FormularioSolicitud({
             Reclutador/a
           </h3>
           <GrupoOpciones
-            nombre="profesionalResponsable"
+            nombre="reclutador"
             etiqueta="Reclutador/a"
-            opciones={PROFESIONALES}
-            valor={formulario.profesionalResponsable}
+            opciones={RECLUTADORES}
+            valor={formulario.reclutador}
             alCambiar={cambiarCampo}
-            error={errorDe('profesionalResponsable')}
+            error={errorDe('reclutador')}
             obligatorio
           />
         </section>

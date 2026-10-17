@@ -26,7 +26,7 @@ export default function Login() {
     }
   }, [estaAutenticado, destino, navegar]);
 
-  const manejarEnvio = (e) => {
+  const manejarEnvio = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -36,7 +36,7 @@ export default function Login() {
     }
 
     setCargando(true);
-    const resultado = iniciarSesion(correo, contrasena);
+    const resultado = await iniciarSesion(correo, contrasena);
 
     if (resultado.ok) {
       navegar(destino, { replace: true });

@@ -9,9 +9,9 @@ const candidatos = [
 ];
 
 const solicitudes = [
-  { id: 1, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', profesionalResponsable: 'Carolina Muñoz', observaciones: '' },
-  { id: 2, candidatoId: 2, cargo: 'Analista de Datos', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', profesionalResponsable: 'Macarena Vidal', observaciones: '' },
-  { id: 3, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', profesionalResponsable: '', observaciones: '' },
+  { id: 1, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-08-03', estado: 'Finalizada', reclutador: 'Carolina Muñoz', profesionalResponsable: 'Ignacia Valdés Ortiz', observaciones: '' },
+  { id: 2, candidatoId: 2, cargo: 'Analista de Datos', familiaCargo: 'Profesional A', fechaSolicitud: '2026-08-17', estado: 'En proceso', reclutador: 'Macarena Vidal', profesionalResponsable: 'Tomás Riquelme Soto', observaciones: '' },
+  { id: 3, candidatoId: 1, cargo: 'Técnico de Planta', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-01', estado: 'Pendiente', reclutador: '', observaciones: '' },
 ];
 
 const renderLista = (props = {}) =>
@@ -75,5 +75,41 @@ describe('ListaSolicitudes', () => {
 
     await usuario.click(screen.getAllByRole('button', { name: 'Gestionar' })[1]);
     expect(alAbrir).toHaveBeenCalledWith(solicitudes[1]);
+  });
+});
+
+describe('ListaSolicitudes · filtros de responsable y fecha (RF07)', () => {
+  it('filtra por rango de fechas de solicitud', async () => {
+    const usuario = userEvent.setup();
+    renderLista();
+
+    await usuario.type(screen.getByLabelText('Desde'), '2026-08-10');
+    await usuario.type(screen.getByLabelText('Hasta'), '2026-08-31');
+
+    const filas = screen.getAllByRole('row').slice(1);
+    expect(filas).toHaveLength(1);
+    expect(within(filas[0]).getByText('Juan Pérez')).toBeInTheDocument();
+  });
+
+  it('filtra por psicóloga responsable o sin asignar', async () => {
+    const usuario = userEvent.setup();
+    renderLista();
+
+    await usuario.selectOptions(screen.getByLabelText('Psicóloga responsable'), 'Ignacia Valdés Ortiz');
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+
+    await usuario.selectOptions(screen.getByLabelText('Psicóloga responsable'), 'Sin asignar');
+    const filas = screen.getAllByRole('row').slice(1);
+    expect(filas).toHaveLength(1);
+    expect(within(filas[0]).getByText('01-09-2026')).toBeInTheDocument();
+  });
+
+  it('parte filtrada por la responsable indicada y Limpiar quita todos los filtros', async () => {
+    const usuario = userEvent.setup();
+    renderLista({ responsableInicial: 'Tomás Riquelme Soto' });
+
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+    await usuario.click(screen.getByRole('button', { name: 'Limpiar' }));
+    expect(screen.getAllByRole('row')).toHaveLength(4);
   });
 });

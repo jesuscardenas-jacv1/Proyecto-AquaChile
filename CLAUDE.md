@@ -76,10 +76,14 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
 
 ## Stack y estructura
 
-- **Frontend** (raíz): React 18 + Vite + Bootstrap 5 + React Router 6. Hoy los datos viven en `localStorage`
-  (`src/datos/DatosContext.jsx`, semilla en `src/datos/bdSimulada.json`) y el login es local (`src/datos/usuarios.js`).
-- **Backend** (`backend/`): Node.js + Express + SQLite nativo (`node:sqlite`) + JWT + RBAC. Rutas en `backend/src/rutas/`.
-  El frontend **solo** lo usa para documentos (`src/servicios/apiDocumentos.js`); el resto aún no está integrado.
+- **Frontend** (raíz): React 18 + Vite + Bootstrap 5 + React Router 6. `DatosContext` trabaja en dos modos:
+  **api** (hay backend: login con JWT y todos los datos se leen y guardan vía `src/servicios/api.js`) o
+  **local** (sin backend, p. ej. GitHub Pages: datos de demostración en `localStorage` y usuarios de `src/datos/usuarios.js`).
+  Las acciones de datos son asíncronas y devuelven `null` si el servidor rechaza la operación (motivo en `errorOperacion`).
+- **Backend** (`backend/`): Node.js + Express + SQLite nativo (`node:sqlite`) + JWT + RBAC. Rutas en `backend/src/rutas/`,
+  formato de respuesta en `backend/src/bd/formatos.js`. La semilla es la misma del frontend (`src/datos/semillaBase.js`).
+- **Responsable de la solicitud = la psicóloga** (`profesionalResponsable`, catálogo `EVALUADORES`); quien la pide es el
+  `reclutador`. La evaluadora ve por defecto las solicitudes asignadas a ella.
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`) con CV, descriptor e informe PDF.
   Proveedor `local` (disco) o `graph` (OneDrive/SharePoint, modo aplicación o delegado) vía `backend/.env`.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`).
@@ -104,6 +108,7 @@ npm test                     # pruebas frontend (Vitest)
 npm run test:coverage        # cobertura (umbral 80 % líneas)
 npm --prefix backend run test:almacenamiento   # pruebas backend (node:test)
 npm --prefix backend run test:roles            # permisos de los 4 roles (BD sembrada)
+npm --prefix backend run test:integracion      # API usada por el frontend integrado (Hito 2)
 ```
 
 Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).

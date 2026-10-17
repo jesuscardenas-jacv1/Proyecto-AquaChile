@@ -41,40 +41,40 @@ export const solicitudesDemoPlanner = [
   // Evaluación Recibida: falta coordinar la entrevista con el candidato.
   solicitud(101, {
     cargo: 'Monitor Producción', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-10-07',
-    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: 'Javiera Soto',
+    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: '', reclutador: 'Javiera Soto',
     observaciones: 'Profundizar en experiencia en turnos rotativos.', tipoEvaluacion: 'externa',
     ubicacion: 'Planta Calbuco', unidad: 'Industrial', descriptorCargo: 'DC_Monitor_Producción.pdf',
   }),
   solicitud(102, {
     cargo: 'Operador Grúa Horquilla', familiaCargo: 'Operario Calificado', fechaSolicitud: '2026-10-09',
-    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: 'Macarena Vidal',
+    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: '', reclutador: 'Macarena Vidal',
     observaciones: '', tipoEvaluacion: 'interna',
     ubicacion: 'Planta Cailin', unidad: 'Industrial', descriptorCargo: 'DC_Operador_Grúa_Horquilla.pdf',
   }),
   solicitud(103, {
     cargo: 'Analista de Control de Gestión', familiaCargo: 'Profesional B C', fechaSolicitud: '2026-10-12',
-    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: 'Carolina Muñoz',
+    estado: 'Pendiente', etapa: 'recibida', profesionalResponsable: '', reclutador: 'Carolina Muñoz',
     observaciones: 'Revisar manejo de presión y plazos de cierre mensual.', tipoEvaluacion: 'externa',
     ubicacion: 'Oficina Central', unidad: 'Corporativo', descriptorCargo: 'DC_Analista_de_Control_de_Gestión.pdf',
   }),
   // Entrevista Agendada.
   solicitud(104, {
     cargo: 'Técnico Eléctrico', familiaCargo: 'Técnico A', fechaSolicitud: '2026-10-01',
-    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Fernanda Rojas',
+    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Ignacia Valdés Ortiz', reclutador: 'Fernanda Rojas',
     observaciones: '', tipoEvaluacion: 'externa',
     ubicacion: 'Planta Magallanes', unidad: 'Industrial', descriptorCargo: 'DC_Técnico_Eléctrico.pdf',
     fechaEntrevista: '2026-10-14', horaEntrevista: '09:30', modalidadEntrevista: 'Teams',
   }),
   solicitud(105, {
     cargo: 'Supervisor Centro de Cultivo', familiaCargo: 'Supervisor B', fechaSolicitud: '2026-10-02',
-    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Daniela Contreras',
+    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Ignacia Valdés Ortiz', reclutador: 'Daniela Contreras',
     observaciones: 'Evaluar liderazgo de equipos en terreno.', tipoEvaluacion: 'interna',
     ubicacion: 'AM Chonchi', unidad: 'Producción AM', descriptorCargo: 'DC_Supervisor_Centro_de_Cultivo.pdf',
     fechaEntrevista: '2026-10-14', horaEntrevista: '12:30', modalidadEntrevista: 'Teams',
   }),
   solicitud(106, {
     cargo: 'Prevencionista de Riesgos', familiaCargo: 'Profesional B C', fechaSolicitud: '2026-10-05',
-    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Javiera Soto',
+    estado: 'En proceso', etapa: 'agendada', profesionalResponsable: 'Ignacia Valdés Ortiz', reclutador: 'Javiera Soto',
     observaciones: '', tipoEvaluacion: 'externa',
     ubicacion: 'Pargua PA', unidad: 'Otros Producción', descriptorCargo: 'DC_Prevencionista_de_Riesgos.pdf',
     fechaEntrevista: '2026-10-15', horaEntrevista: '15:00', modalidadEntrevista: 'Presencial',
@@ -82,14 +82,14 @@ export const solicitudesDemoPlanner = [
   // Entrevista Realizada: falta registrar la evaluación y enviar el informe.
   solicitud(107, {
     cargo: 'Técnico Laboratorio', familiaCargo: 'Técnico B C', fechaSolicitud: '2026-09-28',
-    estado: 'En proceso', etapa: 'realizada', profesionalResponsable: 'Macarena Vidal',
+    estado: 'En proceso', etapa: 'realizada', profesionalResponsable: 'Ignacia Valdés Ortiz', reclutador: 'Macarena Vidal',
     observaciones: '', tipoEvaluacion: 'interna',
     ubicacion: 'Codihue', unidad: 'Producción AD', descriptorCargo: 'DC_Técnico_Laboratorio.pdf',
     fechaEntrevista: '2026-10-08', horaEntrevista: '10:00', modalidadEntrevista: 'Teams',
   }),
   solicitud(108, {
     cargo: 'Jefe de Turno', familiaCargo: 'Jefatura', fechaSolicitud: '2026-09-30',
-    estado: 'En proceso', etapa: 'realizada', profesionalResponsable: 'Carolina Muñoz',
+    estado: 'En proceso', etapa: 'realizada', profesionalResponsable: 'Ignacia Valdés Ortiz', reclutador: 'Carolina Muñoz',
     observaciones: 'Indagar estilo de manejo de conflictos.', tipoEvaluacion: 'externa',
     ubicacion: 'Planta Calbuco', unidad: 'Industrial', descriptorCargo: 'DC_Jefe_de_Turno.pdf',
     fechaEntrevista: '2026-10-09', horaEntrevista: '11:30', modalidadEntrevista: 'Presencial',

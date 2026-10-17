@@ -41,8 +41,14 @@ export const RESULTADOS_EVALUACION = [
   'No recomendado',
 ];
 
+/**
+ * Psicólogas evaluadoras: la profesional responsable de cada solicitud (nombres ficticios).
+ * La primera es la usuaria de prueba del perfil evaluador.
+ */
+export const EVALUADORES = ['Ignacia Valdés Ortiz', 'Tomás Riquelme Soto', 'Paula Henríquez Lagos'];
+
 /** Reclutadores/as que solicitan las evaluaciones (columna "Reclutador/a" de la BD). */
-export const PROFESIONALES = [
+export const RECLUTADORES = [
   'Carolina Muñoz',
   'Daniela Contreras',
   'Fernanda Rojas',

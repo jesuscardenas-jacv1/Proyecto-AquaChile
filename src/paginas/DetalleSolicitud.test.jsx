@@ -35,16 +35,16 @@ describe('DetalleSolicitud', () => {
     expect(screen.getByText('Solicitud no encontrada')).toBeInTheDocument();
   });
 
-  it('asigna un profesional responsable', async () => {
+  it('asigna la psicóloga responsable', async () => {
     const usuario = userEvent.setup();
     renderDetalle('3');
 
     await usuario.selectOptions(
-      screen.getByLabelText(/profesional responsable/i),
-      'Javiera Soto',
+      screen.getByLabelText(/psicóloga responsable/i),
+      'Tomás Riquelme Soto',
     );
 
-    expect(screen.getByLabelText(/profesional responsable/i)).toHaveValue('Javiera Soto');
+    expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Tomás Riquelme Soto');
   });
 
   it('cambia el estado de la solicitud a En proceso', async () => {
