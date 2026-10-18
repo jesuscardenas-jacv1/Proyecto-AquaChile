@@ -4,13 +4,36 @@ import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
 import { ROLES } from '../../datos/usuarios';
 
+const CLAVE_COLAPSADA = 'aquachile_menu_colapsado';
+
+function leerColapsada() {
+  try {
+    return localStorage.getItem(CLAVE_COLAPSADA) === 'si';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Navegación principal con control de acceso por roles.
- * En escritorio es una barra lateral fija (diseño "Austral"); en pantallas pequeñas
- * se convierte en una barra superior con menú desplegable.
+ * En escritorio es una barra lateral fija (diseño "Austral") que se puede contraer a
+ * solo íconos; la preferencia se recuerda en el navegador. En pantallas pequeñas se
+ * convierte en una barra superior con menú desplegable.
  */
 export default function Navbar() {
   const [abierto, setAbierto] = useState(false);
+  const [colapsada, setColapsada] = useState(leerColapsada);
+
+  const alternarColapsada = () => {
+    setColapsada((actual) => {
+      try {
+        localStorage.setItem(CLAVE_COLAPSADA, actual ? 'no' : 'si');
+      } catch {
+        // Sin localStorage la preferencia dura solo esta visita.
+      }
+      return !actual;
+    });
+  };
   const { usuarioActual, esAnalista, esAdmin, esJefatura, cerrarSesion } = useAuth();
   const navegar = useNavigate();
 
@@ -34,7 +57,7 @@ export default function Navbar() {
   };
 
   return (
-    <aside className="barra-lateral" aria-label="Navegación principal">
+    <aside className={`barra-lateral ${colapsada ? 'barra-colapsada' : ''}`.trim()} aria-label="Navegación principal">
       <div className="barra-cabecera d-flex align-items-center justify-content-between">
         <NavLink className="d-flex align-items-center gap-2 text-decoration-none" to="/" aria-label="Inicio AquaChile">
           <img src={logoAquaChile} alt="AquaChile" className="navbar-logo" />
@@ -54,25 +77,44 @@ export default function Navbar() {
       </div>
 
       <div id="menu-principal" className={`collapse d-lg-block ${abierto ? 'show' : ''}`.trim()}>
-        <p className="barra-titulo text-uppercase mb-2">Módulos operativos</p>
+        <p className="barra-titulo barra-texto text-uppercase mb-2">Módulos operativos</p>
         <ul className="nav flex-column gap-1">
           {enlaces.map(({ ruta, etiqueta, icono, exacto }) => (
             <li className="nav-item" key={ruta}>
-              <NavLink to={ruta} end={exacto} className={clasesEnlace} onClick={() => setAbierto(false)}>
+              <NavLink
+                to={ruta}
+                end={exacto}
+                className={clasesEnlace}
+                title={colapsada ? etiqueta : undefined}
+                onClick={() => setAbierto(false)}
+              >
                 <i className={`bi ${icono}`} aria-hidden="true" />
-                <span>{etiqueta}</span>
+                <span className="barra-texto">{etiqueta}</span>
               </NavLink>
             </li>
           ))}
         </ul>
 
+        <button
+          className="btn btn-sm border-0 barra-colapsar d-none d-lg-flex mt-auto"
+          type="button"
+          aria-label={colapsada ? 'Expandir menú' : 'Contraer menú'}
+          aria-expanded={!colapsada}
+          aria-controls="menu-principal"
+          title={colapsada ? 'Expandir menú' : 'Contraer menú'}
+          onClick={alternarColapsada}
+        >
+          <i className={`bi ${colapsada ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} aria-hidden="true" />
+          <span className="barra-texto">Contraer menú</span>
+        </button>
+
         {usuarioActual ? (
-          <div className="barra-usuario mt-auto">
+          <div className="barra-usuario">
             <div className="d-flex align-items-center gap-2 mb-2">
               <span className="barra-avatar" aria-hidden="true">
                 <i className="bi bi-person" />
               </span>
-              <div className="lh-sm overflow-hidden">
+              <div className="lh-sm overflow-hidden barra-texto">
                 <span className="d-block small fw-semibold text-truncate">{usuarioActual.nombre}</span>
                 <span className="d-block small text-secondary">
                   {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
@@ -86,7 +128,7 @@ export default function Navbar() {
               title="Cerrar sesión corporativa"
             >
               <i className="bi bi-box-arrow-right" aria-hidden="true" />
-              Cerrar sesión
+              <span className="barra-texto">Cerrar sesión</span>
             </button>
           </div>
         ) : null}

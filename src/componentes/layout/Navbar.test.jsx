@@ -63,3 +63,32 @@ describe('Navbar', () => {
     );
   });
 });
+
+describe('Navbar · menú lateral contraíble', () => {
+  it('se contrae a solo íconos y vuelve a expandirse', async () => {
+    const usuario = userEvent.setup();
+    renderNavbar();
+    const barra = screen.getByRole('complementary', { name: 'Navegación principal' });
+
+    await usuario.click(screen.getByRole('button', { name: 'Contraer menú' }));
+    expect(barra).toHaveClass('barra-colapsada');
+    // Los nombres siguen disponibles para lectores de pantalla y como tooltip.
+    expect(screen.getByRole('link', { name: 'Solicitudes' })).toHaveAttribute('title', 'Solicitudes');
+
+    await usuario.click(screen.getByRole('button', { name: 'Expandir menú' }));
+    expect(barra).not.toHaveClass('barra-colapsada');
+    expect(screen.getByRole('link', { name: 'Solicitudes' })).not.toHaveAttribute('title');
+  });
+
+  it('recuerda la preferencia en el navegador', async () => {
+    const usuario = userEvent.setup();
+    const { unmount } = renderNavbar();
+    await usuario.click(screen.getByRole('button', { name: 'Contraer menú' }));
+    expect(localStorage.getItem('aquachile_menu_colapsado')).toBe('si');
+    unmount();
+
+    renderNavbar();
+    expect(screen.getByRole('complementary', { name: 'Navegación principal' })).toHaveClass('barra-colapsada');
+    expect(screen.getByRole('button', { name: 'Expandir menú' })).toHaveAttribute('aria-expanded', 'false');
+  });
+});
