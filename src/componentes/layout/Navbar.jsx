@@ -5,7 +5,9 @@ import { useAuth } from '../../datos/AuthContext';
 import { ROLES } from '../../datos/usuarios';
 
 /**
- * Barra de navegación colapsable de Bootstrap con control de acceso por roles.
+ * Navegación principal con control de acceso por roles.
+ * En escritorio es una barra lateral fija (diseño "Austral"); en pantallas pequeñas
+ * se convierte en una barra superior con menú desplegable.
  */
 export default function Navbar() {
   const [abierto, setAbierto] = useState(false);
@@ -13,17 +15,18 @@ export default function Navbar() {
   const navegar = useNavigate();
 
   const enlaces = [
-    { ruta: '/', etiqueta: 'Dashboard', exacto: true },
-    ...(esAnalista || esJefatura ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones' }] : []),
-    { ruta: '/candidatos', etiqueta: 'Candidatos' },
-    { ruta: '/solicitudes', etiqueta: 'Solicitudes' },
-    { ruta: '/planner', etiqueta: 'Planner' },
-    ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud' }] : []),
-    ...(esAdmin ? [{ ruta: '/administracion', etiqueta: 'Administración' }] : []),
+    { ruta: '/', etiqueta: 'Dashboard', icono: 'bi-grid-1x2', exacto: true },
+    ...(esAnalista || esJefatura
+      ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones', icono: 'bi-person-lines-fill' }]
+      : []),
+    { ruta: '/candidatos', etiqueta: 'Candidatos', icono: 'bi-people' },
+    { ruta: '/solicitudes', etiqueta: 'Solicitudes', icono: 'bi-clipboard' },
+    { ruta: '/planner', etiqueta: 'Planner', icono: 'bi-calendar3' },
+    ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud', icono: 'bi-plus-circle' }] : []),
+    ...(esAdmin ? [{ ruta: '/administracion', etiqueta: 'Administración', icono: 'bi-gear' }] : []),
   ];
 
-  const clasesEnlace = ({ isActive }) =>
-    `nav-link px-2 py-1 rounded ${isActive ? 'active fw-semibold' : ''}`;
+  const clasesEnlace = ({ isActive }) => `barra-enlace ${isActive ? 'active' : ''}`.trim();
 
   const manejarCerrarSesion = () => {
     cerrarSesion();
@@ -31,70 +34,63 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
-      <div className="container">
-        <NavLink className="navbar-brand d-flex align-items-center gap-3" to="/">
+    <aside className="barra-lateral" aria-label="Navegación principal">
+      <div className="barra-cabecera d-flex align-items-center justify-content-between">
+        <NavLink className="d-flex align-items-center gap-2 text-decoration-none" to="/" aria-label="Inicio AquaChile">
           <img src={logoAquaChile} alt="AquaChile" className="navbar-logo" />
-          <small className="navbar-modulo d-none d-sm-block text-white-50">Gestión Psicolaboral</small>
+          <small className="barra-modulo">Gestión Psicolaboral</small>
         </NavLink>
 
         <button
-          className="navbar-toggler"
+          className="btn btn-outline-light border-0 barra-toggler d-lg-none"
           type="button"
           aria-label="Alternar navegación"
           aria-expanded={abierto}
           aria-controls="menu-principal"
           onClick={() => setAbierto((valor) => !valor)}
         >
-          <span className="navbar-toggler-icon" />
+          <i className={`bi ${abierto ? 'bi-x-lg' : 'bi-list'} fs-5`} aria-hidden="true" />
         </button>
-
-        <div
-          id="menu-principal"
-          className={`collapse navbar-collapse ${abierto ? 'show' : ''}`.trim()}
-        >
-          <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
-            {enlaces.map(({ ruta, etiqueta, exacto }) => (
-              <li className="nav-item" key={ruta}>
-                <NavLink
-                  to={ruta}
-                  end={exacto}
-                  className={clasesEnlace}
-                  onClick={() => setAbierto(false)}
-                >
-                  {etiqueta}
-                </NavLink>
-              </li>
-            ))}
-
-            {usuarioActual ? (
-              <li className="nav-item ms-lg-3 pt-2 pt-lg-0 border-top border-lg-0 border-white-50">
-                <div className="d-flex align-items-center gap-2">
-                  <span
-                    className="badge bg-light text-primary fw-medium px-2 py-1"
-                    title={`Perfil: ${usuarioActual.cargo || usuarioActual.rol}`}
-                  >
-                    {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
-                  </span>
-                  <span className="small text-white-50 d-none d-xl-inline">
-                    {usuarioActual.nombre}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-light d-flex align-items-center gap-1 px-2 py-1"
-                    onClick={manejarCerrarSesion}
-                    aria-label="Cerrar sesión"
-                    title="Cerrar sesión corporativa"
-                  >
-                    <i className="bi bi-box-arrow-right" aria-hidden="true" />
-                    <span className="d-lg-none">Salir</span>
-                  </button>
-                </div>
-              </li>
-            ) : null}
-          </ul>
-        </div>
       </div>
-    </nav>
+
+      <div id="menu-principal" className={`collapse d-lg-block ${abierto ? 'show' : ''}`.trim()}>
+        <p className="barra-titulo text-uppercase mb-2">Módulos operativos</p>
+        <ul className="nav flex-column gap-1">
+          {enlaces.map(({ ruta, etiqueta, icono, exacto }) => (
+            <li className="nav-item" key={ruta}>
+              <NavLink to={ruta} end={exacto} className={clasesEnlace} onClick={() => setAbierto(false)}>
+                <i className={`bi ${icono}`} aria-hidden="true" />
+                <span>{etiqueta}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+
+        {usuarioActual ? (
+          <div className="barra-usuario mt-auto">
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <span className="barra-avatar" aria-hidden="true">
+                <i className="bi bi-person" />
+              </span>
+              <div className="lh-sm overflow-hidden">
+                <span className="d-block small fw-semibold text-truncate">{usuarioActual.nombre}</span>
+                <span className="d-block small text-secondary">
+                  {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+              onClick={manejarCerrarSesion}
+              title="Cerrar sesión corporativa"
+            >
+              <i className="bi bi-box-arrow-right" aria-hidden="true" />
+              Cerrar sesión
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </aside>
   );
 }

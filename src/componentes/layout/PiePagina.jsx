@@ -9,10 +9,10 @@ const ORIGEN_DATOS = {
 export default function PiePagina() {
   const { modo } = useDatos();
   return (
-    <footer className="pie-pagina text-white-50 py-4 mt-auto">
-      <div className="container d-flex flex-column flex-md-row justify-content-between gap-2">
-        <small>AquaChile · Módulo de Reclutamiento y Selección</small>
-        <small>Proyecto académico DSY1104 · {ORIGEN_DATOS[modo]}</small>
+    <footer className="pie-pagina py-3 mt-auto">
+      <div className="d-flex flex-column flex-md-row justify-content-between gap-2 small text-secondary">
+        <span>AquaChile · Módulo de Reclutamiento y Selección</span>
+        <span>Proyecto académico DSY1104 · {ORIGEN_DATOS[modo]}</span>
       </div>
     </footer>
   );
