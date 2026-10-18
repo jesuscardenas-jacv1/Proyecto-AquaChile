@@ -7,7 +7,7 @@ import { datosDePrueba } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
 
-function renderInforme(id = '1', usuario = { id: 2, rol: 'evaluador', nombre: 'María Victoria' }) {
+function renderInforme(id = '1', usuario = { id: 2, rol: 'evaluador', nombre: 'Ignacia Valdés' }) {
   return render(
     <MemoryRouter initialEntries={[`/solicitudes/${id}/informe`]}>
       <ProveedorAuth usuarioInicial={usuario}>
@@ -69,7 +69,7 @@ describe('InformePsicolaboral', () => {
   });
 
   it('muestra las observaciones clínicas al profesional evaluador', () => {
-    renderInforme('1', { id: 2, rol: 'evaluador', nombre: 'María Victoria' });
+    renderInforme('1', { id: 2, rol: 'evaluador', nombre: 'Ignacia Valdés' });
 
     expect(screen.getByText('Perfil estable y buen trabajo en equipo.')).toBeInTheDocument();
   });

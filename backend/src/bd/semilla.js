@@ -46,8 +46,8 @@ function sembrar() {
 
     stmtUsuario.run(
       2,
-      'María Victoria Bustamante',
-      'mvictoria.bustamante@aquachile.cl',
+      'Ignacia Valdés Ortiz',
+      'ignacia.valdes@aquachile.cl',
       'evaluador@aquachile.cl',
       passwordHash,
       'evaluador',
@@ -55,7 +55,29 @@ function sembrar() {
       'Reclutamiento y Selección',
     );
 
-    console.log('   👤 2 usuarios corporativos sembrados.');
+    stmtUsuario.run(
+      3,
+      'Andrés Valdivia',
+      'andres.valdivia@aquachile.cl',
+      'admin@aquachile.cl',
+      passwordHash,
+      'admin',
+      'Administrador Académico',
+      'Proyecto DSY1104',
+    );
+
+    stmtUsuario.run(
+      4,
+      'Patricia Saavedra',
+      'patricia.saavedra@aquachile.cl',
+      'jefatura@aquachile.cl',
+      passwordHash,
+      'jefatura',
+      'Jefa de Reclutamiento y Selección',
+      'Gestión de Personas',
+    );
+
+    console.log('   👤 4 usuarios corporativos sembrados (admin, analista, evaluador, jefatura).');
 
     // 3. Insertar candidatos
     const stmtCandidato = db.prepare(`

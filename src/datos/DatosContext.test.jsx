@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useDatos } from './DatosContext';
 import { CLAVE_ALMACEN, obtenerSemilla } from './almacen';
-import { crearWrapper, datosDemo } from '../pruebas/utilidades';
+import { crearWrapper, datosDemo, datosPortal } from '../pruebas/utilidades';
 
 describe('DatosContext', () => {
   it('carga los datos semilla cuando no hay almacenamiento previo', () => {
@@ -206,5 +206,58 @@ describe('DatosContext', () => {
     expect(() => renderHook(() => useDatos())).toThrowError(
       /debe usarse dentro de un <ProveedorDatos>/,
     );
+  });
+
+  it('registra una postulación creando el candidato con el cargo de la oferta', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
+
+    let respuesta;
+    act(() => {
+      respuesta = result.current.postular(2, {
+        nombre: 'Ana Pérez',
+        correo: 'Ana.Perez@Correo.cl',
+        telefono: '+56911112222',
+        ciudad: ' Osorno ',
+        origen: 'Externo',
+        cvNombre: 'cv.pdf',
+      });
+    });
+
+    expect(respuesta.candidato).toMatchObject({ correo: 'ana.perez@correo.cl', cargo: 'Técnico Eléctrico' });
+    expect(result.current.postulaciones.at(-1)).toMatchObject({
+      ofertaId: 2,
+      candidatoId: respuesta.candidato.id,
+      estado: 'Recibida',
+      ciudad: 'Osorno',
+    });
+  });
+
+  it('reutiliza al candidato si vuelve a postular con el mismo correo', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
+    const total = result.current.candidatos.length;
+
+    act(() => {
+      result.current.postular(2, {
+        nombre: 'Camilo F.',
+        correo: 'camilo.f@correo.cl',
+        telefono: '+56930002201',
+        ciudad: 'Calbuco',
+        origen: 'Externo',
+      });
+    });
+
+    expect(result.current.candidatos).toHaveLength(total);
+    expect(result.current.postulaciones.at(-1).candidatoId).toBe(20);
+  });
+
+  it('actualiza el estado de una postulación', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
+    act(() => result.current.actualizarPostulacion(1, { estado: 'En evaluación', solicitudId: 3 }));
+    expect(result.current.obtenerPostulacion(1)).toMatchObject({ estado: 'En evaluación', solicitudId: 3 });
+  });
+
+  it('no permite postular a una oferta inexistente', () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
+    expect(() => result.current.postular(99, {})).toThrow(/no existe/);
   });
 });

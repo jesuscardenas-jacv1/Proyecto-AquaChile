@@ -120,14 +120,18 @@ src/
 | Ruta | Vista | Acceso por Rol |
 | --- | --- | --- |
 | `/login` | Inicio de sesión corporativo | No autenticado |
-| `/` | Dashboard con indicadores y KPIs generales | Analista y Evaluador |
-| `/candidatos` | Directorio de candidatos con búsqueda | Analista y Evaluador |
+| `/trabaja-con-nosotros` | Portal público con ofertas laborales por área | Público (sin sesión) |
+| `/trabaja-con-nosotros/ofertas/:id` | Detalle de la oferta y formulario de postulación con CV | Público (sin sesión) |
+| `/postulaciones` | Bandeja de postulaciones: pasar a evaluación o descartar | Analista y Admin (Jefatura solo lectura) |
+| `/` | Dashboard con indicadores y KPIs generales | Todos los roles |
+| `/candidatos` | Directorio de candidatos con búsqueda | Todos; el Evaluador solo ve a quienes pasaron a evaluación |
 | `/candidatos/nuevo` | Formulario de registro de candidato | Exclusivo Analista |
 | `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
 | `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
 | `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
 | `/solicitudes/:id` | Ficha, panel de gestión y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
 | `/solicitudes/:id/informe` | Informe Psicolaboral Oficial imprimible (PDF) | Analista y Evaluador (con membrete oficial y firmas) |
+| `/administracion` | Usuarios de prueba, roles, catálogos y datos de demostración | Exclusivo Administrador |
 | `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
 
 ## Usuarios de demostración (AquaChile)
@@ -135,7 +139,9 @@ src/
 | Rol | Correo / Alias | Contraseña | Funciones |
 | --- | --- | --- | --- |
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
-| **Profesional Evaluador** | `mvictoria.bustamante@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
+| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
+| **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración (`/administracion`). |
+| **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen (sin notas clínicas). |
 
 ## Flujo principal a demostrar
 

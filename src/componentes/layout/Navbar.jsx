@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
+import { ROLES } from '../../datos/usuarios';
 
 /**
  * Navegación principal con control de acceso por roles.
@@ -10,15 +11,19 @@ import { useAuth } from '../../datos/AuthContext';
  */
 export default function Navbar() {
   const [abierto, setAbierto] = useState(false);
-  const { usuarioActual, esAnalista, cerrarSesion } = useAuth();
+  const { usuarioActual, esAnalista, esAdmin, esJefatura, cerrarSesion } = useAuth();
   const navegar = useNavigate();
 
   const enlaces = [
     { ruta: '/', etiqueta: 'Dashboard', icono: 'bi-grid-1x2', exacto: true },
+    ...(esAnalista || esJefatura
+      ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones', icono: 'bi-person-lines-fill' }]
+      : []),
     { ruta: '/candidatos', etiqueta: 'Candidatos', icono: 'bi-people' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes', icono: 'bi-clipboard' },
     { ruta: '/planner', etiqueta: 'Planner', icono: 'bi-calendar3' },
     ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud', icono: 'bi-plus-circle' }] : []),
+    ...(esAdmin ? [{ ruta: '/administracion', etiqueta: 'Administración', icono: 'bi-gear' }] : []),
   ];
 
   const clasesEnlace = ({ isActive }) => `barra-enlace ${isActive ? 'active' : ''}`.trim();
@@ -70,7 +75,7 @@ export default function Navbar() {
               <div className="lh-sm overflow-hidden">
                 <span className="d-block small fw-semibold text-truncate">{usuarioActual.nombre}</span>
                 <span className="d-block small text-secondary">
-                  {usuarioActual.rol === 'analista' ? 'Analista' : 'Evaluador'}
+                  {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
                 </span>
               </div>
             </div>

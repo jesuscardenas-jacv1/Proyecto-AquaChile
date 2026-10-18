@@ -89,7 +89,7 @@ RIGHT (sticky)
 ## 6. Detalle de solicitud (vista psicóloga, registrar evaluación)
 
 ```
-Same AquaChile design system and left sidebar (active: Solicitudes; user "María Victoria Bustamante", role chip "Evaluadora").
+Same AquaChile design system and left sidebar (active: Solicitudes; user "Ignacia Valdés Ortiz", role chip "Evaluadora").
 
 SOLICITUD DETAIL, evaluator view, for a request still in progress. Breadcrumb "Solicitudes / Solicitud #105". Header: "Francisca Oyarzún Díaz", meta "Supervisor Centro de Cultivo · Supervisor B · 02-10-2026", status pill "En proceso".
 Same left cards as the analyst view (Datos del candidato, Datos de la solicitud) but the right column shows a read-only summary of "Gestión de la solicitud".
@@ -111,7 +111,7 @@ INFORME PSICOLABORAL printable page. Gray #EEE9E4 background, top toolbar outsid
 - "2. Antecedentes de la solicitud": Fecha de solicitud, Reclutador/a solicitante, Ubicación / Planta, Centro de Costo (CECO).
 - "3. Síntesis de evaluación y competencias": short paragraph plus a small badge "Evaluación por Competencias Certificada".
 - "4. Dictamen oficial": large bordered verdict box "RECOMENDADO CON OBSERVACIONES" in amber tones.
-- Two signature blocks at the bottom: "María Victoria Bustamante · Psicóloga Evaluadora · Psicología Laboral" and "Dirección de Personas · Gestión del Talento".
+- Two signature blocks at the bottom: "Ignacia Valdés Ortiz · Psicóloga Evaluadora · Psicología Laboral" and "Dirección de Personas · Gestión del Talento".
 - Footer: "Documento confidencial — uso exclusivo de Gestión de Personas AquaChile".
 Section titles small uppercase in slate with a thin rule underneath. Formal and clean.
 ```
@@ -148,7 +148,7 @@ Footer actions aligned right: ghost "Cancelar", primary "Registrar candidato". (
 ## 10. Planner de evaluaciones (kanban)
 
 ```
-Same AquaChile design system and left sidebar (active: Planner; user "María Victoria Bustamante", role chip "Evaluadora").
+Same AquaChile design system and left sidebar (active: Planner; user "Ignacia Valdés Ortiz", role chip "Evaluadora").
 
 PLANNER kanban. Header: title "Planner de evaluaciones", subtitle "Seguimiento de cada solicitud desde que se recibe hasta el envío del informe psicolaboral", secondary button "Informes enviados →".
 Toolbar: search "Candidato, cargo o familia", select "Todos los reclutadores".

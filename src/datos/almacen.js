@@ -1,9 +1,9 @@
 import { datosSemilla } from './semilla';
 
-// v3: agrega etapas del Planner y solicitudes demo; la clave nueva recarga la semilla.
-export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v3';
+// v4: agrega ofertas y postulaciones del portal; la clave nueva recarga la semilla.
+export const CLAVE_ALMACEN = 'aquachile_psicodelivery_v4';
 
-const COLECCIONES = ['candidatos', 'solicitudes', 'evaluaciones'];
+export const COLECCIONES = ['candidatos', 'solicitudes', 'evaluaciones', 'ofertas', 'postulaciones'];
 
 function clonarSemilla() {
   return JSON.parse(JSON.stringify(datosSemilla));

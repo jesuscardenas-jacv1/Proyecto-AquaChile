@@ -10,12 +10,15 @@ import {
 import { validarCandidato, validarEvaluacion, validarSolicitud } from '../dominio/validaciones';
 import { estadoDeEtapa, validarAgenda } from '../dominio/planner';
 import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner';
+import { candidatosDemoPostulaciones } from './demoPostulaciones';
 
 const { candidatos, solicitudes, evaluaciones } = datosSemilla;
 
 describe('BD simulada (semilla)', () => {
-  it('trae las 100 evaluaciones del Excel más las solicitudes demo del Planner', () => {
-    expect(candidatos).toHaveLength(100 + candidatosDemoPlanner.length);
+  it('trae las 100 evaluaciones del Excel más las demos del Planner y del portal', () => {
+    expect(candidatos).toHaveLength(
+      100 + candidatosDemoPlanner.length + candidatosDemoPostulaciones.length,
+    );
     expect(solicitudes).toHaveLength(100 + solicitudesDemoPlanner.length);
     expect(evaluaciones).toHaveLength(100);
   });
