@@ -42,22 +42,27 @@ export default function NuevaSolicitud() {
   const guardar = async ({ nombreCandidato, correo, telefono, ...datos }) => {
     const candidatoId =
       datos.candidatoId ||
-      agregarCandidato({
-        nombre: nombreCandidato,
-        correo,
-        telefono,
-        cargo: datos.cargo,
-        familiaCargo: datos.familiaCargo,
-        origen: datos.origen,
-      }).id;
-    const solicitud = agregarSolicitud({ ...datos, candidatoId });
+      (
+        await agregarCandidato({
+          nombre: nombreCandidato,
+          correo,
+          telefono,
+          cargo: datos.cargo,
+          familiaCargo: datos.familiaCargo,
+          origen: datos.origen,
+        })
+      )?.id;
+    if (!candidatoId) return;
+    const solicitud = await agregarSolicitud({ ...datos, candidatoId });
+    // Si el servidor la rechaza, el motivo se muestra arriba y se queda en el formulario.
+    if (!solicitud) return;
 
     let mensaje = datos.candidatoId
       ? 'Solicitud enviada correctamente. Queda pendiente de agendar la entrevista.'
       : 'Solicitud enviada y candidato/a registrado/a correctamente.';
 
     if (postulacionPendiente) {
-      actualizarPostulacion(postulacionPendiente.id, { estado: 'En evaluación', solicitudId: solicitud.id });
+      await actualizarPostulacion(postulacionPendiente.id, { estado: 'En evaluación', solicitudId: solicitud.id });
       mensaje = 'El postulante pasó a evaluación y la solicitud quedó pendiente de agendar.';
       if (apiDocumentos.conectado()) {
         try {

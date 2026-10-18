@@ -42,7 +42,7 @@ export default function Dashboard() {
       nombreCandidato: nombreCandidato(solicitud.candidatoId),
     }));
   const porProfesional = (lista) =>
-    contarPor(lista, (solicitud) => solicitud.profesionalResponsable, 'Sin asignar');
+    contarPor(lista, (solicitud) => solicitud.reclutador, 'Sin asignar');
   const porFamiliaCargo = (lista) => contarPor(lista, (item) => item.familiaCargo, 'Sin familia');
 
   const detalleDeEstado = (estado) => {

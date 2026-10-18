@@ -29,7 +29,7 @@ const crearDatos = () => {
       familiaCargo: 'Operario',
       fechaSolicitud: '2026-01-01',
       estado: 'Finalizada',
-      profesionalResponsable: RECLUTADORES[id % 2],
+      reclutador: RECLUTADORES[id % 2],
       observaciones: '',
     })),
     evaluaciones: ids.map((id) => ({

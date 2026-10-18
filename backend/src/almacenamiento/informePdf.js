@@ -155,7 +155,7 @@ function generarInformePdf({ solicitudId, candidato, solicitud, evaluacion }) {
     seccion(doc, '2. Datos del proceso de selección');
     campos(doc, [
       ['Fecha de solicitud', formatearFecha(solicitud.fechaSolicitud)],
-      ['Reclutador/a solicitante', solicitud.profesionalResponsable || 'AquaChile'],
+      ['Reclutador/a solicitante', solicitud.reclutador || 'AquaChile'],
       ['Ubicación / Planta', [solicitud.ubicacion, solicitud.unidad].filter(Boolean).join(' · ')],
       ['Centro de Costo (CECO)', solicitud.ceco],
     ]);

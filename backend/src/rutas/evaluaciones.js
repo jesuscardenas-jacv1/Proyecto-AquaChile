@@ -1,26 +1,9 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar, requerirRol, puedeVerNotasClinicas } = require('../middlewares/auth');
+const { autenticar, requerirRol } = require('../middlewares/auth');
+const { formatearEvaluacion } = require('../bd/formatos');
 
 const router = express.Router();
-
-function formatearEvaluacion(e, rolUsuario) {
-  const confidencial = !puedeVerNotasClinicas(rolUsuario);
-
-  return {
-    id: e.id,
-    solicitudId: e.solicitud_id,
-    fechaEvaluacion: e.fecha_evaluacion,
-    resultado: e.resultado,
-    estado: e.estado,
-    fechaInforme: e.fecha_informe,
-    diasRespuesta: e.dias_respuesta,
-    // Ocultar observaciones clínicas cualitativas al analista y a la jefatura
-    observaciones: confidencial ? undefined : e.observaciones,
-    confidencial,
-    creadoEn: e.creado_en,
-  };
-}
 
 /**
  * GET /api/evaluaciones

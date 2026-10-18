@@ -1,14 +1,17 @@
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
-import { ESTADOS_SOLICITUD } from '../datos/constantes';
+import { ESTADOS_SOLICITUD, EVALUADORES } from '../datos/constantes';
 import ListaSolicitudes from '../componentes/solicitudes/ListaSolicitudes';
 import Mensaje from '../componentes/comunes/Mensaje';
 
 /** Listado de solicitudes con búsqueda y filtros (acepta ?estado= en la URL). */
 export default function Solicitudes() {
   const { solicitudes, candidatos } = useDatos();
-  const { esAnalista } = useAuth();
+  const { esAnalista, soloEnEvaluacion, usuarioActual } = useAuth();
+  // La psicóloga parte viendo las solicitudes asignadas a ella (puede quitar el filtro).
+  const responsableInicial =
+    soloEnEvaluacion && EVALUADORES.includes(usuarioActual?.nombre) ? usuarioActual.nombre : '';
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
   // Aviso enviado por otra vista, p. ej. RutaProtegida al negar el acceso.
@@ -49,8 +52,9 @@ export default function Solicitudes() {
       ) : null}
 
       <ListaSolicitudes
-        key={estadoInicial}
+        key={`${estadoInicial}-${responsableInicial}`}
         estadoInicial={estadoInicial}
+        responsableInicial={responsableInicial}
         solicitudes={solicitudes}
         candidatos={candidatos}
         alAbrir={(solicitud) => navegar(`/solicitudes/${solicitud.id}`)}

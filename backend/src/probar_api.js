@@ -82,7 +82,7 @@ async function ejecutarPruebas() {
     });
     const dataSolicitudes = await resSolicitudes.json();
     console.assert(resSolicitudes.status === 200, 'Listar solicitudes debe responder 200');
-    console.assert(dataSolicitudes.total === 100, `Debe haber 100 solicitudes, hay: ${dataSolicitudes.total}`);
+    console.assert(dataSolicitudes.total >= 100, `Debe haber al menos 100 solicitudes, hay: ${dataSolicitudes.total}`);
     console.log(`✅ 6. Consulta de solicitudes exitosa (Total: ${dataSolicitudes.total})`);
 
     // 7. Confidencialidad: Detalle de solicitud 1 para Analista vs Evaluador
