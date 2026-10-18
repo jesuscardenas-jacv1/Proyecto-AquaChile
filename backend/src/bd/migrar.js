@@ -7,6 +7,8 @@
  *   candidatos ← tabla independiente
  *   solicitudes → candidatos (candidato_id FK)
  *   evaluaciones → solicitudes (solicitud_id FK, relación 1:1)
+ *   ofertas ← tabla independiente (portal "Trabaja con nosotros")
+ *   postulaciones → ofertas, candidatos y solicitudes (al pasar a evaluación)
  */
 const db = require('./conexion');
 
@@ -46,6 +48,14 @@ function actualizarRolesUsuarios() {
   } catch (error) {
     db.exec('ROLLBACK;');
     throw error;
+  }
+}
+
+/** Agrega una columna si la tabla aún no la tiene (SQLite no tiene ADD COLUMN IF NOT EXISTS). */
+function agregarColumna(tabla, columna, definicion) {
+  const columnas = db.prepare(`PRAGMA table_info(${tabla})`).all().map((c) => c.name);
+  if (!columnas.includes(columna)) {
+    db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion};`);
   }
 }
 
@@ -115,8 +125,55 @@ function migrar() {
     );
   `);
 
+  db.exec(`
+    -- -------------------------------------------------------
+    -- Tabla: ofertas (portal "Trabaja con nosotros")
+    -- -------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS ofertas (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo            TEXT    NOT NULL,
+      area              TEXT    NOT NULL,
+      cargo             TEXT    NOT NULL,
+      familia_cargo     TEXT    NOT NULL,
+      ubicacion         TEXT    NOT NULL DEFAULT '',
+      region            TEXT    NOT NULL DEFAULT '',
+      fecha_publicacion TEXT    NOT NULL,
+      descripcion       TEXT    NOT NULL DEFAULT '',
+      requisitos        TEXT    NOT NULL DEFAULT '[]',
+      jornada           TEXT    NOT NULL DEFAULT 'Jornada completa',
+      estado            TEXT    NOT NULL DEFAULT 'Abierta' CHECK(estado IN ('Abierta', 'Cerrada'))
+    );
+
+    -- -------------------------------------------------------
+    -- Tabla: postulaciones (un candidato postula a una oferta)
+    -- -------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS postulaciones (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      oferta_id         INTEGER NOT NULL REFERENCES ofertas(id) ON DELETE RESTRICT,
+      candidato_id      INTEGER NOT NULL REFERENCES candidatos(id) ON DELETE CASCADE,
+      fecha_postulacion TEXT    NOT NULL,
+      estado            TEXT    NOT NULL DEFAULT 'Recibida'
+                          CHECK(estado IN ('Recibida', 'En evaluación', 'Descartada')),
+      ciudad            TEXT    NOT NULL DEFAULT '',
+      cv_nombre         TEXT    NOT NULL DEFAULT '',
+      solicitud_id      INTEGER REFERENCES solicitudes(id) ON DELETE SET NULL,
+      creado_en         TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // Columnas agregadas después de la primera versión del esquema.
+  agregarColumna('solicitudes', 'reclutador', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'etapa', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'fecha_entrevista', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'hora_entrevista', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'modalidad_entrevista', "TEXT NOT NULL DEFAULT ''");
+
   actualizarRolesUsuarios();
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 
-migrar();
+if (require.main === module) {
+  migrar();
+}
+
+module.exports = { migrar };

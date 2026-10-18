@@ -197,7 +197,7 @@ export function filtrarInformes(informes = [], criterios = {}) {
 
   const filtrados = informes.filter(({ solicitud, candidato, evaluacion }) => {
     if (resultado && evaluacion?.resultado !== resultado) return false;
-    if (solicitante && solicitud.profesionalResponsable !== solicitante) return false;
+    if (solicitante && solicitud.reclutador !== solicitante) return false;
     if (!busqueda) return true;
     return normalizarTexto(
       [candidato?.nombre, solicitud.cargo, solicitud.familiaCargo, solicitud.ubicacion, `#${solicitud.id}`].join(' '),

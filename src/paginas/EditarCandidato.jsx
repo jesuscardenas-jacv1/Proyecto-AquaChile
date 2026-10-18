@@ -27,8 +27,8 @@ export default function EditarCandidato() {
     );
   }
 
-  const guardar = (datos) => {
-    actualizarCandidato(candidato.id, datos);
+  const guardar = async (datos) => {
+    if (!(await actualizarCandidato(candidato.id, datos))) return;
     navegar('/candidatos', {
       state: { mensaje: 'Candidato actualizado correctamente.', tipo: 'success' },
     });

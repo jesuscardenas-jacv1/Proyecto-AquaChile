@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { autenticarUsuario } from './usuarios';
-import { conectarApi, desconectarApi } from '../servicios/apiDocumentos';
+import { API_HABILITADA, cerrarSesionApi, iniciarSesionApi } from '../servicios/api';
 
 const ContextoAuth = createContext(null);
 const CLAVE_SESION = 'aquachile_sesion_activa';
@@ -29,7 +29,7 @@ function guardarSesion(usuario) {
 /**
  * Proveedor de autenticación y control de acceso por roles (RBAC).
  */
-export function ProveedorAuth({ children, usuarioInicial = undefined }) {
+export function ProveedorAuth({ children, usuarioInicial = undefined, apiHabilitada = API_HABILITADA }) {
   const [usuarioActual, setUsuarioActual] = useState(() => {
     if (usuarioInicial !== undefined) {
       return usuarioInicial;
@@ -37,21 +37,37 @@ export function ProveedorAuth({ children, usuarioInicial = undefined }) {
     return obtenerSesionAlmacenada();
   });
 
-  const iniciarSesion = useCallback((correo, contrasena) => {
-    const resultado = autenticarUsuario(correo, contrasena);
-    if (resultado.ok) {
-      setUsuarioActual(resultado.usuario);
-      guardarSesion(resultado.usuario);
-      // En segundo plano: token del backend para la sección de documentos.
-      conectarApi(correo, contrasena);
-    }
-    return resultado;
+  const entrar = useCallback((usuario) => {
+    setUsuarioActual(usuario);
+    guardarSesion(usuario);
   }, []);
+
+  /**
+   * Inicia sesión contra el backend (los datos quedan en la base de datos). Si el
+   * servidor no responde, usa los usuarios de demostración del navegador (modo local).
+   */
+  const iniciarSesion = useCallback(
+    async (correo, contrasena) => {
+      if (apiHabilitada) {
+        try {
+          const resultado = await iniciarSesionApi(correo, contrasena);
+          if (resultado.ok) entrar(resultado.usuario);
+          return resultado;
+        } catch {
+          // Servidor no disponible: se continúa en modo local.
+        }
+      }
+      const resultado = autenticarUsuario(correo, contrasena);
+      if (resultado.ok) entrar(resultado.usuario);
+      return resultado;
+    },
+    [apiHabilitada, entrar],
+  );
 
   const cerrarSesion = useCallback(() => {
     setUsuarioActual(null);
     guardarSesion(null);
-    desconectarApi();
+    cerrarSesionApi();
   }, []);
 
   const valor = useMemo(
@@ -95,7 +111,7 @@ export function useAuth() {
       esJefatura: false,
       soloLectura: false,
       soloEnEvaluacion: false,
-      iniciarSesion: () => ({ ok: true }),
+      iniciarSesion: async () => ({ ok: true }),
       cerrarSesion: () => {},
     };
   }

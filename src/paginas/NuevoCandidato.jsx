@@ -7,8 +7,9 @@ export default function NuevoCandidato() {
   const { agregarCandidato } = useDatos();
   const navegar = useNavigate();
 
-  const guardar = (datos) => {
-    agregarCandidato(datos);
+  const guardar = async (datos) => {
+    // Si el servidor rechaza el registro, el motivo se muestra arriba y no se navega.
+    if (!(await agregarCandidato(datos))) return;
     navegar('/candidatos', {
       state: { mensaje: 'Candidato registrado correctamente.', tipo: 'success' },
     });

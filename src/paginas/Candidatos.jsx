@@ -18,9 +18,10 @@ export default function Candidatos() {
   const mensaje = ubicacion.state?.mensaje;
   const tipo = ubicacion.state?.tipo ?? 'success';
 
-  const confirmarEliminar = () => {
-    eliminarCandidato(confirmando.id);
+  const confirmarEliminar = async () => {
+    const candidato = confirmando;
     setConfirmando(null);
+    await eliminarCandidato(candidato.id);
   };
 
   return (

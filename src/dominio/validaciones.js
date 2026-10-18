@@ -91,8 +91,8 @@ export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
   const nombreCandidato = limpiar(formulario.nombreCandidato);
   const ceco = limpiar(formulario.ceco);
 
-  if (!limpiar(formulario.profesionalResponsable)) {
-    errores.profesionalResponsable = 'Debe seleccionar el reclutador/a.';
+  if (!limpiar(formulario.reclutador)) {
+    errores.reclutador = 'Debe seleccionar el reclutador/a.';
   }
 
   if (formulario.candidatoId) {

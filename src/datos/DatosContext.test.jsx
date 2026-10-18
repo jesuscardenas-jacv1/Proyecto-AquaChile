@@ -93,14 +93,14 @@ describe('DatosContext', () => {
     expect(result.current.obtenerSolicitud(99)).toBeNull();
   });
 
-  it('asigna el profesional responsable', () => {
+  it('asigna la psicóloga responsable', () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     act(() => {
-      result.current.asignarProfesional(3, 'Javiera Soto');
+      result.current.asignarProfesional(3, 'Ignacia Valdés Ortiz');
     });
 
-    expect(result.current.obtenerSolicitud(3).profesionalResponsable).toBe('Javiera Soto');
+    expect(result.current.obtenerSolicitud(3).profesionalResponsable).toBe('Ignacia Valdés Ortiz');
   });
 
   it('registra la evaluación y finaliza la solicitud', () => {
@@ -187,12 +187,12 @@ describe('DatosContext', () => {
     });
   });
 
-  it('crea las solicitudes nuevas en la etapa Evaluación Recibida', () => {
+  it('crea las solicitudes nuevas en la etapa Evaluación Recibida', async () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 
     let creada;
-    act(() => {
-      creada = result.current.agregarSolicitud({
+    await act(async () => {
+      creada = await result.current.agregarSolicitud({
         candidatoId: 1,
         cargo: 'Técnico de Planta',
         familiaCargo: 'Técnico B C',
@@ -208,12 +208,12 @@ describe('DatosContext', () => {
     );
   });
 
-  it('registra una postulación creando el candidato con el cargo de la oferta', () => {
+  it('registra una postulación creando el candidato con el cargo de la oferta', async () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
 
     let respuesta;
-    act(() => {
-      respuesta = result.current.postular(2, {
+    await act(async () => {
+      respuesta = await result.current.postular(2, {
         nombre: 'Ana Pérez',
         correo: 'Ana.Perez@Correo.cl',
         telefono: '+56911112222',
@@ -250,14 +250,14 @@ describe('DatosContext', () => {
     expect(result.current.postulaciones.at(-1).candidatoId).toBe(20);
   });
 
-  it('actualiza el estado de una postulación', () => {
+  it('actualiza el estado de una postulación', async () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
-    act(() => result.current.actualizarPostulacion(1, { estado: 'En evaluación', solicitudId: 3 }));
+    await act(() => result.current.actualizarPostulacion(1, { estado: 'En evaluación', solicitudId: 3 }));
     expect(result.current.obtenerPostulacion(1)).toMatchObject({ estado: 'En evaluación', solicitudId: 3 });
   });
 
-  it('no permite postular a una oferta inexistente', () => {
+  it('no permite postular a una oferta inexistente', async () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosPortal)) });
-    expect(() => result.current.postular(99, {})).toThrow(/no existe/);
+    await expect(result.current.postular(99, {})).rejects.toThrow(/no existe/);
   });
 });

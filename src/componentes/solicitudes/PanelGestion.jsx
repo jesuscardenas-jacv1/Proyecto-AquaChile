@@ -1,7 +1,7 @@
-import { ESTADOS_SOLICITUD, PROFESIONALES } from '../../datos/constantes';
+import { ESTADOS_SOLICITUD, EVALUADORES } from '../../datos/constantes';
 
 /**
- * Panel para asignar profesional responsable y cambiar el estado de la solicitud.
+ * Panel para asignar la psicóloga responsable y cambiar el estado de la solicitud.
  * Los valores se leen siempre de la solicitud y cada cambio se guarda al momento,
  * así el panel refleja los cambios automáticos (p. ej. al registrar una evaluación).
  * Con `soloLectura` (perfil jefatura) muestra los valores sin permitir cambios.
@@ -40,7 +40,7 @@ export default function PanelGestion({
 
           <div className="col-12 col-md-6">
             <label className="form-label" htmlFor="profesional-responsable">
-              Profesional responsable
+              Psicóloga responsable
             </label>
             <select
               id="profesional-responsable"
@@ -50,7 +50,7 @@ export default function PanelGestion({
               onChange={(evento) => alAsignarProfesional(evento.target.value)}
             >
               <option value="">Sin asignar</option>
-              {PROFESIONALES.map((nombre) => (
+              {EVALUADORES.map((nombre) => (
                 <option key={nombre} value={nombre}>
                   {nombre}
                 </option>
