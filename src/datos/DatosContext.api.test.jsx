@@ -122,9 +122,10 @@ describe('DatosContext en modo API', () => {
     expect(result.current.datos.candidatos.length).toBeGreaterThan(0);
   });
 
-  it('cierra la sesión si se inició sin servidor y ahora el servidor responde', async () => {
+  it('cierra la sesión (con aviso) si se inició sin servidor y ahora el servidor responde', async () => {
     const { result, api } = montar();
     await waitFor(() => expect(result.current.auth.estaAutenticado).toBe(false));
+    expect(result.current.datos.errorOperacion).toMatch(/Inicie sesión nuevamente/);
     await waitFor(() => expect(api.cargarPublico).toHaveBeenCalled());
     expect(api.cargarTodo).not.toHaveBeenCalled();
   });
@@ -134,5 +135,35 @@ describe('DatosContext en modo API', () => {
     const api = crearApi({ cargarTodo: vi.fn().mockRejectedValue(new ErrorApi('Token inválido o expirado.', { status: 401 })) });
     const { result } = montar({ api });
     await waitFor(() => expect(result.current.auth.estaAutenticado).toBe(false));
+  });
+});
+
+describe('DatosContext cuando el servidor deja de responder', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('con sesión sin token y servidor caído sigue en modo local sin cerrar la sesión', async () => {
+    // El servidor respondía al abrir la página (modo api) y luego dejó de responder.
+    const comprobarServidor = vi.fn().mockResolvedValueOnce(true).mockResolvedValue(false);
+    const api = crearApi();
+    const wrapper = ({ children }) => (
+      <ProveedorAuth usuarioInicial={analista} apiHabilitada>
+        <ProveedorDatos apiHabilitada api={api} comprobarServidor={comprobarServidor}>
+          {children}
+        </ProveedorDatos>
+      </ProveedorAuth>
+    );
+    const { result } = renderHook(() => ({ datos: useDatos(), auth: useAuth() }), { wrapper });
+
+    await waitFor(() => expect(result.current.datos.modo).toBe('local'));
+    expect(result.current.auth.estaAutenticado).toBe(true);
+    expect(result.current.datos.candidatos.length).toBeGreaterThan(0);
+  });
+
+  it('si la carga falla por conexión pasa a modo local', async () => {
+    sessionStorage.setItem('aquachile_token_api', 'jwt');
+    const api = crearApi({ cargarTodo: vi.fn().mockRejectedValue(new ErrorApi('Sin conexión', { noDisponible: true })) });
+    const { result } = montar({ api });
+    await waitFor(() => expect(result.current.datos.modo).toBe('local'));
+    expect(result.current.datos.errorOperacion).toBeNull();
   });
 });

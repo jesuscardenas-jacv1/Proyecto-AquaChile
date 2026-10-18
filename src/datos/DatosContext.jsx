@@ -81,23 +81,39 @@ export function ProveedorDatos({
   const rol = usuarioActual?.rol;
   const idUsuario = usuarioActual?.id;
 
+  /** El servidor dejó de responder: se sigue trabajando con los datos de demostración. */
+  const pasarAModoLocal = useCallback(() => {
+    setDatos(completar(cargarDatos()));
+    setModo('local');
+  }, []);
+
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
       if (idUsuario && !obtenerToken()) {
-        // Sesión iniciada sin servidor: hay que volver a entrar para usar la base de datos.
-        cerrarSesion();
+        // Sesión iniciada sin token (el login no pudo usar el servidor). Si el servidor
+        // sigue sin responder se continúa en modo local; si responde, hay que volver a entrar.
+        if (await comprobarServidor()) {
+          setErrorOperacion('Su sesión no está registrada en el servidor. Inicie sesión nuevamente.');
+          cerrarSesion();
+        } else {
+          pasarAModoLocal();
+        }
         return;
       }
       const cargados = idUsuario ? await api.cargarTodo(rol) : await api.cargarPublico();
       setDatos(completar(cargados));
     } catch (error) {
+      if (error.noDisponible && error.status !== 401) {
+        pasarAModoLocal();
+        return;
+      }
       setErrorOperacion(error.message);
       if (error.status === 401) cerrarSesion();
     } finally {
       setCargando(false);
     }
-  }, [api, rol, idUsuario, cerrarSesion]);
+  }, [api, rol, idUsuario, cerrarSesion, comprobarServidor, pasarAModoLocal]);
 
   useEffect(() => {
     if (modo === 'api') cargar();

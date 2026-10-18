@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../datos/AuthContext';
+import { ContextoDatos } from '../datos/DatosContext';
 import logoAquaChile from '../assets/logo-aquachile-blanco.png';
 
 /**
@@ -15,6 +16,8 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
 
   const { iniciarSesion, estaAutenticado } = useAuth();
+  // Aviso del servidor (p. ej. una sesión que hubo que cerrar) mientras no haya error propio.
+  const errorOperacion = useContext(ContextoDatos)?.errorOperacion;
   const navegar = useNavigate();
   const ubicacion = useLocation();
 
@@ -67,13 +70,13 @@ export default function Login() {
             Iniciar sesión
           </h2>
 
-          {error ? (
+          {error || errorOperacion ? (
             <div
               className="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-3"
               role="alert"
             >
               <i className="bi bi-exclamation-triangle-fill flex-shrink-0" aria-hidden="true" />
-              <div>{error}</div>
+              <div>{error || errorOperacion}</div>
             </div>
           ) : null}
 
