@@ -119,8 +119,14 @@ function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error })
  * Automatiza los datos derivables: al escribir un candidato registrado completa su origen
  * y cargo; el cargo completa la familia y el descriptor, y la ubicación la unidad.
  */
-export default function FormularioSolicitud({ candidatos = [], alGuardar, alCancelar }) {
-  const [formulario, setFormulario] = useState(camposIniciales);
+export default function FormularioSolicitud({
+  candidatos = [],
+  alGuardar,
+  alCancelar,
+  valoresIniciales = {},
+}) {
+  // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
+  const [formulario, setFormulario] = useState(() => ({ ...camposIniciales(), ...valoresIniciales }));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
+import { COLECCIONES, cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
 import { ESTADOS_EVALUACION } from './constantes';
 import { estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
 import { estadoDeEtapa } from '../dominio/planner';
@@ -21,7 +21,11 @@ const normalizarCandidato = (datos) => ({
  * Mantiene candidatos, solicitudes y evaluaciones, y los persiste en localStorage.
  */
 export function ProveedorDatos({ children, datosIniciales }) {
-  const [datos, setDatos] = useState(() => datosIniciales ?? cargarDatos());
+  // Las colecciones que falten (p. ej. en datos de prueba antiguos) parten vacías.
+  const [datos, setDatos] = useState(() => {
+    const iniciales = datosIniciales ?? cargarDatos();
+    return Object.fromEntries(COLECCIONES.map((coleccion) => [coleccion, iniciales[coleccion] ?? []]));
+  });
 
   useEffect(() => {
     guardarDatos(datos);
@@ -185,6 +189,70 @@ export function ProveedorDatos({ children, datosIniciales }) {
     [],
   );
 
+  /* --------------------------- Ofertas y postulaciones --------------------------- */
+
+  const obtenerOferta = useCallback(
+    (id) => datos.ofertas.find((oferta) => oferta.id === Number(id)) ?? null,
+    [datos.ofertas],
+  );
+
+  const obtenerPostulacion = useCallback(
+    (id) => datos.postulaciones.find((postulacion) => postulacion.id === Number(id)) ?? null,
+    [datos.postulaciones],
+  );
+
+  /**
+   * Registra una postulación desde el portal público. Si ya existe un candidato con el
+   * mismo correo se reutiliza; si no, se crea con el cargo y familia de la oferta.
+   */
+  const postular = useCallback(
+    (ofertaId, datosPostulante) => {
+      const oferta = datos.ofertas.find((item) => item.id === Number(ofertaId));
+      if (!oferta) throw new Error('La oferta no existe o ya no está disponible.');
+
+      const correo = datosPostulante.correo.trim().toLowerCase();
+      const existente = datos.candidatos.find((candidato) => candidato.correo === correo);
+      const candidato = existente ?? {
+        id: generarId(datos.candidatos),
+        ...normalizarCandidato({
+          nombre: datosPostulante.nombre,
+          correo,
+          telefono: datosPostulante.telefono,
+          cargo: oferta.cargo,
+          familiaCargo: oferta.familiaCargo,
+          origen: datosPostulante.origen,
+        }),
+      };
+      const postulacion = {
+        id: generarId(datos.postulaciones),
+        ofertaId: oferta.id,
+        candidatoId: candidato.id,
+        fechaPostulacion: new Date().toISOString().slice(0, 10),
+        estado: 'Recibida',
+        ciudad: datosPostulante.ciudad.trim(),
+        cvNombre: datosPostulante.cvNombre ?? '',
+        solicitudId: null,
+      };
+
+      setDatos((actual) => ({
+        ...actual,
+        candidatos: existente ? actual.candidatos : [...actual.candidatos, candidato],
+        postulaciones: [...actual.postulaciones, postulacion],
+      }));
+      return { postulacion, candidato };
+    },
+    [datos.ofertas, datos.candidatos, datos.postulaciones],
+  );
+
+  const actualizarPostulacion = useCallback((id, cambios) => {
+    setDatos((actual) => ({
+      ...actual,
+      postulaciones: actual.postulaciones.map((postulacion) =>
+        postulacion.id === Number(id) ? { ...postulacion, ...cambios } : postulacion,
+      ),
+    }));
+  }, []);
+
   /** Restaura los datos semilla (útil para demos y pruebas). */
   const reiniciarDatos = useCallback(() => {
     setDatos(obtenerSemilla());
@@ -195,6 +263,12 @@ export function ProveedorDatos({ children, datosIniciales }) {
       candidatos: datos.candidatos,
       solicitudes: datos.solicitudes,
       evaluaciones: datos.evaluaciones,
+      ofertas: datos.ofertas,
+      postulaciones: datos.postulaciones,
+      obtenerOferta,
+      obtenerPostulacion,
+      postular,
+      actualizarPostulacion,
       agregarCandidato,
       actualizarCandidato,
       eliminarCandidato,
@@ -221,6 +295,10 @@ export function ProveedorDatos({ children, datosIniciales }) {
       moverEtapa,
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
+      obtenerOferta,
+      obtenerPostulacion,
+      postular,
+      actualizarPostulacion,
       reiniciarDatos,
     ],
   );

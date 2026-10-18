@@ -65,6 +65,32 @@ function claveCarpeta(solicitudId) {
   return `S${String(solicitudId).padStart(4, '0')}`;
 }
 
+/** Carpeta de una postulación del portal (antes de pasar a evaluación). */
+function claveCarpetaPostulacion(postulacionId) {
+  return `P${String(postulacionId).padStart(4, '0')}`;
+}
+
+function nombreCarpetaPostulacion(postulacionId, nombreCandidato) {
+  const candidato = limpiarNombre(nombreCandidato, 80);
+  const clave = claveCarpetaPostulacion(postulacionId);
+  return candidato ? `${clave} - ${candidato}` : clave;
+}
+
+/** El CV del portal acepta solo documentos (PDF o Word), hasta 5 MB. */
+const EXTENSIONES_CV_PORTAL = ['pdf', 'doc', 'docx'];
+const TAMANO_MAXIMO_CV_PORTAL = 5 * 1024 * 1024;
+
+function validarCvPortal({ nombre, tamano }) {
+  if (!limpiarNombre(nombre)) throw new ErrorAlmacenamiento('Debe indicar el nombre del archivo.', 400);
+  if (!EXTENSIONES_CV_PORTAL.includes(extensionDe(nombre))) {
+    throw new ErrorAlmacenamiento('El currículum debe ser PDF o Word.', 400);
+  }
+  if (!tamano) throw new ErrorAlmacenamiento('El archivo está vacío.', 400);
+  if (tamano > TAMANO_MAXIMO_CV_PORTAL) {
+    throw new ErrorAlmacenamiento('El currículum supera el máximo de 5 MB.', 413);
+  }
+}
+
 function nombreCarpeta(solicitudId, nombreCandidato) {
   const candidato = limpiarNombre(nombreCandidato, 80);
   return candidato ? `${claveCarpeta(solicitudId)} - ${candidato}` : claveCarpeta(solicitudId);
@@ -132,6 +158,10 @@ module.exports = {
   limpiarNombre,
   claveCarpeta,
   nombreCarpeta,
+  claveCarpetaPostulacion,
+  nombreCarpetaPostulacion,
+  validarCvPortal,
+  TAMANO_MAXIMO_CV_PORTAL,
   esCarpetaDeSolicitud,
   extensionDe,
   tipoMime,
