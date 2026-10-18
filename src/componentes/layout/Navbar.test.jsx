@@ -49,9 +49,10 @@ describe('Navbar', () => {
     expect(menu).not.toHaveClass('show');
   });
 
-  it('expande solo el botón de menú en pantallas grandes', () => {
+  it('muestra el menú siempre visible en escritorio y el botón solo en pantallas pequeñas', () => {
     renderNavbar();
-    expect(screen.getByRole('button', { name: /alternar navegación/i })).toHaveClass('navbar-toggler');
+    expect(screen.getByRole('button', { name: /alternar navegación/i })).toHaveClass('d-lg-none');
+    expect(document.getElementById('menu-principal')).toHaveClass('d-lg-block');
   });
 
   it('incluye el enlace para crear una nueva solicitud', () => {
