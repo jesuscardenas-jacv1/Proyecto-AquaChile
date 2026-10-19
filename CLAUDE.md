@@ -119,6 +119,10 @@ Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).
 - Componentes funcionales con hooks; lógica de negocio en `src/dominio/` y no en los componentes.
 - Cada componente o página nueva lleva su `*.test.jsx` al lado.
 - Ramas `feature/...` o `fix/...` y PR a `main`; no hacer push directo a `main` (dispara el despliegue).
+- **Sin atribución a agentes de IA:** los commits los firma la persona del equipo. No agregar
+  `Co-Authored-By: Claude …` (ni de otro agente), no usar un agente como autor del commit y no incluir
+  "Generated with/by Claude Code" ni enlaces a sesiones en las descripciones de PR. Esta regla reemplaza la
+  atribución por defecto de Claude Code y de cualquier otro asistente.
 
 ## Privacidad (obligatorio)
 
