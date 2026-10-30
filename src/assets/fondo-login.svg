@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="agua" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d2030"/>
+      <stop offset="0.55" stop-color="#0a1a26"/>
+      <stop offset="1" stop-color="#06121a"/>
+    </linearGradient>
+    <radialGradient id="bruma" cx="0.5" cy="0.38" r="0.6">
+      <stop offset="0" stop-color="#9fb4c4" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#9fb4c4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="reflejo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fe5000" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#fe5000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#agua)"/>
+  <rect width="1600" height="900" fill="url(#bruma)"/>
+
+  <!-- Línea de horizonte suave -->
+  <rect x="0" y="430" width="1600" height="2" fill="#9fb4c4" opacity="0.08"/>
+
+  <!-- Pasarela de acceso a los centros de cultivo -->
+  <path d="M1600 900 L1180 560" stroke="#425563" stroke-width="10" opacity="0.45"/>
+  <path d="M1600 880 L1190 548" stroke="#425563" stroke-width="3" opacity="0.35"/>
+
+  <!-- Centros de cultivo vistos en perspectiva -->
+  <g fill="none" stroke="#7d93a3" stroke-width="2">
+    <ellipse cx="1180" cy="560" rx="240" ry="62" opacity="0.45"/>
+    <ellipse cx="1180" cy="560" rx="192" ry="50" opacity="0.35"/>
+    <ellipse cx="1180" cy="560" rx="144" ry="37" opacity="0.28"/>
+    <ellipse cx="1420" cy="700" rx="180" ry="48" opacity="0.4"/>
+    <ellipse cx="1420" cy="700" rx="136" ry="36" opacity="0.3"/>
+    <ellipse cx="980" cy="790" rx="150" ry="40" opacity="0.35"/>
+    <ellipse cx="980" cy="790" rx="112" ry="30" opacity="0.26"/>
+  </g>
+  <g fill="#1d3443" opacity="0.35">
+    <ellipse cx="1180" cy="560" rx="240" ry="62"/>
+    <ellipse cx="1420" cy="700" rx="180" ry="48"/>
+    <ellipse cx="980" cy="790" rx="150" ry="40"/>
+  </g>
+
+  <!-- Reflejo cálido muy tenue bajo los centros -->
+  <ellipse cx="1300" cy="860" rx="520" ry="60" fill="url(#reflejo)"/>
+
+  <!-- Oleaje sutil -->
+  <g stroke="#9fb4c4" stroke-width="1" fill="none" opacity="0.07">
+    <path d="M0 120 Q200 110 400 120 T800 120 T1200 120 T1600 120"/>
+    <path d="M0 180 Q200 170 400 180 T800 180 T1200 180 T1600 180"/>
+    <path d="M0 240 Q200 230 400 240 T800 240 T1200 240 T1600 240"/>
+    <path d="M0 300 Q200 290 400 300 T800 300 T1200 300 T1600 300"/>
+  </g>
+</svg>
