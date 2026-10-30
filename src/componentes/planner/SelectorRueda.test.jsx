@@ -82,3 +82,32 @@ describe('SelectorHora', () => {
     expect(minutos).toHaveLength(1);
   });
 });
+
+describe('SelectorHora en formato AM/PM', () => {
+  it('muestra la hora de 12 h con su periodo', () => {
+    render(<SelectorHora valor="15:30" onChange={() => {}} />);
+    expect(screen.getByText('03:30 PM')).toBeInTheDocument();
+    expect(within(screen.getByRole('listbox', { name: 'AM o PM' })).getByRole('option', { selected: true })).toHaveTextContent('PM');
+  });
+
+  it('cambia a PM manteniendo la hora dentro del rango', async () => {
+    const usuario = userEvent.setup();
+    const cambios = vi.fn();
+    render(<SelectorHora valor="10:00" onChange={cambios} />);
+
+    await usuario.click(within(screen.getByRole('listbox', { name: 'AM o PM' })).getByRole('option', { name: 'PM' }));
+    expect(cambios).toHaveBeenLastCalledWith('20:00');
+  });
+
+  it('no permite horas AM fuera del rango (12 AM)', () => {
+    render(<SelectorHora valor="09:00" onChange={() => {}} />);
+    const horas = within(screen.getByRole('listbox', { name: 'Hora' })).getAllByRole('option').map((o) => o.textContent);
+    expect(horas).toEqual(['08', '09', '10', '11']);
+  });
+
+  it('ofrece 12 PM y hasta 08 PM', () => {
+    render(<SelectorHora valor="13:00" onChange={() => {}} />);
+    const horas = within(screen.getByRole('listbox', { name: 'Hora' })).getAllByRole('option').map((o) => o.textContent);
+    expect(horas).toEqual(['12', '01', '02', '03', '04', '05', '06', '07', '08']);
+  });
+});
