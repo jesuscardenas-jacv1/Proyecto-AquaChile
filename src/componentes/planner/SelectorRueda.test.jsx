@@ -83,31 +83,28 @@ describe('SelectorHora', () => {
   });
 });
 
-describe('SelectorHora en formato AM/PM', () => {
-  it('muestra la hora de 12 h con su periodo', () => {
-    render(<SelectorHora valor="15:30" onChange={() => {}} />);
-    expect(screen.getByText('03:30 PM')).toBeInTheDocument();
-    expect(within(screen.getByRole('listbox', { name: 'AM o PM' })).getByRole('option', { selected: true })).toHaveTextContent('PM');
-  });
-
-  it('cambia a PM manteniendo la hora dentro del rango', async () => {
+describe('SelectorHora con selector AM/PM', () => {
+  it('pasa a PM dejando la hora en la tarde', async () => {
     const usuario = userEvent.setup();
     const cambios = vi.fn();
     render(<SelectorHora valor="10:00" onChange={cambios} />);
 
-    await usuario.click(within(screen.getByRole('listbox', { name: 'AM o PM' })).getByRole('option', { name: 'PM' }));
-    expect(cambios).toHaveBeenLastCalledWith('20:00');
+    await usuario.click(screen.getByRole('button', { name: 'PM' }));
+    expect(cambios).toHaveBeenLastCalledWith('12:00');
   });
 
-  it('no permite horas AM fuera del rango (12 AM)', () => {
-    render(<SelectorHora valor="09:00" onChange={() => {}} />);
-    const horas = within(screen.getByRole('listbox', { name: 'Hora' })).getAllByRole('option').map((o) => o.textContent);
-    expect(horas).toEqual(['08', '09', '10', '11']);
+  it('pasa a AM dejando la hora en la mañana', async () => {
+    const usuario = userEvent.setup();
+    const cambios = vi.fn();
+    render(<SelectorHora valor="15:30" onChange={cambios} />);
+
+    await usuario.click(screen.getByRole('button', { name: 'AM' }));
+    expect(cambios).toHaveBeenLastCalledWith('11:30');
   });
 
-  it('ofrece 12 PM y hasta 08 PM', () => {
-    render(<SelectorHora valor="13:00" onChange={() => {}} />);
-    const horas = within(screen.getByRole('listbox', { name: 'Hora' })).getAllByRole('option').map((o) => o.textContent);
-    expect(horas).toEqual(['12', '01', '02', '03', '04', '05', '06', '07', '08']);
+  it('marca el periodo actual', () => {
+    render(<SelectorHora valor="15:30" onChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'PM' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'AM' })).toHaveAttribute('aria-pressed', 'false');
   });
 });
