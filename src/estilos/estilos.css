@@ -1302,7 +1302,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .selector-rueda-grupo-hora {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .selector-rueda {
