@@ -26,6 +26,9 @@ const renderPlanner = (usuario = EVALUADORA) =>
     </MemoryRouter>,
   );
 
+const elegirOpcion = (usuario, lista, texto) =>
+  usuario.click(within(lista).getByRole('option', { name: texto }));
+
 const columna = (titulo) => screen.getByRole('region', { name: new RegExp(titulo, 'i') });
 
 describe('Planner', () => {
@@ -50,10 +53,11 @@ describe('Planner', () => {
     expect(within(ventana).getByText('Debe indicar la fecha de la entrevista.')).toBeInTheDocument();
     expect(within(ventana).getByText('Debe indicar la hora de la entrevista.')).toBeInTheDocument();
 
-    fireEvent.change(within(ventana).getByLabelText(/fecha de la entrevista/i), {
-      target: { value: '2026-10-20' },
-    });
-    fireEvent.change(within(ventana).getByLabelText(/hora/i), { target: { value: '10:30' } });
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Año' }), '2026');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Mes' }), 'Octubre');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Día' }), '20');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Hora' }), '10');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Minuto' }), '30');
     await usuario.selectOptions(within(ventana).getByLabelText(/modalidad/i), 'Presencial');
     await usuario.click(within(ventana).getByRole('button', { name: /^agendar$/i }));
 
