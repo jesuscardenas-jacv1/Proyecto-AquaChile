@@ -196,44 +196,17 @@ export function SelectorFecha({ valor, onChange, anioMinimo, anioMaximo, refInic
  * Selector de hora con dos ruedas (hora y minuto). Solo ofrece el horario de entrevistas
  * (08:00 a 20:00), así no se puede elegir una hora que la validación rechazaría.
  */
-const HORA_MINIMA = 8;
-const HORA_MAXIMA = 20;
-const HORAS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-const PERIODOS = [
-  { valor: 'AM', texto: 'AM' },
-  { valor: 'PM', texto: 'PM' },
-];
-
-/** Convierte hora de 12 h + periodo a 24 h, sin limitar al rango de la entrevista. */
-function aHora24(hora12, periodo) {
-  return (hora12 % 12) + (periodo === 'PM' ? 12 : 0);
-}
-
-/** Horas de 12 h que caen dentro del rango 08:00–20:00 para el periodo indicado. */
-function horasDelPeriodo(periodo) {
-  return HORAS_12.filter((hora12) => {
-    const hora24 = aHora24(hora12, periodo);
-    return hora24 >= HORA_MINIMA && hora24 <= HORA_MAXIMA;
-  });
-}
-
-function ajustarHora(hora24) {
-  return Math.min(Math.max(hora24, HORA_MINIMA), HORA_MAXIMA);
-}
-
 export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevista' }) {
   const actual = descomponerHora(valor) ?? { hora: 9, minuto: 0 };
-  const hora12 = actual.hora % 12 === 0 ? 12 : actual.hora % 12;
-  const periodo = actual.hora < 12 ? 'AM' : 'PM';
-
-  const horas = horasDelPeriodo(periodo).map((n) => ({ valor: n, texto: String(n).padStart(2, '0') }));
+  const horas = rango(8, 20).map((n) => ({ valor: n, texto: String(n).padStart(2, '0') }));
   const minutos = rango(0, actual.hora === 20 ? 0 : 59).map((n) => ({ valor: n, texto: String(n).padStart(2, '0') }));
 
   const cambiar = (cambio) => onChange(componerHora({ ...actual, ...cambio }));
 
-  const cambiarHoraEn = (nuevaHora12, nuevoPeriodo) => {
-    const hora = ajustarHora(aHora24(nuevaHora12, nuevoPeriodo));
-    cambiar({ hora, minuto: hora === HORA_MAXIMA ? 0 : actual.minuto });
+  const periodo = actual.hora < 12 ? 'AM' : 'PM';
+  const cambiarPeriodo = (nuevoPeriodo) => {
+    const hora = nuevoPeriodo === 'AM' ? Math.min(actual.hora, 11) : Math.max(actual.hora, 12);
+    cambiar({ hora, minuto: hora === 20 ? 0 : actual.minuto });
   };
 
   return (
@@ -242,9 +215,9 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
         <RuedaColumna
           etiqueta="Hora"
           opciones={horas}
-          valor={hora12}
+          valor={actual.hora}
           pendiente={!valor}
-          alCambiar={(nuevaHora12) => cambiarHoraEn(nuevaHora12, periodo)}
+          alCambiar={(hora) => cambiar({ hora, minuto: hora === 20 ? 0 : actual.minuto })}
         />
         <RuedaColumna
           etiqueta="Minuto"
@@ -253,19 +226,23 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
           pendiente={!valor}
           alCambiar={(minuto) => cambiar({ minuto })}
         />
-        <RuedaColumna
-          etiqueta="AM o PM"
-          opciones={PERIODOS}
-          valor={periodo}
-          pendiente={!valor}
-          alCambiar={(nuevoPeriodo) => cambiarHoraEn(hora12, nuevoPeriodo)}
-        />
       </div>
-      <p className="selector-resumen small mb-0 mt-2">
-        {valor
-          ? `${String(hora12).padStart(2, '0')}:${String(actual.minuto).padStart(2, '0')} ${periodo}`
-          : 'Elija hora, minuto y AM/PM'}
-      </p>
+      <div className="selector-resumen-fila d-flex align-items-center justify-content-center gap-3 mt-2">
+        <p className="selector-resumen small mb-0">{valor ? `${componerHora(actual)} h` : 'Elija hora y minuto'}</p>
+        <div className="btn-group btn-group-sm" role="group" aria-label="AM o PM">
+          {['AM', 'PM'].map((opcion) => (
+            <button
+              key={opcion}
+              type="button"
+              className={`btn ${periodo === opcion ? 'btn-primary' : 'btn-outline-secondary'}`}
+              aria-pressed={periodo === opcion}
+              onClick={() => cambiarPeriodo(opcion)}
+            >
+              {opcion}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
