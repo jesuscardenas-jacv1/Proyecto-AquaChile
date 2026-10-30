@@ -83,28 +83,13 @@ describe('SelectorHora', () => {
   });
 });
 
-describe('SelectorHora con selector AM/PM', () => {
-  it('pasa a PM dejando la hora en la tarde', async () => {
-    const usuario = userEvent.setup();
-    const cambios = vi.fn();
-    render(<SelectorHora valor="10:00" onChange={cambios} />);
+describe('SelectorHora con periodo automático', () => {
+  it('muestra AM o PM según la hora del reloj, sin botones', () => {
+    const { rerender } = render(<SelectorHora valor="10:00" onChange={() => {}} />);
+    expect(screen.getByText('10:00 h (AM)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'AM' })).not.toBeInTheDocument();
 
-    await usuario.click(screen.getByRole('button', { name: 'PM' }));
-    expect(cambios).toHaveBeenLastCalledWith('12:00');
-  });
-
-  it('pasa a AM dejando la hora en la mañana', async () => {
-    const usuario = userEvent.setup();
-    const cambios = vi.fn();
-    render(<SelectorHora valor="15:30" onChange={cambios} />);
-
-    await usuario.click(screen.getByRole('button', { name: 'AM' }));
-    expect(cambios).toHaveBeenLastCalledWith('11:30');
-  });
-
-  it('marca el periodo actual', () => {
-    render(<SelectorHora valor="15:30" onChange={() => {}} />);
-    expect(screen.getByRole('button', { name: 'PM' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'AM' })).toHaveAttribute('aria-pressed', 'false');
+    rerender(<SelectorHora valor="12:00" onChange={() => {}} />);
+    expect(screen.getByText('12:00 h (PM)')).toBeInTheDocument();
   });
 });
