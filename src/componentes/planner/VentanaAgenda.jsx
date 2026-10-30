@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MODALIDADES_ENTREVISTA } from '../../datos/constantes';
 import { hoyIso, validarAgenda } from '../../dominio/planner';
+import { SelectorFecha, SelectorHora } from './SelectorRueda';
 
 const SELECTOR_ENFOCABLES =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -55,8 +56,8 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
     };
   }, []);
 
-  const cambiar = (campo) => (evento) => {
-    setAgenda((actual) => ({ ...actual, [campo]: evento.target.value }));
+  const cambiar = (campo) => (valor) => {
+    setAgenda((actual) => ({ ...actual, [campo]: valor }));
     setErrores((actual) => ({ ...actual, [campo]: undefined }));
   };
 
@@ -102,41 +103,20 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
 
             <div className="modal-body">
               <div className="row g-3">
-                <div className="col-12 col-sm-6">
-                  <label className="form-label" htmlFor="agenda-fecha">
-                    Fecha de la entrevista
-                  </label>
-                  <input
-                    ref={refPrimerCampo}
-                    id="agenda-fecha"
-                    type="date"
-                    className={claseCampo('fechaEntrevista', 'form-control')}
-                    min={solicitud.fechaSolicitud || undefined}
-                    value={agenda.fechaEntrevista}
+                <div className="col-12 col-md-6">
+                  <SelectorFecha
+                    valor={agenda.fechaEntrevista}
                     onChange={cambiar('fechaEntrevista')}
-                    aria-describedby="agenda-fecha-error"
+                    refInicial={refPrimerCampo}
                   />
-                  <div id="agenda-fecha-error" className="invalid-feedback">
+                  <div className={errores.fechaEntrevista ? 'text-danger small mt-1' : 'visually-hidden'}>
                     {errores.fechaEntrevista}
                   </div>
                 </div>
 
-                <div className="col-12 col-sm-6">
-                  <label className="form-label" htmlFor="agenda-hora">
-                    Hora
-                  </label>
-                  <input
-                    id="agenda-hora"
-                    type="time"
-                    className={claseCampo('horaEntrevista', 'form-control')}
-                    min="08:00"
-                    max="20:00"
-                    step="900"
-                    value={agenda.horaEntrevista}
-                    onChange={cambiar('horaEntrevista')}
-                    aria-describedby="agenda-hora-error"
-                  />
-                  <div id="agenda-hora-error" className="invalid-feedback">
+                <div className="col-12 col-md-6">
+                  <SelectorHora valor={agenda.horaEntrevista} onChange={cambiar('horaEntrevista')} />
+                  <div className={errores.horaEntrevista ? 'text-danger small mt-1' : 'visually-hidden'}>
                     {errores.horaEntrevista}
                   </div>
                 </div>
@@ -149,7 +129,7 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
                     id="agenda-modalidad"
                     className={claseCampo('modalidadEntrevista', 'form-select')}
                     value={agenda.modalidadEntrevista}
-                    onChange={cambiar('modalidadEntrevista')}
+                    onChange={(evento) => cambiar('modalidadEntrevista')(evento.target.value)}
                     aria-describedby="agenda-modalidad-error"
                   >
                     {MODALIDADES_ENTREVISTA.map((modalidad) => (

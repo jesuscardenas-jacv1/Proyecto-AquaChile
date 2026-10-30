@@ -919,8 +919,6 @@ h1, h2, h3, h4, h5, h6,
 
 .app-principal {
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
   padding: 1.5rem 1rem 2rem;
 }
 
@@ -1294,4 +1292,78 @@ h1, h2, h3, h4, h5, h6,
 .app-principal .planner-contador {
   background-color: #ffffff;
   color: var(--austral-titulo);
+}
+
+/* Selector de fecha y hora con ruedas (estilo iPhone). Alto: 36px por opción, 5 visibles. */
+.selector-rueda-grupo {
+  display: grid;
+  grid-template-columns: 1fr 1.7fr 1fr;
+  gap: 0.5rem;
+}
+
+.selector-rueda-grupo-hora {
+  grid-template-columns: 1fr 1fr;
+}
+
+.selector-rueda {
+  position: relative;
+}
+
+.selector-rueda::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 72px;
+  height: 36px;
+  border-top: 1px solid var(--austral-borde-activo);
+  border-bottom: 1px solid var(--austral-borde-activo);
+  background-color: rgba(66, 85, 99, 0.18);
+  pointer-events: none;
+}
+
+.selector-rueda-lista {
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  border: 1px solid var(--austral-borde);
+  border-radius: 4px;
+  background-color: var(--austral-entrada);
+  -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+  mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+  outline: none;
+  overscroll-behavior: contain;
+}
+
+.selector-rueda-lista:focus-visible {
+  box-shadow: 0 0 0 2px var(--austral-pizarra);
+}
+
+.selector-rueda-lista::-webkit-scrollbar {
+  display: none;
+}
+
+.selector-rueda-opcion {
+  scroll-snap-align: center;
+  text-align: center;
+  color: var(--austral-texto-suave);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s ease;
+}
+
+.selector-rueda-activa {
+  color: var(--austral-titulo);
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.selector-rueda-pendiente {
+  opacity: 0.55;
+}
+
+.selector-resumen {
+  color: var(--austral-texto-suave);
+  text-align: center;
 }
