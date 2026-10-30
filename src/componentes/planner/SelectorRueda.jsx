@@ -204,10 +204,6 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
   const cambiar = (cambio) => onChange(componerHora({ ...actual, ...cambio }));
 
   const periodo = actual.hora < 12 ? 'AM' : 'PM';
-  const cambiarPeriodo = (nuevoPeriodo) => {
-    const hora = nuevoPeriodo === 'AM' ? Math.min(actual.hora, 11) : Math.max(actual.hora, 12);
-    cambiar({ hora, minuto: hora === 20 ? 0 : actual.minuto });
-  };
 
   return (
     <div role="group" aria-label={etiqueta}>
@@ -227,22 +223,9 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
           alCambiar={(minuto) => cambiar({ minuto })}
         />
       </div>
-      <div className="selector-resumen-fila d-flex align-items-center justify-content-center gap-3 mt-2">
-        <p className="selector-resumen small mb-0">{valor ? `${componerHora(actual)} h` : 'Elija hora y minuto'}</p>
-        <div className="btn-group btn-group-sm" role="group" aria-label="AM o PM">
-          {['AM', 'PM'].map((opcion) => (
-            <button
-              key={opcion}
-              type="button"
-              className={`btn ${periodo === opcion ? 'btn-primary' : 'btn-outline-secondary'}`}
-              aria-pressed={periodo === opcion}
-              onClick={() => cambiarPeriodo(opcion)}
-            >
-              {opcion}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p className="selector-resumen small mb-0 mt-2">
+        {valor ? `${componerHora(actual)} h (${periodo})` : 'Elija hora y minuto'}
+      </p>
     </div>
   );
 }
