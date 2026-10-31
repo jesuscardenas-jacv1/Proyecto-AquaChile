@@ -7,12 +7,18 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
+const fs = require('fs/promises');
+const os = require('os');
+const path = require('path');
 const app = require('./servidor');
 const { JWT_SECRETO } = require('./middlewares/auth');
+const { establecerAlmacenamiento } = require('./almacenamiento');
+const { AlmacenamientoLocal } = require('./almacenamiento/local');
 
 describe('API integrada (Hito 2)', () => {
   let servidor;
   let base;
+  let raizDocumentos;
   const cabeceras = (rol) => ({
     Authorization: `Bearer ${jwt.sign({ id: 1, nombre: 'Prueba', rol }, JWT_SECRETO)}`,
     'Content-Type': 'application/json',
@@ -26,7 +32,10 @@ describe('API integrada (Hito 2)', () => {
     return { status: respuesta.status, datos: await respuesta.json().catch(() => ({})) };
   };
 
-  before(() => {
+  before(async () => {
+    // Las carpetas de documentos se crean en una carpeta temporal, no en backend/documentos.
+    raizDocumentos = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-integracion-'));
+    establecerAlmacenamiento(new AlmacenamientoLocal({ raiz: raizDocumentos }));
     servidor = app.listen(0);
     base = `http://localhost:${servidor.address().port}/api`;
   });
@@ -34,6 +43,8 @@ describe('API integrada (Hito 2)', () => {
   after(async () => {
     await pedir('/admin/reiniciar', { rol: 'admin', metodo: 'POST' });
     servidor.close();
+    establecerAlmacenamiento(null);
+    await fs.rm(raizDocumentos, { recursive: true, force: true });
   });
 
   it('publica las ofertas abiertas sin sesión', async () => {
@@ -92,7 +103,12 @@ describe('API integrada (Hito 2)', () => {
     assert.equal(nueva.datos.solicitud.etapa, 'recibida');
     assert.equal(nueva.datos.solicitud.referido, null);
 
+    // Cada solicitud nace con su carpeta de documentos: "S0000 - Nombre del postulante".
     const id = nueva.datos.solicitud.id;
+    const clave = `S${String(id).padStart(4, '0')}`;
+    assert.equal(nueva.datos.avisoCarpeta, null);
+    assert.match(nueva.datos.carpeta.nombre, new RegExp(`^${clave} - \\S`));
+    assert.ok((await fs.readdir(raizDocumentos)).includes(nueva.datos.carpeta.nombre));
     const vinculada = await pedir('/postulaciones/1', {
       rol: 'analista',
       metodo: 'PATCH',

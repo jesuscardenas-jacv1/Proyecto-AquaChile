@@ -579,7 +579,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 
-/* Documentos de la solicitud (carpeta en OneDrive / almacenamiento local) */
+/* Documentos de la solicitud (carpeta en Google Drive, OneDrive o almacenamiento local) */
 .documentos-categoria + .documentos-categoria {
   border-top: 1px solid var(--aqua-gris-calido);
   margin-top: 0.75rem;

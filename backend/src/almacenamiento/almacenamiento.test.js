@@ -526,3 +526,210 @@ describe('portal de postulación: CV público y paso a evaluación', () => {
     assert.ok(estados.includes(429));
   });
 });
+
+describe('proveedor Google Drive', () => {
+  const crypto = require('crypto');
+  const { AlmacenamientoDrive } = require('./drive');
+  const configDrive = { modo: 'oauth', clientId: 'cliente', clientSecret: 'secreto', refreshToken: 'refresh-1' };
+
+  /** Simula Google: token OAuth y respuestas por método + fragmento de URL. */
+  function crearGoogleFalso(respuestas) {
+    const llamadas = [];
+    const fetchFalso = async (url, opciones = {}) => {
+      const metodo = opciones.method ?? 'GET';
+      llamadas.push({ metodo, url, opciones });
+      if (url === 'https://oauth2.googleapis.com/token') {
+        return Response.json({ access_token: 'token-google', expires_in: 3600 });
+      }
+      // Las consultas `q` viajan con espacios como "+": se decodifican antes de comparar.
+      const legible = decodeURIComponent(url.replace(/\+/g, ' '));
+      const coincidencia = respuestas.find(([m, fragmento]) => m === metodo && legible.includes(fragmento));
+      if (!coincidencia) return Response.json({ error: { message: 'no simulado' } }, { status: 404 });
+      const respuesta = coincidencia[2];
+      return typeof respuesta === 'function' ? respuesta(url, opciones) : respuesta.clone();
+    };
+    return { fetchFalso, llamadas };
+  }
+  const consulta = (llamada) => new URL(llamada.url).searchParams.get('q');
+  const creaciones = (llamadas) =>
+    llamadas.filter((l) => l.metodo === 'POST' && l.url.startsWith('https://www.googleapis.com/drive/'));
+
+  it('exige credenciales según el modo', () => {
+    assert.throws(() => new AlmacenamientoDrive({ ...configDrive, clientSecret: '' }), /GDRIVE_CLIENT/);
+    assert.throws(() => new AlmacenamientoDrive({ ...configDrive, refreshToken: null }), /drive:autorizar/);
+    assert.throws(() => new AlmacenamientoDrive({ modo: 'cuenta-servicio', cuentaServicio: {} }), /GDRIVE_CREDENCIALES/);
+    assert.throws(() => new AlmacenamientoDrive({ modo: 'otro' }), /GDRIVE_MODO/);
+  });
+
+  it('crea la carpeta raíz en Mi unidad y la carpeta de la solicitud dentro de ella', async () => {
+    const { fetchFalso, llamadas } = crearGoogleFalso([
+      ['GET', "'root' in parents", Response.json({ files: [] })],
+      ['GET', "'raiz-1' in parents", Response.json({ files: [] })],
+      [
+        'POST',
+        'drive/v3/files?fields',
+        (url, opciones) => {
+          const cuerpo = JSON.parse(opciones.body);
+          return cuerpo.parents[0] === 'root'
+            ? Response.json({ id: 'raiz-1', name: cuerpo.name })
+            : Response.json({ id: 'c1', name: cuerpo.name, webViewLink: 'https://drive.google.com/drive/folders/c1' });
+        },
+      ],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, fetch: fetchFalso });
+
+    const carpeta = await drive.obtenerCarpeta('S0001', 'S0001 - Ana Pérez', { crear: true });
+
+    assert.deepEqual(carpeta, { id: 'c1', nombre: 'S0001 - Ana Pérez', webUrl: 'https://drive.google.com/drive/folders/c1' });
+    assert.deepEqual(creaciones(llamadas).map((l) => JSON.parse(l.opciones.body)), [
+      { name: 'Evaluaciones Psicolaborales', mimeType: 'application/vnd.google-apps.folder', parents: ['root'] },
+      { name: 'S0001 - Ana Pérez', mimeType: 'application/vnd.google-apps.folder', parents: ['raiz-1'] },
+    ]);
+    // El refresh token se canjea por un token de acceso que va en cada llamada.
+    const canje = llamadas.find((l) => l.url.includes('oauth2.googleapis.com'));
+    assert.match(canje.opciones.body, /grant_type=refresh_token/);
+    assert.equal(llamadas.at(-1).opciones.headers.Authorization, 'Bearer token-google');
+  });
+
+  it('reutiliza la carpeta existente y escapa la clave en la consulta', async () => {
+    const { fetchFalso, llamadas } = crearGoogleFalso([
+      [
+        'GET',
+        "'raiz-9' in parents",
+        Response.json({ files: [{ id: 'x', name: 'S00010 - Otro' }, { id: 'c7', name: "S0007 - Ana O'Higgins" }] }),
+      ],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, carpetaRaizId: 'raiz-9', fetch: fetchFalso });
+
+    const carpeta = await drive.obtenerCarpeta('S0007', null, { crear: true });
+
+    assert.equal(carpeta.id, 'c7');
+    assert.equal(creaciones(llamadas).length, 0);
+    assert.match(consulta(llamadas.at(-1)), /name contains 'S0007'/);
+  });
+
+  it('sube archivos nuevos en multipart y reemplaza el contenido si el nombre ya existe', async () => {
+    let existe = false;
+    const { fetchFalso, llamadas } = crearGoogleFalso([
+      ['GET', "name = 'CV - ana.pdf'", () => Response.json({ files: existe ? [{ id: 'f1', name: 'CV - ana.pdf' }] : [] })],
+      ['POST', 'upload/drive/v3/files?uploadType=multipart', Response.json({ id: 'f1', name: 'CV - ana.pdf', size: '3' })],
+      ['PATCH', 'upload/drive/v3/files/f1?uploadType=media', Response.json({ id: 'f1', name: 'CV - ana.pdf', size: '4' })],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, carpetaRaizId: 'raiz', fetch: fetchFalso });
+
+    const nuevo = await drive.subirArchivo({ id: 'c1' }, 'CV - ana.pdf', Buffer.from('pdf'));
+    assert.deepEqual([nuevo.id, nuevo.categoria, nuevo.tamano], ['f1', 'cv', 3]);
+    const multipart = llamadas.find((l) => l.url.includes('uploadType=multipart'));
+    assert.match(multipart.opciones.headers['Content-Type'], /^multipart\/related; boundary=/);
+    assert.match(multipart.opciones.body.toString(), /"parents":\["c1"\]/);
+
+    existe = true;
+    const reemplazo = await drive.subirArchivo({ id: 'c1' }, 'CV - ana.pdf', Buffer.from('pdf2'));
+    assert.equal(reemplazo.tamano, 4);
+    assert.equal(llamadas.filter((l) => l.url.includes('uploadType=multipart')).length, 1);
+  });
+
+  it('usa carga reanudable sobre 5 MB', async () => {
+    const contenido = Buffer.alloc(6 * 1024 * 1024, 1);
+    const { fetchFalso, llamadas } = crearGoogleFalso([
+      ['GET', 'in parents and name', Response.json({ files: [] })],
+      [
+        'POST',
+        'uploadType=resumable',
+        () => new Response(null, { status: 200, headers: { Location: 'https://www.googleapis.com/upload/sesion-1' } }),
+      ],
+      ['PUT', 'upload/sesion-1', Response.json({ id: 'f2', name: 'Informe - x.pdf', size: String(contenido.length) })],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, carpetaRaizId: 'raiz', fetch: fetchFalso });
+
+    const archivo = await drive.subirArchivo({ id: 'c1' }, 'Informe - x.pdf', contenido);
+
+    assert.equal(archivo.id, 'f2');
+    assert.equal(llamadas.find((l) => l.metodo === 'PUT').opciones.body.length, contenido.length);
+  });
+
+  it('lista, descarga y envía a la papelera solo archivos de la carpeta', async () => {
+    const { fetchFalso, llamadas } = crearGoogleFalso([
+      ['GET', "'c1' in parents and mimeType !=", Response.json({ files: [{ id: 'f1', name: 'CV - ana.pdf', size: '3' }] })],
+      ['GET', 'files/f1?alt=media', new Response('pdf')],
+      ['GET', 'files/f1?fields', Response.json({ id: 'f1', name: 'CV - ana.pdf', parents: ['c1'], mimeType: 'application/pdf' })],
+      ['GET', 'files/f9?fields', Response.json({ id: 'f9', name: 'CV - x.pdf', parents: ['otra'], mimeType: 'application/pdf' })],
+      ['PATCH', 'drive/v3/files/f1?fields=id', Response.json({ id: 'f1' })],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, carpetaRaizId: 'raiz', fetch: fetchFalso });
+    const carpeta = { id: 'c1' };
+
+    assert.deepEqual((await drive.listarArchivos(carpeta)).map((a) => a.nombre), ['CV - ana.pdf']);
+    const descarga = await drive.descargarArchivo(carpeta, 'f1');
+    assert.equal(descarga.contenido.toString(), 'pdf');
+    assert.equal(descarga.tipo, 'application/pdf');
+    await assert.rejects(drive.descargarArchivo(carpeta, 'f9'), { status: 404 });
+
+    await drive.eliminarArchivo(carpeta, 'f1');
+    assert.deepEqual(JSON.parse(llamadas.at(-1).opciones.body), { trashed: true });
+  });
+
+  it('traduce errores de Google a 502 y avisa si la autorización fue revocada', async () => {
+    const { fetchFalso } = crearGoogleFalso([
+      ['GET', "'c1' in parents", Response.json({ error: { message: 'Insufficient Permission' } }, { status: 403 })],
+    ]);
+    const drive = new AlmacenamientoDrive({ ...configDrive, carpetaRaizId: 'raiz', fetch: fetchFalso });
+    await assert.rejects(drive.listarArchivos({ id: 'c1' }), { status: 502, message: /Insufficient Permission/ });
+
+    const revocado = new AlmacenamientoDrive({
+      ...configDrive,
+      fetch: async () => Response.json({ error: 'invalid_grant' }, { status: 400 }),
+    });
+    await assert.rejects(revocado.listarArchivos({ id: 'c1' }), { status: 502, message: /drive:autorizar/ });
+  });
+
+  it('con cuenta de servicio firma un JWT con su llave privada', async () => {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const cuentaServicio = {
+      client_email: 'aquachile@proyecto.iam.gserviceaccount.com',
+      private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    };
+    let asercion = null;
+    const fetchFalso = async (url, opciones) => {
+      if (url.includes('oauth2.googleapis.com')) {
+        asercion = new URLSearchParams(opciones.body).get('assertion');
+        return Response.json({ access_token: 't', expires_in: 3600 });
+      }
+      return Response.json({ files: [] });
+    };
+    const drive = new AlmacenamientoDrive({
+      modo: 'cuenta-servicio',
+      cuentaServicio,
+      carpetaRaizId: 'unidad-compartida',
+      fetch: fetchFalso,
+    });
+
+    await drive.listarArchivos({ id: 'c1' });
+
+    const [encabezado, carga, firma] = asercion.split('.');
+    const valida = crypto.verify('RSA-SHA256', Buffer.from(`${encabezado}.${carga}`), publicKey, Buffer.from(firma, 'base64url'));
+    assert.ok(valida);
+    const datos = JSON.parse(Buffer.from(carga, 'base64url').toString());
+    assert.equal(datos.iss, cuentaServicio.client_email);
+    assert.equal(datos.aud, 'https://oauth2.googleapis.com/token');
+  });
+
+  it('la fábrica crea el proveedor drive con el refresh token guardado', async () => {
+    const carpeta = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-drive-'));
+    const archivoToken = path.join(carpeta, 'token.json');
+    await fs.writeFile(archivoToken, JSON.stringify({ refresh_token: 'r' }));
+
+    const drive = crearAlmacenamiento({
+      ALMACENAMIENTO: 'drive',
+      GDRIVE_CLIENT_ID: 'c',
+      GDRIVE_CLIENT_SECRET: 's',
+      GDRIVE_TOKEN_ARCHIVO: archivoToken,
+    });
+    assert.equal(drive.proveedor, 'drive');
+    assert.throws(
+      () => crearAlmacenamiento({ ALMACENAMIENTO: 'drive', GDRIVE_CLIENT_ID: 'c', GDRIVE_CLIENT_SECRET: 's', GDRIVE_TOKEN_ARCHIVO: path.join(carpeta, 'no.json') }),
+      /drive:autorizar/,
+    );
+    await fs.rm(carpeta, { recursive: true, force: true });
+  });
+});

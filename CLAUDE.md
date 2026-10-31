@@ -84,8 +84,9 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   formato de respuesta en `backend/src/bd/formatos.js`. La semilla es la misma del frontend (`src/datos/semillaBase.js`).
 - **Responsable de la solicitud = la psicóloga** (`profesionalResponsable`, catálogo `EVALUADORES`); quien la pide es el
   `reclutador`. La evaluadora ve por defecto las solicitudes asignadas a ella.
-- **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`) con CV, descriptor e informe PDF.
-  Proveedor `local` (disco) o `graph` (OneDrive/SharePoint, modo aplicación o delegado) vía `backend/.env`.
+- **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
+  descriptor e informe PDF. Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
+  (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`).
   El backend aún no está desplegado (opción evaluada: Azure for Students / App Service).
 
@@ -129,4 +130,4 @@ Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).
 - Solo datos ficticios. No usar nombres, RUT, correos, CV ni informes reales.
 - **No subir a GitHub** material interno de AquaChile: la carpeta `Documentación/`, capturas del Power BI real,
   transcripciones ni planillas reales. El repo es público.
-- No commitear `.env`, `backend/.graph-token.json` ni bases `*.sqlite`.
+- No commitear `.env`, `backend/.graph-token.json`, `backend/.gdrive-token.json`, llaves `credenciales-*.json` ni bases `*.sqlite`.
