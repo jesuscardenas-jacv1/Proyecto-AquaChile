@@ -1,7 +1,7 @@
 /**
  * Cliente de la API de documentos del backend (/api/solicitudes/:id/documentos).
- * La página nunca habla directo con OneDrive: el backend decide si los archivos
- * viven en disco local o en OneDrive / SharePoint vía Microsoft Graph.
+ * La página nunca habla directo con la nube: el backend decide si los archivos
+ * viven en disco local, en Google Drive o en OneDrive / SharePoint.
  */
 
 import { ErrorApi, URL_API, guardarToken, obtenerToken } from './api';
