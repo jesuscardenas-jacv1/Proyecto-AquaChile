@@ -3,8 +3,9 @@
  *
  * ALMACENAMIENTO=local (por defecto) → carpetas en disco (backend/documentos).
  * ALMACENAMIENTO=graph               → carpetas en OneDrive / SharePoint vía Microsoft Graph.
+ * ALMACENAMIENTO=drive               → carpetas en Google Drive (API v3).
  *
- * Ambos proveedores exponen la misma interfaz:
+ * Todos los proveedores exponen la misma interfaz:
  *   obtenerCarpeta(clave, nombre, { crear }) → { id, nombre, webUrl } | null
  *   listarArchivos(carpeta)                  → [{ id, nombre, categoria, tamano, modificado, webUrl }]
  *   subirArchivo(carpeta, nombre, buffer)    → archivo
@@ -12,11 +13,24 @@
  *   descargarArchivo(carpeta, archivoId)     → { nombre, tipo, contenido }
  *   eliminarArchivo(carpeta, archivoId)
  */
+const fs = require('fs');
 const path = require('path');
 const { AlmacenamientoLocal } = require('./local');
 const { AlmacenamientoGraph } = require('./graph');
+const { AlmacenamientoDrive, leerRefreshToken } = require('./drive');
 
 const RAIZ_LOCAL_POR_DEFECTO = path.join(__dirname, '..', '..', 'documentos');
+const TOKEN_DRIVE_POR_DEFECTO = path.join(__dirname, '..', '..', '.gdrive-token.json');
+
+/** Lee la llave JSON de la cuenta de servicio desde la ruta de GDRIVE_CREDENCIALES. */
+function leerCuentaServicio(ruta) {
+  if (!ruta) return null;
+  try {
+    return JSON.parse(fs.readFileSync(path.resolve(ruta), 'utf8'));
+  } catch (error) {
+    throw new Error(`No se pudo leer GDRIVE_CREDENCIALES (${ruta}): ${error.message}`);
+  }
+}
 
 function crearAlmacenamiento(entorno = process.env) {
   const tipo = (entorno.ALMACENAMIENTO || 'local').toLowerCase();
@@ -32,11 +46,25 @@ function crearAlmacenamiento(entorno = process.env) {
     });
   }
 
+  if (tipo === 'drive') {
+    const modo = (entorno.GDRIVE_MODO || 'oauth').toLowerCase();
+    return new AlmacenamientoDrive({
+      modo,
+      clientId: entorno.GDRIVE_CLIENT_ID,
+      clientSecret: entorno.GDRIVE_CLIENT_SECRET,
+      refreshToken:
+        modo === 'oauth' ? leerRefreshToken(entorno.GDRIVE_TOKEN_ARCHIVO || TOKEN_DRIVE_POR_DEFECTO) : null,
+      cuentaServicio: modo === 'cuenta-servicio' ? leerCuentaServicio(entorno.GDRIVE_CREDENCIALES) : null,
+      carpetaRaizId: entorno.GDRIVE_CARPETA_RAIZ_ID,
+      carpetaRaiz: entorno.GDRIVE_CARPETA_RAIZ || undefined,
+    });
+  }
+
   if (tipo === 'local') {
     return new AlmacenamientoLocal({ raiz: entorno.ALMACENAMIENTO_LOCAL_RUTA || RAIZ_LOCAL_POR_DEFECTO });
   }
 
-  throw new Error(`ALMACENAMIENTO desconocido: "${tipo}". Use "local" o "graph".`);
+  throw new Error(`ALMACENAMIENTO desconocido: "${tipo}". Use "local", "graph" o "drive".`);
 }
 
 let instancia = null;

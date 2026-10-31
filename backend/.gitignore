@@ -16,3 +16,7 @@ node_modules/
 
 # Documentos guardados con el proveedor local
 documentos/
+
+# Credenciales de Google Drive (refresh token y llave de cuenta de servicio)
+.gdrive-token.json
+credenciales-*.json
