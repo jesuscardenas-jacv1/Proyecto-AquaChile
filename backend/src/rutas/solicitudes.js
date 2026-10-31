@@ -2,6 +2,8 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearCandidato, formatearEvaluacion, formatearSolicitud } = require('../bd/formatos');
+const { obtenerAlmacenamiento } = require('../almacenamiento');
+const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
 
 const router = express.Router();
 
@@ -93,72 +95,106 @@ router.get('/:id', autenticar, (req, res) => {
 });
 
 /**
+ * Crea la carpeta de documentos de la solicitud ("S0001 - Nombre del postulante") en el
+ * proveedor configurado. Si falla (p. ej. Google Drive no responde) la solicitud ya quedó
+ * guardada: se informa el motivo y la carpeta se vuelve a intentar al subir el primer archivo.
+ */
+async function crearCarpetaSolicitud(id) {
+  try {
+    const fila = db
+      .prepare('SELECT c.nombre FROM solicitudes s JOIN candidatos c ON c.id = s.candidato_id WHERE s.id = ?')
+      .get(id);
+    const carpeta = await obtenerAlmacenamiento().obtenerCarpeta(
+      claveCarpeta(id),
+      nombreCarpeta(id, fila?.nombre),
+      { crear: true },
+    );
+    return { carpeta, avisoCarpeta: null };
+  } catch (error) {
+    console.error(`⚠️  No se pudo crear la carpeta de la solicitud #${id}:`, error.message);
+    return {
+      carpeta: null,
+      avisoCarpeta: `La solicitud se creó, pero no su carpeta de documentos: ${error.message}`,
+    };
+  }
+}
+
+/**
  * POST /api/solicitudes
  * Crear una solicitud de evaluación (analista). Queda Pendiente, en la etapa
- * "recibida" del Planner.
+ * "recibida" del Planner, y se crea su carpeta de documentos.
  */
-router.post('/', autenticar, requerirRol('analista'), (req, res) => {
-  const {
-    candidatoId,
-    cargo,
-    familiaCargo,
-    fechaSolicitud,
-    tipoEvaluacion,
-    ubicacion,
-    unidad,
-    ceco,
-    requiereReferencias,
-    referido,
-    cv,
-    descriptorCargo,
-    observaciones,
-    reclutador,
-    profesionalResponsable,
-  } = req.body;
-
-  if (!candidatoId || !texto(cargo) || !texto(familiaCargo)) {
-    return res.status(400).json({
-      error: 'Debe especificar el candidato, el cargo y la familia de cargo.',
-    });
-  }
-  if (fechaSolicitud && !FECHA_ISO.test(fechaSolicitud)) {
-    return res.status(400).json({ error: 'La fecha de solicitud debe tener el formato yyyy-mm-dd.' });
-  }
-  if (!db.prepare('SELECT id FROM candidatos WHERE id = ?').get(candidatoId)) {
-    return res.status(404).json({ error: `El candidato #${candidatoId} no existe.` });
-  }
-
-  const resultado = db
-    .prepare(
-      `INSERT INTO solicitudes (
-        candidato_id, cargo, familia_cargo, fecha_solicitud, estado, etapa, reclutador,
-        profesional_responsable, observaciones, tipo_evaluacion, ubicacion, unidad, ceco,
-        requiere_referencias, referido, cv, descriptor_cargo
-      ) VALUES (?, ?, ?, ?, 'Pendiente', 'recibida', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+router.post('/', autenticar, requerirRol('analista'), async (req, res, next) => {
+  try {
+    const {
       candidatoId,
-      texto(cargo),
-      texto(familiaCargo),
-      fechaSolicitud || new Date().toISOString().slice(0, 10),
-      texto(reclutador),
-      texto(profesionalResponsable),
-      texto(observaciones),
-      texto(tipoEvaluacion) || 'externa',
-      texto(ubicacion),
-      texto(unidad),
-      texto(ceco),
-      requiereReferencias ? 1 : 0,
-      referido === null || referido === undefined ? null : referido ? 1 : 0,
-      texto(cv),
-      texto(descriptorCargo),
-    );
+      cargo,
+      familiaCargo,
+      fechaSolicitud,
+      tipoEvaluacion,
+      ubicacion,
+      unidad,
+      ceco,
+      requiereReferencias,
+      referido,
+      cv,
+      descriptorCargo,
+      observaciones,
+      reclutador,
+      profesionalResponsable,
+    } = req.body;
 
-  res.status(201).json({
-    ok: true,
-    mensaje: 'Solicitud creada exitosamente.',
-    solicitud: formatearSolicitud(obtener(resultado.lastInsertRowid)),
-  });
+    if (!candidatoId || !texto(cargo) || !texto(familiaCargo)) {
+      return res.status(400).json({
+        error: 'Debe especificar el candidato, el cargo y la familia de cargo.',
+      });
+    }
+    if (fechaSolicitud && !FECHA_ISO.test(fechaSolicitud)) {
+      return res.status(400).json({ error: 'La fecha de solicitud debe tener el formato yyyy-mm-dd.' });
+    }
+    if (!db.prepare('SELECT id FROM candidatos WHERE id = ?').get(candidatoId)) {
+      return res.status(404).json({ error: `El candidato #${candidatoId} no existe.` });
+    }
+
+    const resultado = db
+      .prepare(
+        `INSERT INTO solicitudes (
+          candidato_id, cargo, familia_cargo, fecha_solicitud, estado, etapa, reclutador,
+          profesional_responsable, observaciones, tipo_evaluacion, ubicacion, unidad, ceco,
+          requiere_referencias, referido, cv, descriptor_cargo
+        ) VALUES (?, ?, ?, ?, 'Pendiente', 'recibida', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        candidatoId,
+        texto(cargo),
+        texto(familiaCargo),
+        fechaSolicitud || new Date().toISOString().slice(0, 10),
+        texto(reclutador),
+        texto(profesionalResponsable),
+        texto(observaciones),
+        texto(tipoEvaluacion) || 'externa',
+        texto(ubicacion),
+        texto(unidad),
+        texto(ceco),
+        requiereReferencias ? 1 : 0,
+        referido === null || referido === undefined ? null : referido ? 1 : 0,
+        texto(cv),
+        texto(descriptorCargo),
+      );
+
+    const id = Number(resultado.lastInsertRowid);
+    const { carpeta, avisoCarpeta } = await crearCarpetaSolicitud(id);
+
+    res.status(201).json({
+      ok: true,
+      mensaje: 'Solicitud creada exitosamente.',
+      solicitud: formatearSolicitud(obtener(id)),
+      carpeta,
+      avisoCarpeta,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**

@@ -56,6 +56,21 @@ describe('PanelDocumentos', () => {
     expect(screen.getByText('Sin archivos.')).toBeInTheDocument();
   });
 
+  it('con Google Drive muestra su nombre y el enlace para abrir la carpeta', async () => {
+    const datosDrive = {
+      ...datosConArchivos,
+      proveedor: 'drive',
+      carpeta: { id: 'c1', nombre: 'S0007 - Ana Pérez', webUrl: 'https://drive.google.com/drive/folders/c1' },
+    };
+    render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosDrive)} />);
+
+    expect(await screen.findByText('Google Drive')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /abrir en google drive/i })).toHaveAttribute(
+      'href',
+      'https://drive.google.com/drive/folders/c1',
+    );
+  });
+
   it('solo ofrece subir y eliminar en las categorías permitidas', async () => {
     render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
     await screen.findByText('S0007 - Ana Pérez');

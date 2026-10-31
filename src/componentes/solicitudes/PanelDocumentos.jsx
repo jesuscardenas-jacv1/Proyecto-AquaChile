@@ -13,6 +13,7 @@ export const CATEGORIAS_DOCUMENTO = [
 const OTROS = { id: 'otro', etiqueta: 'Otros archivos de la carpeta', icono: 'bi-folder2' };
 
 const PROVEEDORES = {
+  drive: { etiqueta: 'Google Drive', icono: 'bi-google' },
   graph: { etiqueta: 'OneDrive', icono: 'bi-cloud-check' },
   local: { etiqueta: 'Almacenamiento local', icono: 'bi-hdd' },
 };
@@ -25,7 +26,7 @@ function formatearTamano(bytes) {
 
 /**
  * Documentos de la solicitud: CV, descriptor de cargo e informe psicolaboral.
- * Los archivos viven en la carpeta de la solicitud (OneDrive/SharePoint o disco local,
+ * Los archivos viven en la carpeta de la solicitud (Google Drive, OneDrive o disco local,
  * según el backend); este panel solo los muestra, sube, descarga y elimina.
  */
 export default function PanelDocumentos({
@@ -136,7 +137,7 @@ export default function PanelDocumentos({
               className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
             >
               <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
-              Abrir en OneDrive
+              Abrir en {proveedor?.etiqueta ?? 'la nube'}
             </a>
           ) : null}
         </div>

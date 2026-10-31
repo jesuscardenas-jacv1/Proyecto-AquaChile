@@ -84,14 +84,27 @@ Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descr
 
 ---
 
-## 📁 Almacenamiento de documentos: local u OneDrive
+## 📁 Almacenamiento de documentos: local, Google Drive u OneDrive
 
 La variable `ALMACENAMIENTO` elige dónde viven las carpetas (copie `.env.example` como `.env`):
 
 | Valor | Destino | Uso |
 |---|---|---|
 | `local` (por defecto) | `backend/documentos/` | Desarrollo y demo, sin Microsoft 365 |
+| `drive` | Google Drive (API v3) | Opción recomendada para el proyecto: basta una cuenta de Google |
 | `graph` | OneDrive o biblioteca de SharePoint vía Microsoft Graph | Producción en el tenant de AquaChile |
+
+**Cada solicitud crea su carpeta** (`S0001 - Nombre del postulante`) al momento de crearse. Si el proveedor no responde, la solicitud se guarda igual y la respuesta trae `avisoCarpeta`; la carpeta se vuelve a intentar al subir el primer archivo.
+
+### Google Drive (`ALMACENAMIENTO=drive`)
+1. En [Google Cloud Console](https://console.cloud.google.com/) cree un proyecto, habilite la **Google Drive API** y configure la pantalla de consentimiento (tipo "Externo", en modo prueba, agregando la cuenta como usuario de prueba).
+2. Cree un **ID de cliente OAuth** de tipo **Aplicación de escritorio** y copie su ID y secreto en `GDRIVE_CLIENT_ID` y `GDRIVE_CLIENT_SECRET`.
+3. Ejecute `npm run drive:autorizar`, abra el enlace con la cuenta de Google donde vivirán las carpetas y acepte. El refresh token queda en `backend/.gdrive-token.json` (no se versiona).
+4. Configure `ALMACENAMIENTO=drive` y reinicie el backend. La carpeta raíz `Evaluaciones Psicolaborales` se crea en "Mi unidad" de esa cuenta; ahí se comparte con el equipo.
+
+La app usa el alcance `drive.file`: solo ve las carpetas y archivos que ella misma creó, no el resto del Drive de esa cuenta. Para una unidad compartida de Google Workspace también existe el modo `GDRIVE_MODO=cuenta-servicio` (ver `.env.example`).
+
+### OneDrive / SharePoint (`ALMACENAMIENTO=graph`)
 
 Para `graph`, TI de AquaChile debe:
 1. Registrar una aplicación en **Microsoft Entra ID** y crear un secreto de cliente (`GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`).
