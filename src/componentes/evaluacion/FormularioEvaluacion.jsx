@@ -2,12 +2,14 @@ import { Fragment, useState } from 'react';
 import { RESULTADOS_EVALUACION } from '../../datos/constantes';
 import { hayErrores, validarEvaluacion } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
+import SeccionCompetencias from './SeccionCompetencias';
 
 const CAMPOS_INICIALES = {
   fechaEvaluacion: new Date().toISOString().slice(0, 10),
   resultado: '',
   observaciones: '',
   estado: 'Realizada',
+  competencias: [],
 };
 
 /** Color de cada opción, igual al de las etiquetas de resultado del resto de la app. */
@@ -20,6 +22,7 @@ const COLOR_RESULTADO = {
 const construirEstadoInicial = (evaluacion) => ({
   ...CAMPOS_INICIALES,
   ...(evaluacion ?? {}),
+  competencias: evaluacion?.competencias ?? [],
 });
 
 /**
@@ -34,6 +37,13 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar }) {
     const { name, value } = evento.target;
     setFormulario((actual) => ({ ...actual, [name]: value }));
     setErrores((actual) => ({ ...actual, [name]: undefined }));
+  };
+
+  const cambiarCompetencias = (competencias) => {
+    setFormulario((actual) => ({ ...actual, competencias }));
+    setErrores((actual) =>
+      Object.fromEntries(Object.entries(actual).filter(([campo]) => !campo.startsWith('competencia:'))),
+    );
   };
 
   const manejarEnvio = (evento) => {
@@ -133,6 +143,14 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar }) {
             {errorDe('observaciones') ? (
               <div className="invalid-feedback">{errores.observaciones}</div>
             ) : null}
+          </div>
+
+          <div className="col-12">
+            <SeccionCompetencias
+              competencias={formulario.competencias}
+              alCambiar={cambiarCompetencias}
+              errores={intentoEnvio ? errores : {}}
+            />
           </div>
         </div>
       </div>

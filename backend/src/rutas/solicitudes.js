@@ -224,6 +224,75 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   res.json({ ok: true, mensaje: 'Solicitud actualizada.', solicitud: formatearSolicitud(obtener(id)) });
 });
 
+const CECO_VALIDO = /^[A-Z]\d{9}$/i;
+/** Campos editables de la solicitud: nombre en la API → columna en la BD. */
+const CAMPOS_EDITABLES = {
+  cargo: 'cargo',
+  familiaCargo: 'familia_cargo',
+  fechaSolicitud: 'fecha_solicitud',
+  reclutador: 'reclutador',
+  ubicacion: 'ubicacion',
+  unidad: 'unidad',
+  ceco: 'ceco',
+  requiereReferencias: 'requiere_referencias',
+  referido: 'referido',
+  observaciones: 'observaciones',
+};
+
+/** Valida y normaliza los cambios de una edición; devuelve { cambios } o { error }. */
+function validarEdicion(cuerpo = {}) {
+  const cambios = {};
+  for (const campo of Object.keys(CAMPOS_EDITABLES)) {
+    if (!(campo in cuerpo)) continue;
+    const valor = cuerpo[campo];
+    if (campo === 'requiereReferencias') cambios[campo] = valor ? 1 : 0;
+    else if (campo === 'referido') cambios[campo] = valor === null || valor === undefined ? null : valor ? 1 : 0;
+    else cambios[campo] = texto(valor);
+  }
+  if (Object.keys(cambios).length === 0) return { error: 'No hay cambios que guardar.' };
+  if ('cargo' in cambios && !cambios.cargo) return { error: 'El cargo es obligatorio.' };
+  if ('familiaCargo' in cambios && !cambios.familiaCargo) return { error: 'La familia de cargo es obligatoria.' };
+  if ('ubicacion' in cambios && !cambios.ubicacion) return { error: 'La ubicación del cargo es obligatoria.' };
+  if ('ceco' in cambios) {
+    cambios.ceco = cambios.ceco.toUpperCase();
+    if (cambios.ceco && !CECO_VALIDO.test(cambios.ceco)) {
+      return { error: 'El CECO debe tener una letra seguida de 9 dígitos (ej: A170010311).' };
+    }
+  }
+  if ('fechaSolicitud' in cambios) {
+    if (!FECHA_ISO.test(cambios.fechaSolicitud)) {
+      return { error: 'La fecha de solicitud debe tener el formato yyyy-mm-dd.' };
+    }
+    if (cambios.fechaSolicitud > new Date().toISOString().slice(0, 10)) {
+      return { error: 'La fecha de solicitud no puede ser futura.' };
+    }
+  }
+  return { cambios };
+}
+
+/**
+ * PATCH /api/solicitudes/:id
+ * Corrige los datos de la solicitud (cargo, familia, ubicación, CECO, referencias, reclutador,
+ * fecha y aspectos a indagar). Lo pueden hacer el analista y la psicóloga: a veces el
+ * candidato cambia de cargo o la solicitud llegó con un error. Solo se tocan los campos enviados.
+ */
+router.patch('/:id', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
+  const id = Number(req.params.id);
+  if (!obtener(id)) {
+    return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
+  }
+
+  const { cambios, error } = validarEdicion(req.body);
+  if (error) return res.status(400).json({ error });
+
+  const columnas = Object.keys(cambios).map((campo) => `${CAMPOS_EDITABLES[campo]} = ?`);
+  db.prepare(
+    `UPDATE solicitudes SET ${columnas.join(', ')}, actualizado_en = datetime('now') WHERE id = ?`,
+  ).run(...Object.values(cambios), id);
+
+  res.json({ ok: true, mensaje: 'Solicitud actualizada.', solicitud: formatearSolicitud(obtener(id)) });
+});
+
 /**
  * PATCH /api/solicitudes/:id/etapa
  * Mueve la solicitud en el Planner (evaluador) y sincroniza su estado oficial.

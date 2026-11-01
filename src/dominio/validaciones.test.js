@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hayErrores, validarCandidato, validarEvaluacion, validarSolicitud } from './validaciones';
+import {
+  hayErrores,
+  validarCandidato,
+  validarEdicionSolicitud,
+  validarEvaluacion,
+  validarSolicitud,
+} from './validaciones';
 
 const candidatoValido = {
   nombre: 'María González',
@@ -80,5 +86,48 @@ describe('validarEvaluacion', () => {
     const errores = validarEvaluacion({ fechaEvaluacion: '2026-02-01', resultado: '', observaciones: 'corto' });
     expect(errores.resultado).toBeTruthy();
     expect(errores.observaciones).toMatch(/al menos 10 caracteres/);
+  });
+});
+
+describe('validarEdicionSolicitud', () => {
+  const valida = {
+    reclutador: 'Carolina Muñoz',
+    cargo: 'Técnico de Planta',
+    familiaCargo: 'Técnico B C',
+    ubicacion: 'Planta Calbuco',
+    ceco: 'A170010311',
+    fechaSolicitud: '2026-08-03',
+  };
+
+  it('acepta una edición completa', () => {
+    expect(hayErrores(validarEdicionSolicitud(valida))).toBe(false);
+  });
+
+  it('exige los campos obligatorios, el formato del CECO y una fecha no futura', () => {
+    const errores = validarEdicionSolicitud({ ...valida, cargo: ' ', ceco: 'X1', fechaSolicitud: '2999-01-01', reclutador: '' });
+    expect(Object.keys(errores).sort()).toEqual(['cargo', 'ceco', 'fechaSolicitud', 'reclutador']);
+  });
+});
+
+describe('validarEvaluacion con competencias', () => {
+  const base = { fechaEvaluacion: '2026-03-05', resultado: 'Recomendado', observaciones: 'Perfil adecuado al cargo.' };
+
+  it('las competencias son opcionales', () => {
+    expect(hayErrores(validarEvaluacion({ ...base, competencias: [] }))).toBe(false);
+  });
+
+  it('cada competencia evaluada necesita nivel y al menos un comentario', () => {
+    const errores = validarEvaluacion({
+      ...base,
+      competencias: [
+        { competencia: 'Liderazgo', nivel: '', fortalezas: 'Guía al equipo', oportunidades: '' },
+        { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: ' ', oportunidades: '' },
+        { competencia: 'Comunicación efectiva', nivel: 'Esperado', fortalezas: '', oportunidades: 'Escucha activa' },
+      ],
+    });
+    expect(errores).toEqual({
+      'competencia:Liderazgo': 'Indique el nivel de "Liderazgo".',
+      'competencia:Trabajo en equipo': 'Indique fortalezas u oportunidades de desarrollo en "Trabajo en equipo".',
+    });
   });
 });

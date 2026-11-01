@@ -85,7 +85,7 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
 - **Responsable de la solicitud = la psicóloga** (`profesionalResponsable`, catálogo `EVALUADORES`); quien la pide es el
   `reclutador`. La evaluadora ve por defecto las solicitudes asignadas a ella.
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
-  descriptor e informe PDF. Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
+  descriptor, informe PDF (con competencias) y pauta de entrevista (confidencial: solo la ve la psicóloga). Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`).
   El backend aún no está desplegado (opción evaluada: Azure for Students / App Service).
@@ -132,4 +132,4 @@ Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).
 - **No subir a GitHub** material interno de AquaChile: la carpeta `Documentación/`, capturas del Power BI real,
   transcripciones ni planillas reales. El repo es público.
 - `JWT_SECRETO` nunca va en el código: se define en `backend/.env` o en la plataforma de despliegue
-  (obligatorio en producción). No commitear `.env`, `backend/.graph-token.json`, `backend/.gdrive-token.json`, llaves `credenciales-*.json` ni bases `*.sqlite`.
+  (obligatorio en producción). No commitear `.env`, `backend/.gdrive-token.json`, llaves `credenciales-*.json` ni bases `*.sqlite`.

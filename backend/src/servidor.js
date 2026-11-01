@@ -45,6 +45,9 @@ app.use(manejadorErrores);
 
 // 5. Iniciar escucha del servidor si se ejecuta directamente
 if (require.main === module) {
+  // Crea o actualiza las tablas al arrancar (idempotente): así una BD existente recibe
+  // las columnas nuevas sin tener que correr db:migrar a mano.
+  require('./bd/migrar').migrar();
   app.listen(PUERTO, () => {
     console.log(`🚀 Servidor backend AquaChile iniciado en http://localhost:${PUERTO}`);
     console.log(`   - Endpoint salud:        http://localhost:${PUERTO}/api/salud`);

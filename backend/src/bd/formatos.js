@@ -3,6 +3,7 @@
  * Un solo lugar para que todas las rutas respondan con la misma forma.
  */
 const { puedeVerNotasClinicas } = require('../middlewares/auth');
+const { leerCompetencias } = require('./competencias');
 
 function formatearCandidato(c) {
   return {
@@ -54,6 +55,8 @@ function formatearEvaluacion(e, rolUsuario) {
     fechaInforme: e.fecha_informe,
     diasRespuesta: e.dias_respuesta,
     observaciones: confidencial ? undefined : e.observaciones,
+    // Las competencias son parte del informe oficial: las ve también el analista.
+    competencias: leerCompetencias(e.competencias),
     confidencial,
   };
 }

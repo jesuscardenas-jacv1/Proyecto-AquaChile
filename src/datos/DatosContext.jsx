@@ -247,6 +247,17 @@ export function ProveedorDatos({
     [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
   );
 
+  /** Corrige los datos de una solicitud ya creada (analista o psicóloga). */
+  const editarSolicitud = useCallback(
+    async (id, cambios) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('solicitudes', await api.editarSolicitud(id, cambios)));
+      }
+      return cambiarSolicitudLocal(id, (solicitud) => ({ ...solicitud, ...cambios }));
+    },
+    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
+  );
+
   const obtenerSolicitud = useCallback(
     (id) => datos.solicitudes.find((solicitud) => solicitud.id === Number(id)) ?? null,
     [datos.solicitudes],
@@ -306,6 +317,12 @@ export function ProveedorDatos({
         resultado: datosEvaluacion.resultado,
         observaciones: datosEvaluacion.observaciones.trim(),
         estado: ESTADOS_EVALUACION.includes(datosEvaluacion.estado) ? datosEvaluacion.estado : 'Realizada',
+        competencias: (datosEvaluacion.competencias ?? []).map((item) => ({
+          competencia: item.competencia,
+          nivel: item.nivel,
+          fortalezas: item.fortalezas?.trim() ?? '',
+          oportunidades: item.oportunidades?.trim() ?? '',
+        })),
       };
       const existente = datosRef.current.evaluaciones.find(
         (evaluacion) => evaluacion.solicitudId === Number(solicitudId),
@@ -448,6 +465,7 @@ export function ProveedorDatos({
       obtenerCandidato,
       agregarSolicitud,
       actualizarSolicitud,
+      editarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
       moverEtapa,
@@ -468,6 +486,7 @@ export function ProveedorDatos({
       obtenerCandidato,
       agregarSolicitud,
       actualizarSolicitud,
+      editarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
       moverEtapa,

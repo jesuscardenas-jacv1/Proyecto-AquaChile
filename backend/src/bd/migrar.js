@@ -167,6 +167,8 @@ function migrar() {
   agregarColumna('solicitudes', 'fecha_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'hora_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'modalidad_entrevista', "TEXT NOT NULL DEFAULT ''");
+  // Evaluación por competencias (lista JSON: competencia, nivel, fortalezas, oportunidades).
+  agregarColumna('evaluaciones', 'competencias', "TEXT NOT NULL DEFAULT '[]'");
 
   actualizarRolesUsuarios();
   console.log('✅ Migración completada: tablas creadas exitosamente.');

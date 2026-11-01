@@ -130,6 +130,35 @@ export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
 }
 
 /**
+ * Valida la edición de los datos de una solicitud ya creada (cargo, familia, ubicación,
+ * CECO, referencias, reclutador, fecha y aspectos a indagar).
+ */
+export function validarEdicionSolicitud(formulario = {}) {
+  const errores = {};
+  const ceco = limpiar(formulario.ceco);
+  const fechaSolicitud = limpiar(formulario.fechaSolicitud);
+
+  if (!limpiar(formulario.reclutador)) errores.reclutador = 'Debe seleccionar el reclutador/a.';
+  if (!limpiar(formulario.cargo)) errores.cargo = 'El cargo es obligatorio.';
+  if (!limpiar(formulario.familiaCargo)) errores.familiaCargo = 'Debe seleccionar una familia de cargo.';
+  if (!limpiar(formulario.ubicacion)) errores.ubicacion = 'La ubicación del cargo es obligatoria.';
+
+  // Al editar, el CECO puede quedar vacío (solicitudes antiguas no lo tienen), pero si se
+  // escribe debe tener el formato correcto.
+  if (ceco && !CECO_VALIDO.test(ceco)) {
+    errores.ceco = 'El CECO debe tener una letra seguida de 9 dígitos (ej: A170010311).';
+  }
+
+  if (!fechaSolicitud) {
+    errores.fechaSolicitud = 'La fecha de solicitud es obligatoria.';
+  } else if (fechaSolicitud > HOY()) {
+    errores.fechaSolicitud = 'La fecha de solicitud no puede ser futura.';
+  }
+
+  return errores;
+}
+
+/**
  * Valida los datos de una evaluación psicolaboral.
  */
 export function validarEvaluacion(evaluacion = {}) {
@@ -153,6 +182,16 @@ export function validarEvaluacion(evaluacion = {}) {
   } else if (observaciones.length < 10) {
     errores.observaciones = 'Las observaciones deben tener al menos 10 caracteres.';
   }
+
+  // Competencias (opcionales): cada una evaluada necesita nivel y al menos un comentario.
+  (evaluacion.competencias ?? []).forEach(({ competencia, nivel, fortalezas, oportunidades }) => {
+    if (!limpiar(nivel)) {
+      errores[`competencia:${competencia}`] = `Indique el nivel de "${competencia}".`;
+    } else if (!limpiar(fortalezas) && !limpiar(oportunidades)) {
+      errores[`competencia:${competencia}`] =
+        `Indique fortalezas u oportunidades de desarrollo en "${competencia}".`;
+    }
+  });
 
   return errores;
 }

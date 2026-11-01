@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar } = require('../middlewares/auth');
+const { autenticar, puedeVerNotasClinicas } = require('../middlewares/auth');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const {
   CATEGORIAS,
@@ -16,7 +16,8 @@ const {
 const { generarInformePdf, nombreArchivoInforme } = require('../almacenamiento/informePdf');
 
 /**
- * Documentos de una solicitud (CV, descriptor de cargo e informe psicolaboral).
+ * Documentos de una solicitud (CV, descriptor de cargo, informe psicolaboral y pauta de
+ * entrevista; la pauta es confidencial y solo la ven la psicóloga y el administrador).
  * Se monta en /api/solicitudes/:id/documentos. La carpeta vive en el proveedor
  * configurado (disco local u OneDrive/SharePoint) y la página solo ve esta API.
  */
@@ -61,6 +62,11 @@ function puedeGestionar(usuario, categoria) {
   return (CATEGORIAS[categoria]?.roles ?? []).includes(usuario.rol);
 }
 
+/** Las categorías confidenciales (pauta de entrevista) solo las ve quien ve las notas clínicas. */
+function puedeVer(usuario, categoria) {
+  return !CATEGORIAS[categoria]?.confidencial || puedeVerNotasClinicas(usuario.rol);
+}
+
 async function carpetaExistente(id) {
   const carpeta = await obtenerAlmacenamiento().obtenerCarpeta(claveCarpeta(id), null);
   if (!carpeta) throw new ErrorAlmacenamiento('La solicitud aún no tiene documentos.', 404);
@@ -86,10 +92,12 @@ router.get(
       ok: true,
       proveedor: almacenamiento.proveedor,
       carpeta,
-      archivos: archivos.map((archivo) => ({
-        ...archivo,
-        puedeEliminar: puedeGestionar(req.usuario, archivo.categoria),
-      })),
+      archivos: archivos
+        .filter((archivo) => puedeVer(req.usuario, archivo.categoria))
+        .map((archivo) => ({
+          ...archivo,
+          puedeEliminar: puedeGestionar(req.usuario, archivo.categoria),
+        })),
       permisos: Object.keys(CATEGORIAS).filter((categoria) =>
         puedeGestionar(req.usuario, categoria),
       ),
@@ -218,10 +226,13 @@ router.get(
   autenticar,
   manejar(async (req, res) => {
     const carpeta = await carpetaExistente(idSolicitud(req));
-    const { nombre, tipo, contenido } = await obtenerAlmacenamiento().descargarArchivo(
-      carpeta,
-      req.params.archivoId,
-    );
+    const almacenamiento = obtenerAlmacenamiento();
+    const archivo = await almacenamiento.obtenerArchivo(carpeta, req.params.archivoId);
+    // Para quien no puede verla, la pauta "no existe" (no se confirma que esté ahí).
+    if (!puedeVer(req.usuario, archivo.categoria)) {
+      throw new ErrorAlmacenamiento('Archivo no encontrado.', 404);
+    }
+    const { nombre, tipo, contenido } = await almacenamiento.descargarArchivo(carpeta, archivo.id);
 
     res.set({
       'Content-Type': tipo,
@@ -244,6 +255,9 @@ router.delete(
     const almacenamiento = obtenerAlmacenamiento();
     const archivo = await almacenamiento.obtenerArchivo(carpeta, req.params.archivoId);
 
+    if (!puedeVer(req.usuario, archivo.categoria)) {
+      throw new ErrorAlmacenamiento('Archivo no encontrado.', 404);
+    }
     if (!puedeGestionar(req.usuario, archivo.categoria)) {
       throw new ErrorAlmacenamiento('Su perfil no puede eliminar este documento.', 403);
     }

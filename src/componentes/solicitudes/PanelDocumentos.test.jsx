@@ -141,4 +141,17 @@ describe('PanelDocumentos', () => {
     await usuario.click(within(alerta).getByRole('button', { name: 'Reintentar' }));
     expect(await screen.findByText('S0007 - Ana Pérez')).toBeInTheDocument();
   });
+  it('la pauta de entrevista aparece, marcada como confidencial, solo para quien puede subirla', async () => {
+    const { unmount } = render(
+      <PanelDocumentos solicitud={solicitud} api={crearApi({ ...datosConArchivos, permisos: ['informe', 'pauta'] })} />,
+    );
+    expect(await screen.findByText('Pauta de entrevista')).toBeInTheDocument();
+    expect(screen.getByText('Confidencial')).toBeInTheDocument();
+    expect(screen.getByLabelText('Archivo para Pauta de entrevista')).toBeInTheDocument();
+    unmount();
+
+    render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
+    await screen.findByText('S0007 - Ana Pérez');
+    expect(screen.queryByText('Pauta de entrevista')).toBeNull();
+  });
 });

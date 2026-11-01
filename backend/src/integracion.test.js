@@ -184,4 +184,64 @@ describe('API integrada (Hito 2)', () => {
     assert.equal(status, 200);
     assert.equal(datos.totales.solicitudes, 108);
   });
+  it('analista y psicóloga corrigen los datos de una solicitud; la jefatura no', async () => {
+    const editar = (rol, cuerpo) => pedir('/solicitudes/2', { rol, metodo: 'PATCH', cuerpo });
+
+    const porAnalista = await editar('analista', { cargo: 'Analista de Sistemas', familiaCargo: 'Profesional B C', ceco: 'b123456789' });
+    assert.equal(porAnalista.status, 200);
+    assert.equal(porAnalista.datos.solicitud.cargo, 'Analista de Sistemas');
+    assert.equal(porAnalista.datos.solicitud.ceco, 'B123456789');
+
+    const porPsicologa = await editar('evaluador', { observaciones: 'Indagar liderazgo.', requiereReferencias: true });
+    assert.equal(porPsicologa.status, 200);
+    assert.equal(porPsicologa.datos.solicitud.observaciones, 'Indagar liderazgo.');
+    assert.equal(porPsicologa.datos.solicitud.requiereReferencias, true);
+    // Lo no enviado se conserva.
+    assert.equal(porPsicologa.datos.solicitud.cargo, 'Analista de Sistemas');
+
+    assert.equal((await editar('jefatura', { cargo: 'X' })).status, 403);
+    assert.equal((await editar('analista', { cargo: '  ' })).status, 400);
+    assert.equal((await editar('analista', { ceco: '123' })).status, 400);
+    assert.equal((await editar('analista', { fechaSolicitud: '2999-01-01' })).status, 400);
+    assert.equal((await editar('analista', {})).status, 400);
+    assert.equal((await pedir('/solicitudes/99999', { rol: 'analista', metodo: 'PATCH', cuerpo: { cargo: 'X' } })).status, 404);
+  });
+
+  it('la evaluación guarda competencias, visibles para el analista sin las notas clínicas', async () => {
+    const nueva = await pedir('/solicitudes', {
+      rol: 'analista',
+      metodo: 'POST',
+      cuerpo: { candidatoId: 1, cargo: 'Monitor Producción', familiaCargo: 'Técnico B C', reclutador: 'Carolina Muñoz' },
+    });
+    const solicitudId = nueva.datos.solicitud.id;
+    const competencias = [
+      { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: 'Coordina con su turno.', oportunidades: '' },
+    ];
+
+    const invalida = await pedir('/evaluaciones', {
+      rol: 'evaluador',
+      metodo: 'POST',
+      cuerpo: { solicitudId, resultado: 'Recomendado', observaciones: 'Nota clínica.', competencias: [{ competencia: 'Trabajo en equipo', nivel: 'Excelente', fortalezas: 'x' }] },
+    });
+    assert.equal(invalida.status, 400);
+
+    const creada = await pedir('/evaluaciones', {
+      rol: 'evaluador',
+      metodo: 'POST',
+      cuerpo: { solicitudId, resultado: 'Recomendado', observaciones: 'Nota clínica reservada.', competencias },
+    });
+    assert.equal(creada.status, 201);
+    assert.deepEqual(creada.datos.evaluacion.competencias, competencias);
+
+    const vistaAnalista = await pedir(`/evaluaciones/solicitud/${solicitudId}`, { rol: 'analista' });
+    assert.deepEqual(vistaAnalista.datos.evaluacion.competencias, competencias);
+    assert.equal(vistaAnalista.datos.evaluacion.observaciones, undefined);
+
+    const actualizada = await pedir(`/evaluaciones/${creada.datos.evaluacion.id}`, {
+      rol: 'evaluador',
+      metodo: 'PUT',
+      cuerpo: { competencias: [] },
+    });
+    assert.deepEqual(actualizada.datos.evaluacion.competencias, []);
+  });
 });
