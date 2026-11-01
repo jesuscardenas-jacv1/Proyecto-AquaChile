@@ -76,6 +76,13 @@ npm test
 * `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Pasa la solicitud a `Finalizada` automáticamente mediante transacción. Acepta `competencias` opcionales: `[{ competencia, nivel, fortalezas, oportunidades }]` (catálogo en `src/bd/competencias.js`); las competencias las ve también el analista, las observaciones clínicas no.
 * `PUT /api/evaluaciones/:id`: Modificación de evaluación, incluidas las competencias (**Exclusivo Evaluador**).
 
+### Administración (`/api/admin`, **exclusivo Administrador**)
+* `GET /api/admin/usuarios`: Usuarios de prueba (sin contraseñas).
+* `POST /api/admin/usuarios`: Crea un usuario `{ nombre, correo, rol, cargo, unidad, contrasena }` (contraseña de al menos 8 caracteres; correo único).
+* `PUT /api/admin/usuarios/:id`: Edita un usuario; si viene `contrasena`, la cambia.
+* `DELETE /api/admin/usuarios/:id`: Elimina un usuario. No permite eliminarse a sí mismo, quitarse el rol de administrador ni dejar el sistema sin administrador.
+* `POST /api/admin/reiniciar`: Restablece los datos de demostración, incluidos los 4 usuarios de prueba originales.
+
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
 Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo y el informe psicolaboral. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `), así la carpeta se entiende igual al abrirla directo en OneDrive.
 * `GET /api/solicitudes/:id/documentos`: Carpeta, archivos y categorías que el usuario puede gestionar.

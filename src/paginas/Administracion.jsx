@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDatos } from '../datos/DatosContext';
-import { ROLES, USUARIOS } from '../datos/usuarios';
+import { ROLES } from '../datos/usuarios';
+import { useAuth } from '../datos/AuthContext';
 import {
   ESTADOS_SOLICITUD,
   FAMILIAS_CARGO,
@@ -9,6 +10,7 @@ import {
   RESULTADOS_EVALUACION,
 } from '../datos/constantes';
 import Mensaje from '../componentes/comunes/Mensaje';
+import GestionUsuarios from '../componentes/admin/GestionUsuarios';
 
 const CATALOGOS = [
   { titulo: 'Familias de cargo', valores: FAMILIAS_CARGO },
@@ -23,7 +25,8 @@ const CATALOGOS = [
  * catálogos del sistema y restablecimiento de los datos de demostración.
  */
 export default function Administracion() {
-  const { candidatos, solicitudes, evaluaciones, reiniciarDatos } = useDatos();
+  const { candidatos, solicitudes, evaluaciones, reiniciarDatos, modo } = useDatos();
+  const { usuarioActual } = useAuth();
   const [confirmando, setConfirmando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
 
@@ -53,42 +56,7 @@ export default function Administracion() {
         </Mensaje>
       ) : null}
 
-      <section className="card border-0 shadow-sm" aria-labelledby="titulo-usuarios">
-        <div className="card-header bg-white">
-          <h2 id="titulo-usuarios" className="h6 mb-0">
-            Usuarios de prueba
-          </h2>
-          <small className="text-secondary">Todos son ficticios; la contraseña de demostración está en el README.</small>
-        </div>
-        <div className="table-responsive">
-          <table className="table align-middle mb-0">
-            <thead className="table-light">
-              <tr>
-                <th scope="col">Nombre</th>
-                <th scope="col">Acceso</th>
-                <th scope="col">Rol</th>
-                <th scope="col" className="d-none d-md-table-cell">
-                  Cargo
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {USUARIOS.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td className="fw-semibold">{usuario.nombre}</td>
-                  <td className="small">{usuario.alias}</td>
-                  <td>
-                    <span className="badge bg-light text-primary border">
-                      {ROLES[usuario.rol]?.etiqueta ?? usuario.rol}
-                    </span>
-                  </td>
-                  <td className="small text-secondary d-none d-md-table-cell">{usuario.cargo}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <GestionUsuarios conServidor={modo === 'api'} idUsuarioActual={usuarioActual?.id} />
 
       <section aria-labelledby="titulo-roles">
         <h2 id="titulo-roles" className="h6 mb-2">
@@ -158,8 +126,8 @@ export default function Administracion() {
 
           {confirmando ? (
             <Mensaje tipo="warning" titulo="¿Restablecer los datos de demostración?">
-              Se perderán los candidatos, solicitudes y evaluaciones creados en este navegador y se
-              cargarán nuevamente los datos ficticios iniciales.
+              Se perderán los candidatos, solicitudes y evaluaciones creados y se cargarán nuevamente
+              los datos ficticios iniciales{modo === 'api' ? ', incluidos los 4 usuarios de prueba originales' : ''}.
               <div className="d-flex gap-2 mt-2">
                 <button type="button" className="btn btn-sm btn-danger" onClick={restablecer}>
                   Sí, restablecer

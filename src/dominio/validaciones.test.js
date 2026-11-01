@@ -5,6 +5,7 @@ import {
   validarEdicionSolicitud,
   validarEvaluacion,
   validarSolicitud,
+  validarUsuario,
 } from './validaciones';
 
 const candidatoValido = {
@@ -129,5 +130,21 @@ describe('validarEvaluacion con competencias', () => {
       'competencia:Liderazgo': 'Indique el nivel de "Liderazgo".',
       'competencia:Trabajo en equipo': 'Indique fortalezas u oportunidades de desarrollo en "Trabajo en equipo".',
     });
+  });
+});
+
+describe('validarUsuario', () => {
+  const roles = ['admin', 'analista', 'evaluador', 'jefatura'];
+  const valido = { nombre: 'Tomás Riquelme', correo: 'tomas@aquachile.cl', rol: 'evaluador', contrasena: 'ClaveSegura2026' };
+
+  it('acepta un usuario nuevo completo y una edición sin contraseña', () => {
+    expect(hayErrores(validarUsuario(valido, { esNuevo: true, roles }))).toBe(false);
+    expect(hayErrores(validarUsuario({ ...valido, contrasena: '' }, { roles }))).toBe(false);
+  });
+
+  it('exige nombre, correo válido, rol y contraseña de 8 caracteres al crear', () => {
+    const errores = validarUsuario({ nombre: 'Al', correo: 'malo', rol: 'otro', contrasena: '' }, { esNuevo: true, roles });
+    expect(Object.keys(errores).sort()).toEqual(['contrasena', 'correo', 'nombre', 'rol']);
+    expect(validarUsuario({ ...valido, contrasena: 'corta' }, { roles }).contrasena).toMatch(/8 caracteres/);
   });
 });

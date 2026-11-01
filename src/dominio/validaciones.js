@@ -196,6 +196,26 @@ export function validarEvaluacion(evaluacion = {}) {
   return errores;
 }
 
+/**
+ * Valida un usuario de prueba del mantenedor del administrador. La contraseña es
+ * obligatoria al crear y opcional al editar (si se escribe, se cambia).
+ */
+export function validarUsuario(usuario = {}, { esNuevo = false, roles = [] } = {}) {
+  const errores = {};
+  const nombre = limpiar(usuario.nombre);
+  const correo = limpiar(usuario.correo);
+  const contrasena = usuario.contrasena ?? '';
+
+  if (nombre.length < 3) errores.nombre = 'El nombre debe tener al menos 3 caracteres.';
+  if (!correo) errores.correo = 'El correo es obligatorio.';
+  else if (!CORREO_VALIDO.test(correo)) errores.correo = 'El correo no tiene un formato válido (ej: nombre@dominio.cl).';
+  if (!roles.includes(usuario.rol)) errores.rol = 'Debe seleccionar un rol.';
+  if (esNuevo && !contrasena) errores.contrasena = 'La contraseña es obligatoria.';
+  else if (contrasena && contrasena.length < 8) errores.contrasena = 'La contraseña debe tener al menos 8 caracteres.';
+
+  return errores;
+}
+
 export function hayErrores(errores) {
   return Object.keys(errores).length > 0;
 }
