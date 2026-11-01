@@ -125,3 +125,20 @@ Pruebas de la capa de almacenamiento (Graph se prueba con respuestas simuladas):
 ```bash
 npm run test:almacenamiento
 ```
+
+---
+
+## ☁️ Despliegue en Azure App Service (Hito 3)
+
+Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api** (grupo `rg-aquachile-chile`, plan **B1 Linux**, Node 22, región East US 2: la única que permiten las políticas de la suscripción Azure for Students de Duoc). El frontend de GitHub Pages se compila con `VITE_API_URL` apuntando ahí (`.github/workflows/pages.yml`).
+
+**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`, `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)` y `SCM_DO_BUILD_DURING_DEPLOYMENT=true`. Comando de inicio: `node src/servidor.js`.
+
+Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
+
+**Publicar una nueva versión** (con la Azure CLI y `az login`):
+```bash
+bash backend/scripts/empaquetar-azure.sh
+az webapp deploy -g rg-aquachile-chile -n aquachile-psicolaboral-api --src-path backend/despliegue-azure.zip --type zip
+```
+

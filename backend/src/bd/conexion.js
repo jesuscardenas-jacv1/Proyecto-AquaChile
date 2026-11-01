@@ -3,9 +3,12 @@
  * Usa node:sqlite (módulo nativo oficial de Node.js, síncrono y de alto rendimiento).
  */
 const { DatabaseSync } = require('node:sqlite');
+const fs = require('fs');
 const path = require('path');
 
-const RUTA_BD = path.join(__dirname, '..', '..', 'datos.sqlite');
+// En Azure App Service la BD va en el disco persistente (p. ej. BD_RUTA=/home/data/datos.sqlite).
+const RUTA_BD = process.env.BD_RUTA || path.join(__dirname, '..', '..', 'datos.sqlite');
+fs.mkdirSync(path.dirname(RUTA_BD), { recursive: true });
 
 const db = new DatabaseSync(RUTA_BD);
 
