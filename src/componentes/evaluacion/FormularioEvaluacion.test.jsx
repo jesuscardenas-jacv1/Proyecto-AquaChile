@@ -59,6 +59,7 @@ describe('FormularioEvaluacion', () => {
       resultado: 'No recomendado',
       observaciones: 'No cumple con los requisitos del cargo.',
       estado: 'Realizada',
+      competencias: [],
     });
   });
 
@@ -95,5 +96,45 @@ describe('FormularioEvaluacion', () => {
     await usuario.dblClick(screen.getByText('Recomendado con observaciones'));
     expect(screen.getByRole('radio', { name: 'Recomendado con observaciones' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'No recomendado' })).not.toBeChecked();
+  });
+  it('entrega las competencias evaluadas con su nivel y comentarios', async () => {
+    const usuario = userEvent.setup();
+    const alGuardar = vi.fn();
+    renderFormulario({ alGuardar });
+
+    await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
+    await usuario.type(screen.getByLabelText(/^observaciones/i), 'Perfil adecuado para el cargo.');
+    await usuario.click(screen.getByRole('checkbox', { name: 'Trabajo en equipo' }));
+    await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
+    expect(screen.getByText('Indique el nivel de "Trabajo en equipo".')).toBeInTheDocument();
+    expect(alGuardar).not.toHaveBeenCalled();
+
+    await usuario.selectOptions(screen.getByLabelText(/nivel/i), 'Sobre lo esperado');
+    await usuario.type(screen.getByLabelText(/^fortalezas/i), 'Coordina bien con su equipo.');
+    await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
+
+    expect(alGuardar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        competencias: [
+          {
+            competencia: 'Trabajo en equipo',
+            nivel: 'Sobre lo esperado',
+            fortalezas: 'Coordina bien con su equipo.',
+            oportunidades: '',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('al actualizar parte con las competencias ya registradas', () => {
+    renderFormulario({
+      evaluacion: {
+        ...evaluacionExistente,
+        competencias: [{ competencia: 'Liderazgo', nivel: 'Esperado', fortalezas: 'Guía al equipo', oportunidades: '' }],
+      },
+    });
+    expect(screen.getByRole('checkbox', { name: 'Liderazgo' })).toBeChecked();
+    expect(screen.getByLabelText(/nivel/i)).toHaveValue('Esperado');
   });
 });

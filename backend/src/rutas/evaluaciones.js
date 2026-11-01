@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearEvaluacion } = require('../bd/formatos');
+const { normalizarCompetencias } = require('../bd/competencias');
 
 const router = express.Router();
 
@@ -40,6 +41,10 @@ router.get('/solicitud/:solicitudId', autenticar, (req, res) => {
  */
 router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
   const { solicitudId, fechaEvaluacion, resultado, observaciones } = req.body;
+  const { competencias, error: errorCompetencias } = normalizarCompetencias(req.body.competencias);
+  if (errorCompetencias) {
+    return res.status(400).json({ error: errorCompetencias });
+  }
 
   if (!solicitudId || !resultado || !observaciones) {
     return res.status(400).json({
@@ -82,8 +87,8 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     const stmt = db.prepare(`
       INSERT INTO evaluaciones (
         solicitud_id, fecha_evaluacion, resultado, observaciones,
-        estado, fecha_informe, dias_respuesta
-      ) VALUES (?, ?, ?, ?, 'Realizada', ?, ?)
+        estado, fecha_informe, dias_respuesta, competencias
+      ) VALUES (?, ?, ?, ?, 'Realizada', ?, ?, ?)
     `);
 
     const resEval = stmt.run(
@@ -93,6 +98,7 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
       observaciones.trim(),
       fechaEval,
       diasRespuesta,
+      JSON.stringify(competencias),
     );
 
     // Actualizar la solicitud a 'Finalizada'
@@ -130,18 +136,27 @@ router.put('/:id', autenticar, requerirRol('evaluador'), (req, res) => {
   if (!actual) {
     return res.status(404).json({ error: `Evaluación #${id} no encontrada.` });
   }
+  // Las competencias solo cambian si vienen en el cuerpo ([] las borra).
+  let competenciasJson = null;
+  if ('competencias' in req.body) {
+    const { competencias, error } = normalizarCompetencias(req.body.competencias);
+    if (error) return res.status(400).json({ error });
+    competenciasJson = JSON.stringify(competencias);
+  }
 
   db.prepare(`
     UPDATE evaluaciones
     SET resultado = COALESCE(?, resultado),
         observaciones = COALESCE(?, observaciones),
         fecha_evaluacion = COALESCE(?, fecha_evaluacion),
+        competencias = COALESCE(?, competencias),
         actualizado_en = datetime('now')
     WHERE id = ?
   `).run(
     resultado || null,
     observaciones ? observaciones.trim() : null,
     fechaEvaluacion || null,
+    competenciasJson,
     id,
   );
 

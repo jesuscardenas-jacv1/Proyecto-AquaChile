@@ -7,6 +7,7 @@
  */
 const PDFDocument = require('pdfkit');
 const { ErrorAlmacenamiento, claveCarpeta, limpiarNombre } = require('./comun');
+const { normalizarCompetencias } = require('../bd/competencias');
 
 const COLORES = {
   primario: '#2E3D48',
@@ -58,6 +59,8 @@ function validarDatosInforme({ candidato, solicitud, evaluacion } = {}) {
   if (!texto(evaluacion?.fechaEvaluacion)) {
     throw new ErrorAlmacenamiento('Falta la fecha de la evaluación.', 400);
   }
+  const { error } = normalizarCompetencias(evaluacion.competencias);
+  if (error) throw new ErrorAlmacenamiento(error, 400);
 }
 
 /** Nombre fijo por solicitud: al actualizar la evaluación el informe se reemplaza. */
@@ -109,7 +112,7 @@ function generarInformePdf({ solicitudId, candidato, solicitud, evaluacion }) {
   return new Promise((resolver, rechazar) => {
     const doc = new PDFDocument({
       size: 'A4',
-      margins: { top: 0, bottom: 50, left: 56, right: 56 },
+      margins: { top: 56, bottom: 50, left: 56, right: 56 },
       info: {
         Title: `Informe Psicolaboral ${claveCarpeta(solicitudId)} - ${texto(candidato.nombre)}`,
         Author: 'AquaChile · Reclutamiento y Selección',
@@ -123,6 +126,14 @@ function generarInformePdf({ solicitudId, candidato, solicitud, evaluacion }) {
 
     const izquierda = doc.page.margins.left;
     const anchoUtil = doc.page.width - izquierda - doc.page.margins.right;
+    /** Pasa a una página nueva si lo que sigue (de `alto` puntos) no cabe en la actual. */
+    const asegurarEspacio = (alto) => {
+      if (doc.y + alto > doc.page.height - doc.page.margins.bottom - 20) {
+        doc.addPage();
+        doc.x = izquierda;
+        doc.y = doc.page.margins.top;
+      }
+    };
     const folio = `FOLIO-APL-${String(solicitudId).padStart(4, '0')}`;
 
     // Cabecera institucional
@@ -167,12 +178,38 @@ function generarInformePdf({ solicitudId, candidato, solicitud, evaluacion }) {
     doc.font('Helvetica').fontSize(9.5).fillColor(COLORES.secundario)
       .text(NOTA_CONFIDENCIAL, { width: anchoUtil, align: 'justify' });
 
-    seccion(doc, '4. Dictamen final y conclusión');
+    // Evaluación por competencias: nivel, fortalezas y oportunidades de desarrollo.
+    const { competencias } = normalizarCompetencias(evaluacion.competencias);
+    competencias.forEach(({ competencia, nivel, fortalezas, oportunidades }) => {
+      const detalle = [fortalezas, oportunidades].join(' ');
+      doc.font('Helvetica').fontSize(9.5);
+      asegurarEspacio(40 + doc.heightOfString(detalle, { width: anchoUtil }));
+      doc.moveDown(0.8);
+      doc.x = izquierda;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORES.texto)
+        .text(competencia, { continued: true })
+        .font('Helvetica').fillColor(COLORES.secundario)
+        .text(`  ·  ${nivel}`);
+      [
+        ['Fortalezas: ', fortalezas],
+        ['Oportunidades de desarrollo: ', oportunidades],
+      ].forEach(([etiqueta, contenido]) => {
+        if (!contenido) return;
+        doc.moveDown(0.2);
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(COLORES.primario)
+          .text(etiqueta, { continued: true, width: anchoUtil })
+          .font('Helvetica').fillColor(COLORES.texto)
+          .text(contenido, { width: anchoUtil });
+      });
+    });
+
     const color = COLOR_DICTAMEN[evaluacion.resultado];
-    const yCaja = doc.y;
     const descripcion = DESCRIPCIONES_DICTAMEN[evaluacion.resultado];
     doc.font('Helvetica').fontSize(9.5);
-    const altoCaja = 44 + doc.heightOfString(descripcion, { width: anchoUtil - 28 });
+    const altoCaja = 50 + doc.heightOfString(descripcion, { width: anchoUtil - 28 });
+    asegurarEspacio(altoCaja + 60);
+    seccion(doc, '4. Dictamen final y conclusión');
+    const yCaja = doc.y;
     doc.roundedRect(izquierda, yCaja, anchoUtil, altoCaja, 6).fillAndStroke(COLORES.fondo, color);
     doc.font('Helvetica').fontSize(8.5).fillColor(COLORES.secundario)
       .text('Categoría de recomendación', izquierda + 14, yCaja + 12);
@@ -184,6 +221,7 @@ function generarInformePdf({ solicitudId, candidato, solicitud, evaluacion }) {
     doc.y = yCaja + altoCaja + 40;
 
     // Firmas
+    asegurarEspacio(60);
     const yFirma = doc.y;
     const anchoFirma = anchoUtil / 2 - 20;
     [

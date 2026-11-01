@@ -733,3 +733,73 @@ describe('proveedor Google Drive', () => {
     await fs.rm(carpeta, { recursive: true, force: true });
   });
 });
+
+describe('pauta de entrevista (documento confidencial)', () => {
+  const app = require('../servidor');
+  const { JWT_SECRETO } = require('../middlewares/auth');
+  let servidor;
+  let raiz;
+  let base;
+  const cabeceras = (rol) => ({ Authorization: `Bearer ${jwt.sign({ id: 1, nombre: 'Prueba', rol }, JWT_SECRETO)}` });
+  const listar = async (rol) => (await (await fetch(base, { headers: cabeceras(rol) })).json()).archivos;
+  const id = encodeURIComponent('Pauta - pauta.pdf');
+
+  before(async () => {
+    raiz = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-pauta-'));
+    establecerAlmacenamiento(new AlmacenamientoLocal({ raiz }));
+    servidor = app.listen(0);
+    base = `http://localhost:${servidor.address().port}/api/solicitudes/9002/documentos`;
+  });
+
+  after(async () => {
+    servidor.close();
+    establecerAlmacenamiento(null);
+    await fs.rm(raiz, { recursive: true, force: true });
+  });
+
+  it('solo la psicóloga la sube', async () => {
+    const subir = (rol) =>
+      fetch(`${base}?categoria=pauta&nombre=pauta.pdf`, { method: 'POST', headers: cabeceras(rol), body: Buffer.from('notas') });
+    assert.equal((await subir('analista')).status, 403);
+    assert.equal((await subir('evaluador')).status, 201);
+  });
+
+  it('la psicóloga y el admin la ven; analista y jefatura no la ven en el listado', async () => {
+    assert.deepEqual((await listar('evaluador')).map((a) => a.nombre), ['Pauta - pauta.pdf']);
+    assert.deepEqual((await listar('admin')).map((a) => a.nombre), ['Pauta - pauta.pdf']);
+    assert.deepEqual(await listar('analista'), []);
+    assert.deepEqual(await listar('jefatura'), []);
+  });
+
+  it('para el analista no existe: ni descarga ni eliminación (404)', async () => {
+    assert.equal((await fetch(`${base}/${id}/contenido`, { headers: cabeceras('analista') })).status, 404);
+    assert.equal((await fetch(`${base}/${id}`, { method: 'DELETE', headers: cabeceras('analista') })).status, 404);
+    const descarga = await fetch(`${base}/${id}/contenido`, { headers: cabeceras('evaluador') });
+    assert.equal(await descarga.text(), 'notas');
+  });
+});
+
+describe('informe en PDF con competencias', () => {
+  const competencias = [
+    { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: 'Coordina con su turno.', oportunidades: '' },
+    { competencia: 'Liderazgo', nivel: 'En desarrollo', fortalezas: '', oportunidades: 'Delegar tareas.' },
+  ];
+  const datos = {
+    solicitudId: 5,
+    candidato: { nombre: 'Ana Pérez' },
+    solicitud: { cargo: 'Jefe de Centro', familiaCargo: 'Jefatura' },
+    evaluacion: { fechaEvaluacion: '2026-10-10', resultado: 'Recomendado', competencias },
+  };
+
+  it('genera el PDF con las competencias evaluadas', async () => {
+    const pdf = await generarInformePdf(datos);
+    assert.equal(pdf.subarray(0, 5).toString(), '%PDF-');
+  });
+
+  it('rechaza competencias inválidas con 400', () => {
+    assert.throws(
+      () => generarInformePdf({ ...datos, evaluacion: { ...datos.evaluacion, competencias: [{ competencia: 'Magia', nivel: 'Esperado', fortalezas: 'x' }] } }),
+      { status: 400, message: /Competencia desconocida/ },
+    );
+  });
+});

@@ -98,7 +98,7 @@ describe('apiDocumentos', () => {
     expect(opciones.method).toBe('POST');
     expect(opciones.headers['Content-Type']).toBe('application/json');
     const cuerpo = JSON.parse(opciones.body);
-    expect(cuerpo.evaluacion).toEqual({ fechaEvaluacion: '2026-10-10', resultado: 'Recomendado' });
+    expect(cuerpo.evaluacion).toEqual({ fechaEvaluacion: '2026-10-10', resultado: 'Recomendado', competencias: [] });
     expect(cuerpo.candidato.nombre).toBe('Ana Pérez');
     expect(opciones.body).not.toContain('Nota clínica');
   });

@@ -95,4 +95,27 @@ describe('InformePsicolaboral', () => {
     expect(screen.getByText('Solicitud no encontrada')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /volver a solicitudes/i })).toBeInTheDocument();
   });
+  it('muestra las competencias evaluadas también al analista, sin las notas clínicas', () => {
+    const datos = structuredClone(datosDePrueba);
+    datos.evaluaciones[0].competencias = [
+      { competencia: 'Trabajo en equipo', nivel: 'Sobre lo esperado', fortalezas: 'Coordina con su turno.', oportunidades: '' },
+    ];
+    render(
+      <MemoryRouter initialEntries={['/solicitudes/1/informe']}>
+        <ProveedorAuth usuarioInicial={{ id: 1, rol: 'analista', nombre: 'Carolina' }}>
+          <ProveedorDatos datosIniciales={datos}>
+            <Routes>
+              <Route path="/solicitudes/:id/informe" element={<InformePsicolaboral />} />
+            </Routes>
+          </ProveedorDatos>
+        </ProveedorAuth>
+      </MemoryRouter>,
+    );
+
+    const tabla = screen.getByRole('table');
+    expect(tabla).toHaveTextContent('Trabajo en equipo');
+    expect(tabla).toHaveTextContent('Sobre lo esperado');
+    expect(tabla).toHaveTextContent('Coordina con su turno.');
+    expect(screen.queryByText(datos.evaluaciones[0].observaciones)).toBeNull();
+  });
 });

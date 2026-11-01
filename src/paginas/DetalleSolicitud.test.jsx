@@ -181,4 +181,38 @@ describe('DetalleSolicitud', () => {
       expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
     });
   });
+  describe('editar datos de la solicitud', () => {
+    it('corrige el cargo y los datos se ven actualizados', async () => {
+      const usuario = userEvent.setup();
+      renderDetalle('2');
+
+      await usuario.click(screen.getByRole('button', { name: 'Editar' }));
+      await usuario.selectOptions(screen.getByLabelText(/reclutador/i), 'Carolina Muñoz');
+      await usuario.clear(screen.getByLabelText(/nombre del cargo/i));
+      await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Analista de Sistemas');
+      await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Oficina Central');
+      await usuario.type(screen.getByLabelText(/^ceco/i), 'A170010311');
+      await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+      expect(await screen.findByText('Datos de la solicitud actualizados.')).toBeInTheDocument();
+      expect(screen.getByText(/analista de sistemas · /i)).toBeInTheDocument();
+      expect(screen.getByText('A170010311')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
+    });
+
+    it('la jefatura (solo lectura) no puede editar', () => {
+      render(
+        <MemoryRouter initialEntries={['/solicitudes/2']}>
+          <ProveedorAuth usuarioInicial={{ id: 4, rol: 'jefatura', nombre: 'Jefatura' }}>
+            <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+              <Routes>
+                <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
+              </Routes>
+            </ProveedorDatos>
+          </ProveedorAuth>
+        </MemoryRouter>,
+      );
+      expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+    });
+  });
 });

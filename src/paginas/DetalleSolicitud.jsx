@@ -9,6 +9,7 @@ import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
 import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
+import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
 
 /** Detalle de solicitud: datos del candidato, gestión de estado y evaluación. */
@@ -22,11 +23,14 @@ export default function DetalleSolicitud() {
     obtenerCandidato,
     obtenerEvaluacionDeSolicitud,
     actualizarSolicitud,
+    editarSolicitud,
     asignarProfesional,
     registrarEvaluacion,
   } = useDatos();
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [avisoInforme, setAvisoInforme] = useState(null);
+  const [editando, setEditando] = useState(false);
+  const [avisoEdicion, setAvisoEdicion] = useState(null);
 
   const solicitud = obtenerSolicitud(id);
   const mensaje = ubicacion.state?.mensaje;
@@ -83,7 +87,16 @@ export default function DetalleSolicitud() {
     }
   };
 
+  const guardarEdicion = async (cambios) => {
+    const actualizada = await editarSolicitud(solicitud.id, cambios);
+    if (actualizada) {
+      setEditando(false);
+      setAvisoEdicion('Datos de la solicitud actualizados.');
+    }
+  };
+
   const datosSolicitud = [
+    ['Reclutador/a', solicitud.reclutador],
     ['Ubicación', [solicitud.ubicacion, solicitud.unidad].filter(Boolean).join(' · ')],
     ['CECO', solicitud.ceco],
     ['Requiere referencias', solicitud.requiereReferencias ? 'Sí' : 'No'],
@@ -171,24 +184,53 @@ export default function DetalleSolicitud() {
       </div>
 
       <section className="card border-0 shadow-sm">
-        <div className="card-header bg-white">
+        <div className="card-header bg-white d-flex justify-content-between align-items-center gap-2">
           <h2 className="h6 mb-0">Datos de la solicitud</h2>
+          {!soloLectura && !editando ? (
+            <button
+              type="button"
+              className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+              onClick={() => {
+                setAvisoEdicion(null);
+                setEditando(true);
+              }}
+            >
+              <i className="bi bi-pencil" aria-hidden="true" />
+              Editar
+            </button>
+          ) : null}
         </div>
         <div className="card-body">
-          <dl className="row mb-0 small">
-            {datosSolicitud.map(([etiqueta, valor]) => (
-              <div key={etiqueta} className="col-12 col-sm-6 col-lg-4 mb-2">
-                <dt className="text-secondary fw-normal">{etiqueta}</dt>
-                <dd className="mb-0 text-break">{valor || '—'}</dd>
-              </div>
-            ))}
-          </dl>
-          {solicitud.observaciones ? (
-            <div className="mt-3">
-              <h3 className="h6 text-secondary small mb-1">Aspectos a indagar</h3>
-              <p className="mb-0">{solicitud.observaciones}</p>
-            </div>
+          {avisoEdicion ? (
+            <Mensaje tipo="success" alCerrar={() => setAvisoEdicion(null)}>
+              {avisoEdicion}
+            </Mensaje>
           ) : null}
+          {editando ? (
+            <FormularioEdicionSolicitud
+              solicitud={solicitud}
+              origenCandidato={candidato?.origen}
+              alGuardar={guardarEdicion}
+              alCancelar={() => setEditando(false)}
+            />
+          ) : (
+            <>
+              <dl className="row mb-0 small">
+                {datosSolicitud.map(([etiqueta, valor]) => (
+                  <div key={etiqueta} className="col-12 col-sm-6 col-lg-4 mb-2">
+                    <dt className="text-secondary fw-normal">{etiqueta}</dt>
+                    <dd className="mb-0 text-break">{valor || '—'}</dd>
+                  </div>
+                ))}
+              </dl>
+              {solicitud.observaciones ? (
+                <div className="mt-3">
+                  <h3 className="h6 text-secondary small mb-1">Aspectos a indagar</h3>
+                  <p className="mb-0">{solicitud.observaciones}</p>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
       </section>
 

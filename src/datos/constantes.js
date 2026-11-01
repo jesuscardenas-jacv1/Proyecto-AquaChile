@@ -72,3 +72,19 @@ export const MODALIDADES_ENTREVISTA = ['Teams', 'Presencial', 'Telefónica'];
 
 /** Estados de solicitud que permiten registrar o actualizar una evaluación. */
 export const ESTADOS_QUE_PERMITEN_EVALUAR = ['En proceso', 'Finalizada'];
+
+/**
+ * Evaluación por competencias del informe psicolaboral (mismo catálogo que
+ * backend/src/bd/competencias.js). Por cada competencia evaluada: nivel, fortalezas y
+ * oportunidades de desarrollo. Forman parte del informe que ve el analista.
+ */
+export const COMPETENCIAS = [
+  'Trabajo en equipo',
+  'Orientación a resultados',
+  'Comunicación efectiva',
+  'Adaptación al cambio',
+  'Compromiso con la seguridad',
+  'Liderazgo',
+];
+
+export const NIVELES_COMPETENCIA = ['Sobre lo esperado', 'Esperado', 'En desarrollo', 'Bajo lo esperado'];

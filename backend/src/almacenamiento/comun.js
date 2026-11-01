@@ -11,6 +11,8 @@ const CATEGORIAS = {
   cv: { prefijo: 'CV', etiqueta: 'CV del candidato', roles: ['analista'] },
   descriptor: { prefijo: 'Descriptor', etiqueta: 'Descriptor de cargo', roles: ['analista'] },
   informe: { prefijo: 'Informe', etiqueta: 'Informe psicolaboral', roles: ['evaluador'] },
+  // Notas de la entrevista: confidenciales como las observaciones clínicas, solo las ve la psicóloga.
+  pauta: { prefijo: 'Pauta', etiqueta: 'Pauta de entrevista', roles: ['evaluador'], confidencial: true },
 };
 
 /** Mismas restricciones que el formulario de solicitud (Microsoft Forms original). */

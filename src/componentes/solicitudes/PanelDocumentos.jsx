@@ -9,6 +9,8 @@ export const CATEGORIAS_DOCUMENTO = [
   { id: 'cv', etiqueta: 'CV del candidato', icono: 'bi-person-vcard' },
   { id: 'descriptor', etiqueta: 'Descriptor de cargo', icono: 'bi-file-earmark-text' },
   { id: 'informe', etiqueta: 'Informe psicolaboral', icono: 'bi-clipboard2-check' },
+  // Confidencial: el backend solo la muestra a la psicóloga (y al administrador).
+  { id: 'pauta', etiqueta: 'Pauta de entrevista', icono: 'bi-journal-text', confidencial: true },
 ];
 const OTROS = { id: 'otro', etiqueta: 'Otros archivos de la carpeta', icono: 'bi-folder2' };
 
@@ -104,9 +106,14 @@ export default function PanelDocumentos({
   const proveedor = PROVEEDORES[datos?.proveedor];
   const archivos = datos?.archivos ?? [];
   const permisos = datos?.permisos ?? [];
-  const categorias = archivos.some((archivo) => archivo.categoria === 'otro')
-    ? [...CATEGORIAS_DOCUMENTO, OTROS]
-    : CATEGORIAS_DOCUMENTO;
+  // Las categorías confidenciales solo aparecen para quien puede subirlas o ya tiene archivos en ellas.
+  const visibles = CATEGORIAS_DOCUMENTO.filter(
+    (categoria) =>
+      !categoria.confidencial ||
+      permisos.includes(categoria.id) ||
+      archivos.some((archivo) => archivo.categoria === categoria.id),
+  );
+  const categorias = archivos.some((archivo) => archivo.categoria === 'otro') ? [...visibles, OTROS] : visibles;
 
   return (
     <section className="card border-0 shadow-sm" aria-labelledby="titulo-documentos">
@@ -184,6 +191,12 @@ export default function PanelDocumentos({
                     <h3 className="h6 small fw-semibold mb-0 d-flex align-items-center gap-2">
                       <i className={`bi ${categoria.icono} text-secondary`} aria-hidden="true" />
                       {categoria.etiqueta}
+                      {categoria.confidencial ? (
+                        <span className="badge text-bg-light border fw-normal" title="Solo la ve la psicóloga">
+                          <i className="bi bi-lock-fill me-1" aria-hidden="true" />
+                          Confidencial
+                        </span>
+                      ) : null}
                     </h3>
                     {puedeSubir ? (
                       <>

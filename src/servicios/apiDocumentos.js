@@ -127,6 +127,8 @@ export async function generarInforme(solicitudId, { candidato, solicitud, evalua
     evaluacion: {
       fechaEvaluacion: evaluacion.fechaEvaluacion,
       resultado: evaluacion.resultado,
+      // Las competencias son parte del informe; las observaciones clínicas no viajan.
+      competencias: evaluacion.competencias ?? [],
     },
   };
   const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/informe`, {

@@ -524,6 +524,19 @@ h1, h2, h3, h4, h5, h6,
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
+/* La hoja del informe es papel blanco: sus recuadros no toman las superficies oscuras del tema. */
+.hoja-informe .bg-light,
+.hoja-informe .bg-white,
+.hoja-informe .alert-light {
+  background-color: #f5f3f0 !important;
+  border-color: #d7d2cb !important;
+  color: #24303a !important;
+}
+
+.hoja-informe .text-secondary {
+  color: #6e6259 !important;
+}
+
 .cabecera-informe-marca {
   background-color: var(--aqua-primario);
   color: #fff;
@@ -1366,4 +1379,17 @@ h1, h2, h3, h4, h5, h6,
 .selector-resumen {
   color: var(--austral-texto-suave);
   text-align: center;
+}
+
+/* Tabla de competencias del informe oficial (sobre la hoja blanca). */
+.hoja-informe .tabla-competencias th,
+.hoja-informe .tabla-competencias td {
+  background-color: transparent !important;
+  color: #24303a !important;
+  border-color: #d7d2cb !important;
+}
+
+.hoja-informe .tabla-competencias thead th {
+  color: #425563 !important;
+  font-weight: 600;
 }

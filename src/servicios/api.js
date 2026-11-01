@@ -145,6 +145,9 @@ export const apiDatos = {
   /** Estado y/o psicóloga responsable. */
   actualizarSolicitud: async (id, cambios) =>
     (await solicitar(`/solicitudes/${id}/estado`, { metodo: 'PATCH', cuerpo: cambios })).solicitud,
+  /** Corrige los datos de la solicitud (cargo, familia, ubicación, CECO, etc.). */
+  editarSolicitud: async (id, cambios) =>
+    (await solicitar(`/solicitudes/${id}`, { metodo: 'PATCH', cuerpo: cambios })).solicitud,
   moverEtapa: async (id, etapa, agenda = {}) =>
     (await solicitar(`/solicitudes/${id}/etapa`, { metodo: 'PATCH', cuerpo: { etapa, ...agenda } })).solicitud,
 

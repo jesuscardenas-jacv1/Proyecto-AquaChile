@@ -66,6 +66,7 @@ export default function InformePsicolaboral() {
   }
 
   const folio = `FOLIO-APL-${String(solicitud.id).padStart(4, '0')}`;
+  const competencias = evaluacion.competencias ?? [];
   const descripcionVeredicto =
     DESCRIPCIONES_DICTAMEN[evaluacion.resultado] ||
     'Evaluación realizada conforme a pauta técnica por competencias.';
@@ -195,6 +196,33 @@ export default function InformePsicolaboral() {
                 técnico oficial se presenta a continuación.
               </div>
             )}
+
+            {competencias.length > 0 ? (
+              <div className="table-responsive mt-3">
+                <table className="table table-sm align-top small mb-0 tabla-competencias">
+                  <thead>
+                    <tr>
+                      <th scope="col">Competencia</th>
+                      <th scope="col">Nivel</th>
+                      <th scope="col">Fortalezas</th>
+                      <th scope="col">Oportunidades de desarrollo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {competencias.map((item) => (
+                      <tr key={item.competencia}>
+                        <th scope="row" className="fw-semibold">
+                          {item.competencia}
+                        </th>
+                        <td className="text-nowrap">{item.nivel}</td>
+                        <td>{item.fortalezas || '—'}</td>
+                        <td>{item.oportunidades || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
           </section>
 
           {/* Sección 4: Dictamen Oficial */}

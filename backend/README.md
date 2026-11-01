@@ -68,17 +68,18 @@ npm test
   * **Regla de confidencialidad:** Si el usuario es Analista, las observaciones clínicas se ocultan y el campo `confidencial: true`.
 * `POST /api/solicitudes`: Crear solicitud (**Exclusivo Analista**).
 * `PATCH /api/solicitudes/:id/estado`: Transición de estado (`Pendiente`, `En proceso`, `Finalizada`) y asignación de psicólogo/a.
+* `PATCH /api/solicitudes/:id`: Corrige los datos de la solicitud (cargo, familia, ubicación, CECO, referencias, reclutador, fecha y aspectos a indagar); solo cambia los campos enviados (**Analista y Evaluador**).
 
 ### Evaluaciones Psicolaborales (`/api/evaluaciones`)
 * `GET /api/evaluaciones`: Listado de evaluaciones realizadas.
 * `GET /api/evaluaciones/solicitud/:solicitudId`: Evaluación de una solicitud.
-* `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Pasa la solicitud a `Finalizada` automáticamente mediante transacción.
-* `PUT /api/evaluaciones/:id`: Modificación de evaluación (**Exclusivo Evaluador**).
+* `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Pasa la solicitud a `Finalizada` automáticamente mediante transacción. Acepta `competencias` opcionales: `[{ competencia, nivel, fortalezas, oportunidades }]` (catálogo en `src/bd/competencias.js`); las competencias las ve también el analista, las observaciones clínicas no.
+* `PUT /api/evaluaciones/:id`: Modificación de evaluación, incluidas las competencias (**Exclusivo Evaluador**).
 
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
 Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo y el informe psicolaboral. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `), así la carpeta se entiende igual al abrirla directo en OneDrive.
 * `GET /api/solicitudes/:id/documentos`: Carpeta, archivos y categorías que el usuario puede gestionar.
-* `POST /api/solicitudes/:id/documentos?categoria=cv|descriptor|informe&nombre=archivo.pdf`: Sube el archivo (cuerpo binario, máx. 10 MB) y crea la carpeta si no existe. CV y descriptor: **Analista**; informe: **Evaluador**.
+* `POST /api/solicitudes/:id/documentos?categoria=cv|descriptor|informe|pauta&nombre=archivo.pdf`: Sube el archivo (cuerpo binario, máx. 10 MB) y crea la carpeta si no existe. CV y descriptor: **Analista**; informe y pauta de entrevista: **Evaluador**. La **pauta es confidencial**: para analista y jefatura no aparece en el listado ni se puede descargar.
 * `GET /api/solicitudes/:id/documentos/:archivoId/contenido`: Descarga el archivo.
 * `DELETE /api/solicitudes/:id/documentos/:archivoId`: Elimina el archivo (mismo perfil que puede subirlo).
 
