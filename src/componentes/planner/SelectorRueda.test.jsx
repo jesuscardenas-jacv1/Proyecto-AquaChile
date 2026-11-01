@@ -82,3 +82,14 @@ describe('SelectorHora', () => {
     expect(minutos).toHaveLength(1);
   });
 });
+
+describe('SelectorHora con periodo automático', () => {
+  it('muestra AM o PM según la hora del reloj, sin botones', () => {
+    const { rerender } = render(<SelectorHora valor="10:00" onChange={() => {}} />);
+    expect(screen.getByText('10:00 h (AM)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'AM' })).not.toBeInTheDocument();
+
+    rerender(<SelectorHora valor="12:00" onChange={() => {}} />);
+    expect(screen.getByText('12:00 h (PM)')).toBeInTheDocument();
+  });
+});
