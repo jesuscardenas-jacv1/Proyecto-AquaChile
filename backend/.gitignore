@@ -20,3 +20,6 @@ documentos/
 # Credenciales de Google Drive (refresh token y llave de cuenta de servicio)
 .gdrive-token.json
 credenciales-*.json
+
+# Paquete de despliegue generado por scripts/empaquetar-azure.sh
+despliegue-azure.zip

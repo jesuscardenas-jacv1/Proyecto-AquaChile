@@ -12,7 +12,9 @@ const bcrypt = require('bcryptjs');
 const db = require('./conexion');
 const { migrar } = require('./migrar');
 
-const RAIZ_DATOS = path.join(__dirname, '..', '..', '..', 'src', 'datos');
+// Datos de demostración compartidos con el frontend (src/datos). En el paquete de despliegue
+// van copiados aparte y se indica su carpeta con SEMILLA_DATOS.
+const RAIZ_DATOS = process.env.SEMILLA_DATOS || path.join(__dirname, '..', '..', '..', 'src', 'datos');
 const CONTRASENA_DEMO = 'AquaChile2026!';
 
 const USUARIOS = [

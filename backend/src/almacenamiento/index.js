@@ -52,8 +52,11 @@ function crearAlmacenamiento(entorno = process.env) {
       modo,
       clientId: entorno.GDRIVE_CLIENT_ID,
       clientSecret: entorno.GDRIVE_CLIENT_SECRET,
+      // En un servidor (Azure) el refresh token va como variable; en local, en .gdrive-token.json.
       refreshToken:
-        modo === 'oauth' ? leerRefreshToken(entorno.GDRIVE_TOKEN_ARCHIVO || TOKEN_DRIVE_POR_DEFECTO) : null,
+        modo === 'oauth'
+          ? entorno.GDRIVE_REFRESH_TOKEN || leerRefreshToken(entorno.GDRIVE_TOKEN_ARCHIVO || TOKEN_DRIVE_POR_DEFECTO)
+          : null,
       cuentaServicio: modo === 'cuenta-servicio' ? leerCuentaServicio(entorno.GDRIVE_CREDENCIALES) : null,
       carpetaRaizId: entorno.GDRIVE_CARPETA_RAIZ_ID,
       carpetaRaiz: entorno.GDRIVE_CARPETA_RAIZ || undefined,
