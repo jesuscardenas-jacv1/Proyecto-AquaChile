@@ -1,6 +1,31 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRETO = process.env.JWT_SECRETO || 'aquachile-secreto-mvp-2026';
+const LARGO_MINIMO_SECRETO = 32;
+
+/**
+ * Clave con que se firman los JWT. Nunca hay un valor fijo en el código (el repo es público):
+ * - Con JWT_SECRETO definido se usa ese valor (mínimo 32 caracteres).
+ * - En producción (NODE_ENV=production) es obligatorio: sin él el servidor no arranca.
+ * - En desarrollo y pruebas, si falta, se genera uno aleatorio solo para esa ejecución
+ *   (las sesiones se cierran al reiniciar el backend).
+ */
+function resolverSecreto(entorno = process.env, aviso = console.warn) {
+  const secreto = entorno.JWT_SECRETO?.trim();
+  if (secreto) {
+    if (secreto.length < LARGO_MINIMO_SECRETO) {
+      throw new Error(`JWT_SECRETO debe tener al menos ${LARGO_MINIMO_SECRETO} caracteres.`);
+    }
+    return secreto;
+  }
+  if (entorno.NODE_ENV === 'production') {
+    throw new Error('Falta JWT_SECRETO: defínalo como variable de entorno antes de iniciar en producción.');
+  }
+  aviso('⚠️  JWT_SECRETO no definido: se usa uno aleatorio solo para esta ejecución.');
+  return crypto.randomBytes(48).toString('base64url');
+}
+
+const JWT_SECRETO = resolverSecreto();
 
 /**
  * Middleware para validar token JWT en cabecera Authorization: Bearer <token>
@@ -59,4 +84,5 @@ module.exports = {
   requerirRol,
   puedeVerNotasClinicas,
   JWT_SECRETO,
+  resolverSecreto,
 };

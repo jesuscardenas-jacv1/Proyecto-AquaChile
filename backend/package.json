@@ -11,6 +11,7 @@
     "db:semilla": "node src/bd/semilla.js",
     "test": "node src/probar_api.js",
     "test:almacenamiento": "node --test src/almacenamiento/almacenamiento.test.js",
+    "test:auth": "node --test src/middlewares/auth.test.js",
     "test:roles": "node --test src/roles.test.js",
     "test:integracion": "node --test src/integracion.test.js",
     "drive:autorizar": "node --env-file-if-exists=.env src/almacenamiento/autorizarDrive.js"
