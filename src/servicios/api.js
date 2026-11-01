@@ -167,3 +167,12 @@ export const apiDatos = {
 
   reiniciar: () => solicitar('/admin/reiniciar', { metodo: 'POST' }),
 };
+
+/** Mantenedor de usuarios de prueba (solo administrador). */
+export const apiAdmin = {
+  listarUsuarios: async () => (await solicitar('/admin/usuarios')).usuarios,
+  crearUsuario: async (datos) => (await solicitar('/admin/usuarios', { metodo: 'POST', cuerpo: datos })).usuario,
+  actualizarUsuario: async (id, datos) =>
+    (await solicitar(`/admin/usuarios/${id}`, { metodo: 'PUT', cuerpo: datos })).usuario,
+  eliminarUsuario: (id) => solicitar(`/admin/usuarios/${id}`, { metodo: 'DELETE' }),
+};

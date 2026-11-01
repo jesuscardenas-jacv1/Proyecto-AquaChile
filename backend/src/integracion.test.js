@@ -244,4 +244,62 @@ describe('API integrada (Hito 2)', () => {
     });
     assert.deepEqual(actualizada.datos.evaluacion.competencias, []);
   });
+  it('el administrador gestiona usuarios de prueba; nadie más puede', async () => {
+    assert.equal((await pedir('/admin/usuarios', { rol: 'analista' })).status, 403);
+    assert.equal((await pedir('/admin/usuarios', { rol: 'jefatura' })).status, 403);
+
+    const lista = await pedir('/admin/usuarios', { rol: 'admin' });
+    assert.equal(lista.status, 200);
+    assert.equal(lista.datos.usuarios.length, 4);
+    assert.ok(lista.datos.usuarios.every((u) => !('contrasena_hash' in u) && !('contrasena' in u)));
+
+    const datos = { nombre: 'Tomás Riquelme Soto', correo: 'Tomas.Riquelme@AquaChile.cl', rol: 'evaluador', contrasena: 'ClaveSegura2026' };
+    assert.equal((await pedir('/admin/usuarios', { rol: 'admin', metodo: 'POST', cuerpo: { ...datos, contrasena: 'corta' } })).status, 400);
+    const creado = await pedir('/admin/usuarios', { rol: 'admin', metodo: 'POST', cuerpo: datos });
+    assert.equal(creado.status, 201);
+    assert.equal(creado.datos.usuario.correo, 'tomas.riquelme@aquachile.cl');
+    assert.equal((await pedir('/admin/usuarios', { rol: 'admin', metodo: 'POST', cuerpo: datos })).status, 409);
+
+    // El usuario nuevo puede iniciar sesión con su contraseña.
+    const login = await pedir('/auth/login', { metodo: 'POST', cuerpo: { correo: datos.correo, contrasena: datos.contrasena } });
+    assert.equal(login.status, 200);
+    assert.equal(login.datos.usuario.rol, 'evaluador');
+
+    const id = creado.datos.usuario.id;
+    const editado = await pedir(`/admin/usuarios/${id}`, {
+      rol: 'admin',
+      metodo: 'PUT',
+      cuerpo: { ...creado.datos.usuario, cargo: 'Psicólogo Evaluador', contrasena: 'OtraClave2026' },
+    });
+    assert.equal(editado.datos.usuario.cargo, 'Psicólogo Evaluador');
+    const loginNueva = await pedir('/auth/login', { metodo: 'POST', cuerpo: { correo: datos.correo, contrasena: 'OtraClave2026' } });
+    assert.equal(loginNueva.status, 200);
+
+    assert.equal((await pedir(`/admin/usuarios/${id}`, { rol: 'admin', metodo: 'DELETE' })).status, 200);
+    assert.equal((await pedir(`/admin/usuarios/${id}`, { rol: 'admin', metodo: 'DELETE' })).status, 404);
+  });
+
+  it('no se puede dejar el sistema sin administrador ni eliminarse a sí mismo', async () => {
+    const { datos } = await pedir('/admin/usuarios', { rol: 'admin' });
+    const admin = datos.usuarios.find((u) => u.rol === 'admin');
+    const comoAdmin = (ruta, opciones) =>
+      fetch(`${base}${ruta}`, {
+        method: opciones.metodo,
+        headers: {
+          Authorization: `Bearer ${jwt.sign({ id: admin.id, nombre: admin.nombre, rol: 'admin' }, JWT_SECRETO)}`,
+          'Content-Type': 'application/json',
+        },
+        body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
+      });
+
+    assert.equal((await comoAdmin(`/admin/usuarios/${admin.id}`, { metodo: 'DELETE' })).status, 400);
+    const degradarse = await comoAdmin(`/admin/usuarios/${admin.id}`, { metodo: 'PUT', cuerpo: { ...admin, rol: 'analista' } });
+    assert.equal(degradarse.status, 400);
+    // Con la sesión de otra persona tampoco se puede eliminar al único administrador.
+    const otro = await fetch(`${base}/admin/usuarios/${admin.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${jwt.sign({ id: 9999, nombre: 'Otro', rol: 'admin' }, JWT_SECRETO)}` },
+    });
+    assert.equal(otro.status, 400);
+  });
 });

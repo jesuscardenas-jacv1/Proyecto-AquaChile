@@ -38,7 +38,7 @@ Ante dudas de alcance, manda el **Caso** y el **Anexo**; la necesidad original e
 
 | Rol | Permisos esperados | Estado en la app |
 |---|---|---|
-| Administrador académico | Configura usuarios ficticios, roles, catálogos y datos de prueba | `admin`: todo lo del analista y evaluador + `/administracion` |
+| Administrador académico | Configura usuarios ficticios, roles, catálogos y datos de prueba | `admin`: todo lo del analista y evaluador + `/administracion` (mantenedor de usuarios de prueba) |
 | Analista de Reclutamiento | Crea candidatos y solicitudes, consulta y filtra | `analista` |
 | Profesional Evaluador | Actualiza estado, registra fecha y observaciones de evaluación | `evaluador` (único, junto al admin, que ve notas clínicas) |
 | Jefatura / contraparte simulada | Dashboard y listados **solo lectura** | `jefatura` (`soloLectura` en `useAuth`; el backend le niega escrituras) |
