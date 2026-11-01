@@ -108,6 +108,7 @@ npm run backend:dev          # API en http://localhost:3001
 npm test                     # pruebas frontend (Vitest)
 npm run test:coverage        # cobertura (umbral 80 % líneas)
 npm --prefix backend run test:almacenamiento   # pruebas backend (node:test)
+npm --prefix backend run test:auth             # clave de sesiones (JWT_SECRETO)
 npm --prefix backend run test:roles            # permisos de los 4 roles (BD sembrada)
 npm --prefix backend run test:integracion      # API usada por el frontend integrado (Hito 2)
 ```
@@ -130,4 +131,5 @@ Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).
 - Solo datos ficticios. No usar nombres, RUT, correos, CV ni informes reales.
 - **No subir a GitHub** material interno de AquaChile: la carpeta `Documentación/`, capturas del Power BI real,
   transcripciones ni planillas reales. El repo es público.
-- No commitear `.env`, `backend/.graph-token.json`, `backend/.gdrive-token.json`, llaves `credenciales-*.json` ni bases `*.sqlite`.
+- `JWT_SECRETO` nunca va en el código: se define en `backend/.env` o en la plataforma de despliegue
+  (obligatorio en producción). No commitear `.env`, `backend/.graph-token.json`, `backend/.gdrive-token.json`, llaves `credenciales-*.json` ni bases `*.sqlite`.
