@@ -167,3 +167,53 @@ describe('DatosContext cuando el servidor deja de responder', () => {
     expect(result.current.datos.errorOperacion).toBeNull();
   });
 });
+
+describe('DatosContext se reconecta cuando vuelve el servidor', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  const montarSinServidor = ({ intervaloReconexion = 30000 } = {}) => {
+    sessionStorage.setItem('aquachile_token_api', 'jwt');
+    const comprobarServidor = vi.fn().mockResolvedValue(false);
+    const api = crearApi();
+    const wrapper = ({ children }) => (
+      <ProveedorAuth usuarioInicial={analista} apiHabilitada>
+        <ProveedorDatos
+          apiHabilitada
+          api={api}
+          comprobarServidor={comprobarServidor}
+          intervaloReconexion={intervaloReconexion}
+        >
+          {children}
+        </ProveedorDatos>
+      </ProveedorAuth>
+    );
+    return { api, comprobarServidor, ...renderHook(() => useDatos(), { wrapper }) };
+  };
+
+  it('al abrir sin servidor queda en modo local y avisa que hay servidor configurado', async () => {
+    const { result } = montarSinServidor();
+    await waitFor(() => expect(result.current.modo).toBe('local'));
+    expect(result.current.servidorConfigurado).toBe(true);
+  });
+
+  it('reintentar pasa a modo api y carga los datos cuando el servidor responde', async () => {
+    const { result, api, comprobarServidor } = montarSinServidor();
+    await waitFor(() => expect(result.current.modo).toBe('local'));
+
+    comprobarServidor.mockResolvedValue(true);
+    await act(async () => expect(await result.current.reconectar()).toBe(true));
+    await waitFor(() => expect(result.current.modo).toBe('api'));
+    await waitFor(() => expect(api.cargarTodo).toHaveBeenCalledWith('analista'));
+  });
+
+  it('reintenta solo cada cierto tiempo y al volver la conexión', async () => {
+    const { result, comprobarServidor } = montarSinServidor({ intervaloReconexion: 20 });
+    await waitFor(() => expect(result.current.modo).toBe('local'));
+    const llamadas = comprobarServidor.mock.calls.length;
+    await waitFor(() => expect(comprobarServidor.mock.calls.length).toBeGreaterThan(llamadas + 1));
+
+    comprobarServidor.mockResolvedValue(true);
+    act(() => window.dispatchEvent(new Event('online')));
+    await waitFor(() => expect(result.current.modo).toBe('api'));
+  });
+});
