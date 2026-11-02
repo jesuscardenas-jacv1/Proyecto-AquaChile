@@ -65,6 +65,12 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     return res.status(404).json({ error: `La solicitud #${solicitudId} no existe.` });
   }
 
+  if (solicitud.motivo_cierre) {
+    return res.status(409).json({
+      error: `La solicitud #${solicitudId} se cerró sin evaluación (${solicitud.motivo_cierre}). Reábrala para evaluar.`,
+    });
+  }
+
   const existente = db.prepare('SELECT id FROM evaluaciones WHERE solicitud_id = ?').get(solicitudId);
   if (existente) {
     return res.status(409).json({

@@ -90,6 +90,44 @@ describe('Planner', () => {
     expect(within(columna('Entrevista Agendada')).getByText('Juan Pérez')).toBeInTheDocument();
   });
 
+  it('cierra una solicitud sin evaluación con motivo y la reabre desde "Cerradas sin informe"', async () => {
+    const usuario = userEvent.setup();
+    renderPlanner();
+
+    await usuario.click(screen.getByRole('button', { name: /cerrar sin evaluación: juan pérez/i }));
+    const ventana = screen.getByRole('dialog', { name: 'Cerrar sin evaluación' });
+    await usuario.click(within(ventana).getByRole('button', { name: 'Cerrar solicitud' }));
+    expect(within(ventana).getByText('Seleccione el motivo del cierre.')).toBeInTheDocument();
+
+    // "Otro" exige comentario.
+    await usuario.click(within(ventana).getByRole('radio', { name: 'Otro' }));
+    await usuario.click(within(ventana).getByRole('button', { name: 'Cerrar solicitud' }));
+    expect(within(ventana).getByText('Explique el motivo en el comentario.')).toBeInTheDocument();
+
+    await usuario.click(within(ventana).getByRole('radio', { name: 'Desistió del proceso' }));
+    await usuario.type(within(ventana).getByLabelText(/comentario/i), 'Aceptó otra oferta.');
+    await usuario.click(within(ventana).getByRole('button', { name: 'Cerrar solicitud' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByText(/cerrada sin evaluación \(desistió del proceso\)/i)).toBeInTheDocument();
+    expect(within(columna('Entrevista Agendada')).queryByText('Juan Pérez')).toBeNull();
+
+    await usuario.click(screen.getByRole('button', { name: /cerradas sin informe/i }));
+    expect(screen.getByText('Aceptó otra oferta.')).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Reabrir la solicitud de Juan Pérez' }));
+    expect(within(columna('Entrevista Agendada')).getByText('Juan Pérez')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cerradas sin informe/i })).toBeNull();
+  });
+
+  it('si no se presentó a una entrevista agendada ofrece reagendar en vez de cerrar', async () => {
+    const usuario = userEvent.setup();
+    renderPlanner();
+    await usuario.click(screen.getByRole('button', { name: /cerrar sin evaluación: juan pérez/i }));
+    await usuario.click(screen.getByRole('radio', { name: 'No se presentó a la entrevista' }));
+    await usuario.click(screen.getByRole('button', { name: 'Reagendar' }));
+    expect(screen.getByRole('dialog', { name: 'Reagendar entrevista' })).toBeInTheDocument();
+  });
+
   it('lleva al detalle para registrar el informe', async () => {
     const usuario = userEvent.setup();
     renderPlanner();

@@ -3,7 +3,7 @@ import { COLECCIONES, cargarDatos, generarId, guardarDatos, obtenerSemilla } fro
 import { ESTADOS_EVALUACION } from './constantes';
 import { useAuth } from './AuthContext';
 import { estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
-import { estadoDeEtapa } from '../dominio/planner';
+import { estadoDeEtapa, etapaDeSolicitud } from '../dominio/planner';
 import { API_HABILITADA, apiDatos, backendDisponible, obtenerToken } from '../servicios/api';
 
 const ContextoDatos = createContext(null);
@@ -322,6 +322,44 @@ export function ProveedorDatos({
     [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
   );
 
+  /**
+   * Cierra la solicitud sin evaluación ({ motivo, comentario }): queda Finalizada con el
+   * motivo, la fecha y quién la cerró. Reabrir la devuelve a la etapa en que estaba.
+   */
+  const cerrarSolicitud = useCallback(
+    async (id, { motivo, comentario = '' }) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('solicitudes', await api.cerrarSolicitud(id, { motivo, comentario })));
+      }
+      return cambiarSolicitudLocal(id, (solicitud) => ({
+        ...solicitud,
+        // Se guarda la etapa en que estaba, para volver a ella al reabrir.
+        etapa: etapaDeSolicitud(solicitud),
+        estado: 'Finalizada',
+        cierre: {
+          motivo,
+          comentario: comentario.trim(),
+          fecha: new Date().toISOString().slice(0, 10),
+          responsable: usuarioActual?.nombre ?? '',
+        },
+      }));
+    },
+    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal, usuarioActual],
+  );
+
+  const reabrirSolicitud = useCallback(
+    async (id) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('solicitudes', await api.reabrirSolicitud(id)));
+      }
+      return cambiarSolicitudLocal(id, (solicitud) => {
+        const etapa = ['recibida', 'agendada', 'realizada'].includes(solicitud.etapa) ? solicitud.etapa : 'recibida';
+        return { ...solicitud, cierre: null, etapa, estado: estadoDeEtapa(etapa) };
+      });
+    },
+    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
+  );
+
   /** Asigna (o quita, con "") la psicóloga responsable de la solicitud. */
   const asignarProfesional = useCallback(
     async (id, profesional) => {
@@ -505,6 +543,8 @@ export function ProveedorDatos({
       obtenerSolicitud,
       asignarProfesional,
       moverEtapa,
+      cerrarSolicitud,
+      reabrirSolicitud,
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
       reiniciarDatos,
@@ -528,6 +568,8 @@ export function ProveedorDatos({
       obtenerSolicitud,
       asignarProfesional,
       moverEtapa,
+      cerrarSolicitud,
+      reabrirSolicitud,
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
       obtenerOferta,

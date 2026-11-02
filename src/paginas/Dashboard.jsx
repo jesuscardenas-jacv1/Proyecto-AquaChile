@@ -52,6 +52,17 @@ export default function Dashboard() {
       titulo: `Solicitudes ${plural}`,
       resumen: `${filtradas.length} de ${resumen.total} solicitudes`,
       grupos: [
+        // Las finalizadas incluyen las cerradas sin evaluación (no se presentó, desistió…).
+        ...(estado === 'Finalizada'
+          ? [
+              {
+                titulo: 'Por cierre',
+                filas: contarPor(filtradas, (solicitud) =>
+                  solicitud.cierre ? `Sin evaluación: ${solicitud.cierre.motivo}` : 'Con informe',
+                ),
+              },
+            ]
+          : []),
         { titulo: 'Por profesional responsable', filas: porProfesional(filtradas) },
         { titulo: 'Por familia de cargo', filas: porFamiliaCargo(filtradas) },
       ],

@@ -57,6 +57,7 @@ export default function TarjetaPlanner({
   alMarcarRealizada,
   alRegistrarInforme,
   alRetroceder,
+  alCerrarSinEvaluacion,
 }) {
   const acciones = accionesDisponibles(etapa);
   const aviso = avisoTarjeta(etapa, solicitud, hoy);
@@ -119,6 +120,17 @@ export default function TarjetaPlanner({
 
         {editable ? (
           <div className="d-flex flex-wrap gap-1">
+            {acciones.cerrar && alCerrarSinEvaluacion ? (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={alCerrarSinEvaluacion}
+                aria-label={`Cerrar sin evaluación: ${nombre}`}
+                title="Cerrar sin evaluación (no se presentó, desistió…)"
+              >
+                <i className="bi bi-x-circle" aria-hidden="true" />
+              </button>
+            ) : null}
             {acciones.retroceder ? (
               <button
                 type="button"

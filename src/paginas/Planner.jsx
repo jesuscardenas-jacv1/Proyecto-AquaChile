@@ -3,12 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { ETAPAS_PLANNER, RECLUTADORES } from '../datos/constantes';
-import { agruparPorEtapa, etapaAnterior, hoyIso, obtenerEtapa, textoEntrevista } from '../dominio/planner';
+import {
+  agruparPorEtapa,
+  etapaAnterior,
+  etapaDeSolicitud,
+  hoyIso,
+  obtenerEtapa,
+  textoEntrevista,
+} from '../dominio/planner';
 import { normalizar } from '../dominio/texto';
 import Mensaje from '../componentes/comunes/Mensaje';
 import ColumnaPlanner from '../componentes/planner/ColumnaPlanner';
 import TarjetaPlanner from '../componentes/planner/TarjetaPlanner';
 import VentanaAgenda from '../componentes/planner/VentanaAgenda';
+import VentanaCierre from '../componentes/planner/VentanaCierre';
+import ListaCerradas from '../componentes/planner/ListaCerradas';
 
 /**
  * Planner de la psicóloga: tablero con las 4 etapas del proceso
@@ -21,10 +30,11 @@ import VentanaAgenda from '../componentes/planner/VentanaAgenda';
 export default function Planner() {
   const navegar = useNavigate();
   const { esEvaluador } = useAuth();
-  const { solicitudes, candidatos, evaluaciones, moverEtapa } = useDatos();
+  const { solicitudes, candidatos, evaluaciones, moverEtapa, cerrarSolicitud, reabrirSolicitud } = useDatos();
   const [texto, setTexto] = useState('');
   const [solicitante, setSolicitante] = useState('');
   const [ventana, setVentana] = useState(null);
+  const [ventanaCierre, setVentanaCierre] = useState(null);
   const [aviso, setAviso] = useState(null);
   const hoy = hoyIso();
 
@@ -86,6 +96,25 @@ export default function Planner() {
     setAviso({
       tipo: 'info',
       texto: `${nombreDe(solicitud)} volvió a "${obtenerEtapa(destino).titulo}".`,
+    });
+  };
+
+  const cerrarSinEvaluacion = async (cierre) => {
+    const solicitud = ventanaCierre;
+    setVentanaCierre(null);
+    if (!(await cerrarSolicitud(solicitud.id, cierre))) return;
+    setAviso({
+      tipo: 'info',
+      texto: `Solicitud de ${nombreDe(solicitud)} cerrada sin evaluación (${cierre.motivo}). Queda en "Cerradas sin informe".`,
+    });
+  };
+
+  const reabrir = async (solicitud) => {
+    const reabierta = await reabrirSolicitud(solicitud.id);
+    if (!reabierta) return;
+    setAviso({
+      tipo: 'success',
+      texto: `${nombreDe(solicitud)} volvió a "${obtenerEtapa(reabierta.etapa)?.titulo ?? 'Evaluación Recibida'}".`,
     });
   };
 
@@ -194,12 +223,37 @@ export default function Planner() {
                   alMarcarRealizada={() => marcarRealizada(solicitud)}
                   alRegistrarInforme={() => navegar(`/solicitudes/${solicitud.id}`)}
                   alRetroceder={() => retroceder(solicitud, etapa.id)}
+                  alCerrarSinEvaluacion={() => setVentanaCierre(solicitud)}
                 />
               ))}
             </ColumnaPlanner>
           </div>
         ))}
       </div>
+
+      <ListaCerradas
+        solicitudes={grupos.cerrada}
+        candidatosPorId={candidatosPorId}
+        editable={esEvaluador}
+        alReabrir={reabrir}
+      />
+
+      {ventanaCierre ? (
+        <VentanaCierre
+          solicitud={ventanaCierre}
+          candidato={candidatosPorId[ventanaCierre.candidatoId]}
+          alConfirmar={cerrarSinEvaluacion}
+          alReagendar={
+            etapaDeSolicitud(ventanaCierre) === 'agendada'
+              ? () => {
+                  setVentana({ solicitud: ventanaCierre, reagendar: true });
+                  setVentanaCierre(null);
+                }
+              : undefined
+          }
+          alCerrar={() => setVentanaCierre(null)}
+        />
+      ) : null}
 
       {ventana ? (
         <VentanaAgenda

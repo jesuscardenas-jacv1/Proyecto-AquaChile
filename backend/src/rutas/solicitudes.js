@@ -16,6 +16,13 @@ const ESTADO_DE_ETAPA = {
   informe: 'Finalizada',
 };
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+/** Motivos para cerrar una solicitud sin evaluación (mismo catálogo que el frontend). */
+const MOTIVOS_CIERRE = [
+  'No se presentó a la entrevista',
+  'Desistió del proceso',
+  'No cumple requisitos',
+  'Otro',
+];
 
 const obtener = (id) => db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
 const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
@@ -212,6 +219,9 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   if (estado !== undefined && !ESTADOS.includes(estado)) {
     return res.status(400).json({ error: `Estado inválido. Debe ser uno de: ${ESTADOS.join(', ')}.` });
   }
+  if (actual.motivo_cierre && estado !== undefined && estado !== actual.estado) {
+    return res.status(409).json({ error: 'La solicitud se cerró sin evaluación: reábrala para cambiar su estado.' });
+  }
   const responsable =
     'profesionalResponsable' in req.body ? texto(req.body.profesionalResponsable) : actual.profesional_responsable;
   // La psicóloga responsable la asigna el analista; la psicóloga solo cambia el estado.
@@ -308,6 +318,9 @@ router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
   if (!actual) {
     return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
   }
+  if (actual.motivo_cierre) {
+    return res.status(409).json({ error: 'La solicitud se cerró sin evaluación: reábrala para moverla en el Planner.' });
+  }
 
   const { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista } = req.body;
   if (!ESTADO_DE_ETAPA[etapa]) {
@@ -336,6 +349,63 @@ router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
   ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, id);
 
   res.json({ ok: true, mensaje: 'Etapa actualizada.', solicitud: formatearSolicitud(obtener(id)) });
+});
+
+/**
+ * POST /api/solicitudes/:id/cierre
+ * Cierra la solicitud sin evaluación: { motivo, comentario }. Queda Finalizada con el
+ * motivo, la fecha y quién la cerró. Solo antes de registrar la evaluación.
+ */
+router.post('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
+  const id = Number(req.params.id);
+  const actual = obtener(id);
+  if (!actual) return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
+
+  const motivo = texto(req.body?.motivo);
+  const comentario = texto(req.body?.comentario).slice(0, 500);
+  if (!MOTIVOS_CIERRE.includes(motivo)) {
+    return res.status(400).json({ error: `Motivo inválido. Debe ser uno de: ${MOTIVOS_CIERRE.join(', ')}.` });
+  }
+  if (motivo === 'Otro' && !comentario) {
+    return res.status(400).json({ error: 'Explique el motivo en el comentario.' });
+  }
+  if (actual.motivo_cierre) return res.status(409).json({ error: 'La solicitud ya está cerrada.' });
+  if (actual.estado === 'Finalizada' || db.prepare('SELECT id FROM evaluaciones WHERE solicitud_id = ?').get(id)) {
+    return res.status(409).json({ error: 'La solicitud ya tiene evaluación: no se puede cerrar sin evaluación.' });
+  }
+
+  // Se guarda la etapa del Planner en que estaba (deducida del estado si no hay), para reabrirla ahí.
+  const etapa =
+    ESTADO_DE_ETAPA[actual.etapa] === actual.estado ? actual.etapa : actual.estado === 'En proceso' ? 'agendada' : 'recibida';
+  db.prepare(
+    `UPDATE solicitudes
+     SET estado = 'Finalizada', etapa = ?, motivo_cierre = ?, comentario_cierre = ?, fecha_cierre = ?, cerrada_por = ?,
+         actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(etapa, motivo, comentario, new Date().toISOString().slice(0, 10), req.usuario.nombre ?? '', id);
+
+  res.json({ ok: true, mensaje: 'Solicitud cerrada sin evaluación.', solicitud: formatearSolicitud(obtener(id)) });
+});
+
+/**
+ * DELETE /api/solicitudes/:id/cierre
+ * Reabre una solicitud cerrada sin evaluación: vuelve a la etapa del Planner en que estaba.
+ */
+router.delete('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
+  const id = Number(req.params.id);
+  const actual = obtener(id);
+  if (!actual) return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
+  if (!actual.motivo_cierre) return res.status(409).json({ error: 'La solicitud no está cerrada.' });
+
+  const etapa = ESTADO_DE_ETAPA[actual.etapa] && actual.etapa !== 'informe' ? actual.etapa : 'recibida';
+  db.prepare(
+    `UPDATE solicitudes
+     SET estado = ?, etapa = ?, motivo_cierre = '', comentario_cierre = '', fecha_cierre = '', cerrada_por = '',
+         actualizado_en = datetime('now')
+     WHERE id = ?`,
+  ).run(ESTADO_DE_ETAPA[etapa], etapa, id);
+
+  res.json({ ok: true, mensaje: 'Solicitud reabierta.', solicitud: formatearSolicitud(obtener(id)) });
 });
 
 module.exports = router;
