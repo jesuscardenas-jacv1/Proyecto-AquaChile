@@ -32,6 +32,22 @@ describe('Postulaciones (bandeja del analista)', () => {
     expect(within(filas[0]).getByText('Monitor Producción - Planta Calbuco')).toBeInTheDocument();
   });
 
+  it('abre el detalle del postulante al pinchar su nombre o su fila', async () => {
+    const usuario = userEvent.setup();
+    renderFlujo('/postulaciones');
+
+    await usuario.click(screen.getByRole('button', { name: 'Ver detalle de Camilo Fuentealba' }));
+    const ventana = screen.getByRole('dialog', { name: 'Camilo Fuentealba' });
+    expect(within(ventana).getByText('Monitor Producción - Planta Calbuco')).toBeInTheDocument();
+    await usuario.click(within(ventana).getAllByRole('button', { name: 'Cerrar' }).at(-1));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await usuario.click(screen.getAllByRole('row')[1].querySelector('td:nth-child(2)'));
+    await usuario.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Descartar' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByText(/se descartó la postulación de camilo/i)).toBeInTheDocument();
+  });
+
   it('descarta y reactiva una postulación', async () => {
     const usuario = userEvent.setup();
     renderFlujo('/postulaciones');

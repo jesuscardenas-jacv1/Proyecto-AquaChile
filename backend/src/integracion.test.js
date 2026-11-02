@@ -123,6 +123,39 @@ describe('API integrada (Hito 2)', () => {
     );
   });
 
+  it('descarga el CV de una postulación solo con sesión de analista o jefatura', async () => {
+    const nueva = await pedir('/postulaciones', {
+      metodo: 'POST',
+      cuerpo: {
+        ofertaId: 1,
+        nombre: 'Valentina Rojas Pérez',
+        correo: 'valentina.cv@correo.cl',
+        telefono: '+56911112222',
+        ciudad: 'Puerto Montt',
+        origen: 'Externo',
+        consentimiento: true,
+        cvNombre: 'cv-valentina.pdf',
+      },
+    });
+    const id = nueva.datos.postulacion.id;
+    assert.equal((await pedir(`/postulaciones/${id}/cv`, { rol: 'analista' })).status, 404);
+
+    const subida = await fetch(`${base}/postulaciones/${id}/cv?nombre=cv-valentina.pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf', 'X-Candidato': encodeURIComponent('Valentina Rojas Pérez') },
+      body: Buffer.from('%PDF-1.4 CV de prueba'),
+    });
+    assert.equal(subida.status, 201);
+
+    assert.equal((await pedir(`/postulaciones/${id}/cv`)).status, 401);
+    assert.equal((await pedir(`/postulaciones/${id}/cv`, { rol: 'evaluador' })).status, 403);
+    const descarga = await fetch(`${base}/postulaciones/${id}/cv`, { headers: cabeceras('jefatura') });
+    assert.equal(descarga.status, 200);
+    assert.match(descarga.headers.get('content-disposition'), /cv-valentina\.pdf/);
+    assert.equal(Buffer.from(await descarga.arrayBuffer()).toString(), '%PDF-1.4 CV de prueba');
+    assert.equal((await pedir('/postulaciones/9999/cv', { rol: 'analista' })).status, 404);
+  });
+
   it('asigna y quita la psicóloga responsable', async () => {
     const asignada = await pedir('/solicitudes/101/estado', {
       rol: 'analista',

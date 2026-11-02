@@ -7,6 +7,7 @@ import { filtrarPostulaciones, resumenPostulaciones } from '../dominio/postulaci
 import { formatearFecha } from '../dominio/formateo';
 import EstadoVacio from '../componentes/comunes/EstadoVacio';
 import Mensaje from '../componentes/comunes/Mensaje';
+import VentanaPostulante from '../componentes/portal/VentanaPostulante';
 
 const COLOR_ESTADO = {
   Recibida: 'bg-secondary-subtle text-secondary-emphasis',
@@ -18,20 +19,29 @@ const COLOR_ESTADO = {
  * Bandeja de postulaciones del portal "Trabaja con nosotros".
  * El analista elige a quién pasar a evaluación psicolaboral (abre el formulario de
  * solicitud ya completado) o descarta la postulación. La jefatura solo consulta.
+ * Un clic en el postulante abre una ventana con su detalle y su CV.
  */
 export default function Postulaciones() {
-  const { postulaciones, ofertas, candidatos, actualizarPostulacion } = useDatos();
+  const { postulaciones, ofertas, candidatos, actualizarPostulacion, modo } = useDatos();
   const { soloLectura } = useAuth();
   const navegar = useNavigate();
   const [criterios, setCriterios] = useState({ estado: 'Recibida', ofertaId: '', busqueda: '' });
   const [mensaje, setMensaje] = useState(null);
+  const [idDetalle, setIdDetalle] = useState(null);
 
   const resumen = resumenPostulaciones(postulaciones);
   const visibles = filtrarPostulaciones(postulaciones, { ofertas, candidatos }, criterios);
+  // Se busca entre todas (no solo las visibles) para que la ventana siga abierta si cambia el filtro.
+  const detalle = idDetalle
+    ? filtrarPostulaciones(postulaciones, { ofertas, candidatos }, {}).find((p) => p.id === idDetalle)
+    : null;
   const cambiar = (campo, valor) => setCriterios((actual) => ({ ...actual, [campo]: valor }));
+
+  const pasarAEvaluacion = (postulacion) => navegar(`/solicitudes/nueva?postulacion=${postulacion.id}`);
 
   const cambiarEstado = async (postulacion, estado) => {
     if (!(await actualizarPostulacion(postulacion.id, { estado }))) return;
+    setIdDetalle(null);
     setMensaje(
       estado === 'Descartada'
         ? `Se descartó la postulación de ${postulacion.candidato?.nombre}.`
@@ -139,9 +149,23 @@ export default function Postulaciones() {
               </thead>
               <tbody>
                 {visibles.map((postulacion) => (
-                  <tr key={postulacion.id}>
+                  <tr
+                    key={postulacion.id}
+                    className="fila-clicable"
+                    onClick={(evento) => {
+                      // Los botones y enlaces de la fila hacen su propia acción.
+                      if (!evento.target.closest('button, a')) setIdDetalle(postulacion.id);
+                    }}
+                  >
                     <td>
-                      <span className="fw-semibold d-block">{postulacion.candidato?.nombre ?? 'Postulante eliminado'}</span>
+                      <button
+                        type="button"
+                        className="btn btn-link p-0 fw-semibold text-start text-decoration-none d-block"
+                        aria-label={`Ver detalle de ${postulacion.candidato?.nombre ?? 'postulante eliminado'}`}
+                        onClick={() => setIdDetalle(postulacion.id)}
+                      >
+                        {postulacion.candidato?.nombre ?? 'Postulante eliminado'}
+                      </button>
                       <small className="text-secondary">
                         {postulacion.candidato?.correo} · {postulacion.ciudad}
                       </small>
@@ -167,7 +191,7 @@ export default function Postulaciones() {
                             type="button"
                             className="btn btn-primary"
                             aria-label={`Pasar a evaluación a ${postulacion.candidato?.nombre}`}
-                            onClick={() => navegar(`/solicitudes/nueva?postulacion=${postulacion.id}`)}
+                            onClick={() => pasarAEvaluacion(postulacion)}
                           >
                             Pasar a evaluación
                           </button>
@@ -199,6 +223,18 @@ export default function Postulaciones() {
           </div>
         )}
       </section>
+
+      {detalle ? (
+        <VentanaPostulante
+          postulacion={detalle}
+          colorEstado={COLOR_ESTADO[detalle.estado]}
+          soloLectura={soloLectura}
+          conServidor={modo === 'api'}
+          alPasarAEvaluacion={pasarAEvaluacion}
+          alCambiarEstado={cambiarEstado}
+          alCerrar={() => setIdDetalle(null)}
+        />
+      ) : null}
     </div>
   );
 }
