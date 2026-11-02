@@ -56,6 +56,17 @@ describe('PanelDocumentos', () => {
     expect(screen.getByText('Sin archivos.')).toBeInTheDocument();
   });
 
+  it('si el descriptor indicado en la solicitud aún no está en la carpeta, lo dice', async () => {
+    render(
+      <PanelDocumentos
+        solicitud={{ ...solicitud, descriptorCargo: 'DC_Analista.pdf' }}
+        api={crearApi(datosConArchivos)}
+      />,
+    );
+    expect(await screen.findByText('DC_Analista.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/súbelo aquí para guardarlo en la carpeta/i)).toBeInTheDocument();
+  });
+
   it('con Google Drive muestra su nombre y el enlace para abrir la carpeta', async () => {
     const datosDrive = {
       ...datosConArchivos,

@@ -156,6 +156,23 @@ describe('API integrada (Hito 2)', () => {
     assert.equal((await pedir('/postulaciones/9999/cv', { rol: 'analista' })).status, 404);
   });
 
+  it('la psicóloga cambia el estado pero no reasigna la psicóloga responsable', async () => {
+    const reasignar = await pedir('/solicitudes/101/estado', {
+      rol: 'evaluador',
+      metodo: 'PATCH',
+      cuerpo: { profesionalResponsable: 'Tomás Riquelme Soto' },
+    });
+    assert.equal(reasignar.status, 403);
+    const estado = await pedir('/solicitudes/101/estado', {
+      rol: 'evaluador',
+      metodo: 'PATCH',
+      cuerpo: { estado: 'En proceso' },
+    });
+    assert.equal(estado.status, 200);
+    assert.equal(estado.datos.solicitud.estado, 'En proceso');
+    await pedir('/solicitudes/101/estado', { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Pendiente' } });
+  });
+
   it('asigna y quita la psicóloga responsable', async () => {
     const asignada = await pedir('/solicitudes/101/estado', {
       rol: 'analista',

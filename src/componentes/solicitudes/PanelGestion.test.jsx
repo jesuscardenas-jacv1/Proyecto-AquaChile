@@ -31,6 +31,21 @@ describe('PanelGestion', () => {
     expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('');
   });
 
+  it('sin permiso para asignar muestra la psicóloga como texto', () => {
+    renderConContexto(
+      <PanelGestion
+        solicitud={{ ...solicitud, profesionalResponsable: 'Ignacia Valdés Ortiz' }}
+        alAsignarProfesional={vi.fn()}
+        alCambiarEstado={vi.fn()}
+        puedeAsignar={false}
+      />,
+      { datosIniciales: datosVacios },
+    );
+    expect(screen.queryByRole('combobox', { name: /psicóloga responsable/i })).toBeNull();
+    expect(screen.getByText('Ignacia Valdés Ortiz')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^estado$/i)).toBeEnabled();
+  });
+
   it('notifica el cambio de estado y de profesional', async () => {
     const usuario = userEvent.setup();
     const alAsignarProfesional = vi.fn();

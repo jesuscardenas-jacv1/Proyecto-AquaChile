@@ -41,6 +41,9 @@ export default function PanelDocumentos({
   const [ocupado, setOcupado] = useState(null);
   const [aviso, setAviso] = useState(null);
   const entradas = useRef({});
+  // Nombres que la solicitud trae de su creación (el CV elegido y el descriptor del
+  // catálogo de cargos): se muestran como referencia mientras no estén en la carpeta.
+  const referencias = { cv: solicitud.cv, descriptor: solicitud.descriptorCargo };
 
   const cargar = useCallback(async () => {
     // Sin sesión en el backend no tiene sentido llamar: se informa de inmediato.
@@ -228,7 +231,16 @@ export default function PanelDocumentos({
                   </div>
 
                   {deCategoria.length === 0 ? (
-                    <p className="small text-secondary mb-0 mt-1 ps-4">Sin archivos.</p>
+                    <p className="small text-secondary mb-0 mt-1 ps-4">
+                      Sin archivos.
+                      {referencias[categoria.id] ? (
+                        <>
+                          {' '}
+                          En la solicitud se indicó <strong>{referencias[categoria.id]}</strong>
+                          {puedeSubir ? '; súbelo aquí para guardarlo en la carpeta.' : ', pero aún no está en la carpeta.'}
+                        </>
+                      ) : null}
+                    </p>
                   ) : (
                     <ul className="list-unstyled mb-0 mt-2 ps-4 d-flex flex-column gap-1">
                       {deCategoria.map((archivo) => (
