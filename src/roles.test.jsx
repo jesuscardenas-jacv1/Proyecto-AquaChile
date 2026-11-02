@@ -62,7 +62,9 @@ describe('Jefatura en modo solo lectura', () => {
     renderComo('jefatura', '/solicitudes/1');
 
     expect(screen.getByLabelText('Estado')).toBeDisabled();
-    expect(screen.getByLabelText('Psicóloga responsable')).toBeDisabled();
+    // La psicóloga responsable solo se muestra: la asigna el analista.
+    expect(screen.queryByRole('combobox', { name: 'Psicóloga responsable' })).toBeNull();
+    expect(screen.getByText(/la asigna el analista/i)).toBeInTheDocument();
     expect(screen.getByText(/solo puede consultar/i)).toBeInTheDocument();
 
     expect(screen.getByText('Dictamen de la evaluación:')).toBeInTheDocument();
@@ -80,6 +82,15 @@ describe('Jefatura en modo solo lectura', () => {
     renderComo('jefatura', '/solicitudes/1/informe');
     expect(screen.getByText(/resguardadas bajo secreto/i)).toBeInTheDocument();
     expect(screen.queryByText('Perfil estable y buen trabajo en equipo.')).toBeNull();
+  });
+});
+
+describe('Psicóloga (evaluador)', () => {
+  it('cambia el estado, pero la psicóloga responsable la asigna el analista', () => {
+    renderComo('evaluador', '/solicitudes/1');
+    expect(screen.getByLabelText('Estado')).toBeEnabled();
+    expect(screen.queryByRole('combobox', { name: 'Psicóloga responsable' })).toBeNull();
+    expect(screen.getByText(/la asigna el analista/i)).toBeInTheDocument();
   });
 });
 

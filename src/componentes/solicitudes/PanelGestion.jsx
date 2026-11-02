@@ -5,12 +5,15 @@ import { ESTADOS_SOLICITUD, EVALUADORES } from '../../datos/constantes';
  * Los valores se leen siempre de la solicitud y cada cambio se guarda al momento,
  * así el panel refleja los cambios automáticos (p. ej. al registrar una evaluación).
  * Con `soloLectura` (perfil jefatura) muestra los valores sin permitir cambios.
+ * La psicóloga responsable la asigna el analista: sin `puedeAsignar` (perfil psicóloga)
+ * se muestra como texto.
  */
 export default function PanelGestion({
   solicitud,
   alAsignarProfesional,
   alCambiarEstado,
   soloLectura = false,
+  puedeAsignar = true,
 }) {
   return (
     <section className="card border-0 shadow-sm">
@@ -39,23 +42,33 @@ export default function PanelGestion({
           </div>
 
           <div className="col-12 col-md-6">
-            <label className="form-label" htmlFor="profesional-responsable">
-              Psicóloga responsable
-            </label>
-            <select
-              id="profesional-responsable"
-              className="form-select"
-              value={solicitud.profesionalResponsable ?? ''}
-              disabled={soloLectura}
-              onChange={(evento) => alAsignarProfesional(evento.target.value)}
-            >
-              <option value="">Sin asignar</option>
-              {EVALUADORES.map((nombre) => (
-                <option key={nombre} value={nombre}>
-                  {nombre}
-                </option>
-              ))}
-            </select>
+            {puedeAsignar ? (
+              <>
+                <label className="form-label" htmlFor="profesional-responsable">
+                  Psicóloga responsable
+                </label>
+                <select
+                  id="profesional-responsable"
+                  className="form-select"
+                  value={solicitud.profesionalResponsable ?? ''}
+                  disabled={soloLectura}
+                  onChange={(evento) => alAsignarProfesional(evento.target.value)}
+                >
+                  <option value="">Sin asignar</option>
+                  {EVALUADORES.map((nombre) => (
+                    <option key={nombre} value={nombre}>
+                      {nombre}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <>
+                <span className="form-label d-block">Psicóloga responsable</span>
+                <p className="mb-0 py-2">{solicitud.profesionalResponsable || 'Sin asignar'}</p>
+                <div className="form-text mt-0">La asigna el analista de reclutamiento.</div>
+              </>
+            )}
           </div>
         </div>
         <p className="form-text mb-0 mt-3">

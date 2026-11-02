@@ -214,6 +214,10 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   }
   const responsable =
     'profesionalResponsable' in req.body ? texto(req.body.profesionalResponsable) : actual.profesional_responsable;
+  // La psicóloga responsable la asigna el analista; la psicóloga solo cambia el estado.
+  if (req.usuario.rol === 'evaluador' && responsable !== actual.profesional_responsable) {
+    return res.status(403).json({ error: 'La psicóloga responsable la asigna el analista de reclutamiento.' });
+  }
 
   db.prepare(
     `UPDATE solicitudes

@@ -17,7 +17,7 @@ export default function DetalleSolicitud() {
   const { id } = useParams();
   const navegar = useNavigate();
   const ubicacion = useLocation();
-  const { esEvaluador, soloLectura } = useAuth();
+  const { esAnalista, esEvaluador, soloLectura } = useAuth();
   const {
     obtenerSolicitud,
     obtenerCandidato,
@@ -100,8 +100,13 @@ export default function DetalleSolicitud() {
     ['Ubicación', [solicitud.ubicacion, solicitud.unidad].filter(Boolean).join(' · ')],
     ['CECO', solicitud.ceco],
     ['Requiere referencias', solicitud.requiereReferencias ? 'Sí' : 'No'],
-    ['CV', solicitud.cv],
-    ['Descriptor de cargo', solicitud.descriptorCargo],
+    // Con el servicio de documentos, el CV y el descriptor se ven (y suben) en Documentos.
+    ...(apiDocumentos.conectado()
+      ? []
+      : [
+          ['CV', solicitud.cv],
+          ['Descriptor de cargo', solicitud.descriptorCargo],
+        ]),
   ];
 
   return (
@@ -179,6 +184,7 @@ export default function DetalleSolicitud() {
             alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
             alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
             soloLectura={soloLectura}
+            puedeAsignar={esAnalista}
           />
         </div>
       </div>
