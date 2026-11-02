@@ -522,14 +522,34 @@ export default function FormularioSolicitud({
           </h3>
           <div className="row g-3">
             <div className="col-12 col-md-6">
-              <CampoArchivo
-                id="cv"
-                etiqueta="Adjuntar CV"
-                archivo={formulario.cv}
-                alSeleccionar={seleccionarArchivo('cv')}
-                alQuitar={() => actualizar({ cv: '' })}
-                error={errorDe('cv')}
-              />
+              {postulante ? (
+                // El CV viene de la postulación: se copia solo a la carpeta de la solicitud.
+                <div>
+                  <span className="form-label d-block">CV del postulante</span>
+                  {formulario.cv ? (
+                    <>
+                      <div className="d-flex align-items-center gap-2 border rounded px-3 py-2 bg-body-tertiary">
+                        <i className="bi bi-file-earmark-person text-secondary" aria-hidden="true" />
+                        <span className="flex-grow-1 text-break small">{formulario.cv}</span>
+                      </div>
+                      <div className="form-text">Viene de la postulación; se guarda en la carpeta de la solicitud.</div>
+                    </>
+                  ) : (
+                    <div className="form-text mt-0">
+                      No adjuntó CV en el portal. Podrás subirlo después en Documentos de la solicitud.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <CampoArchivo
+                  id="cv"
+                  etiqueta="Adjuntar CV"
+                  archivo={formulario.cv}
+                  alSeleccionar={seleccionarArchivo('cv')}
+                  alQuitar={() => actualizar({ cv: '' })}
+                  error={errorDe('cv')}
+                />
+              )}
             </div>
 
             <div className="col-12 col-md-6">

@@ -199,13 +199,16 @@ describe('FormularioSolicitud', () => {
         candidatos={candidatos}
         alGuardar={vi.fn()}
         reclutadorFijo="Carolina Muñoz"
-        valoresIniciales={{ candidatoId: '1', nombreCandidato: 'Ana Pérez', origen: 'Externo' }}
+        valoresIniciales={{ candidatoId: '1', nombreCandidato: 'Ana Pérez', origen: 'Externo', cv: 'cv-ana.pdf' }}
         postulante={{ nombre: 'Ana Pérez', correo: 'ana.perez@correo.cl', telefono: '+56911112222', origen: 'Externo' }}
       />,
     );
     expect(screen.getByLabelText('Datos del postulante')).toHaveTextContent('ana.perez@correo.cl');
     expect(screen.queryByLabelText('Candidato/a *')).toBeNull();
     expect(screen.queryByRole('group', { name: /origen/i })).toBeNull();
+    // El CV llegó con la postulación: no se pide adjuntarlo de nuevo.
+    expect(screen.queryByLabelText('Adjuntar CV')).toBeNull();
+    expect(screen.getByText('cv-ana.pdf')).toBeInTheDocument();
     // El referido sigue preguntándose para los externos.
     expect(screen.getByRole('group', { name: /referido/i })).toBeInTheDocument();
   });
