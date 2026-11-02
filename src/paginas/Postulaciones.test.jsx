@@ -75,7 +75,12 @@ describe('Postulaciones (bandeja del analista)', () => {
     await usuario.click(screen.getByRole('button', { name: 'Pasar a evaluación a Camilo Fuentealba' }));
 
     expect(screen.getByText('Pasando a evaluación desde una postulación')).toBeInTheDocument();
-    expect(screen.getByLabelText(/nombre del candidato/i)).toHaveValue('Camilo Fuentealba');
+    // El postulante ya es conocido: se muestra como ficha, sin pedir su nombre ni el reclutador.
+    const ficha = screen.getByLabelText('Datos del postulante');
+    expect(within(ficha).getByText('Camilo Fuentealba')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Candidato/a *')).toBeNull();
+    expect(screen.getByText('Carolina Muñoz', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /reclutador/i })).toBeNull();
     expect(screen.getByLabelText(/nombre del cargo/i)).toHaveValue('Monitor Producción');
     expect(screen.getByLabelText(/ubicación del cargo/i)).toHaveValue('Planta Calbuco');
   });

@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import NuevaSolicitud from './NuevaSolicitud';
 import Solicitudes from './Solicitudes';
 import { ProveedorDatos, useDatos } from '../datos/DatosContext';
+import { ProveedorAuth } from '../datos/AuthContext';
 import { datosDePrueba, datosVacios } from '../pruebas/utilidades';
 
 const DetalleFalso = () => {
@@ -19,18 +20,23 @@ const DetalleFalso = () => {
   );
 };
 
-const renderNueva = (datosIniciales) =>
+// Sin usuario indicado se usa el de pruebas por defecto (administrador).
+const renderNueva = (datosIniciales, usuario) =>
   render(
     <MemoryRouter initialEntries={['/solicitudes/nueva']}>
-      <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
-        <Routes>
-          <Route path="/solicitudes/nueva" element={<NuevaSolicitud />} />
-          <Route path="/solicitudes/:id" element={<DetalleFalso />} />
-          <Route path="/candidatos/nuevo" element={<h1>Formulario nuevo candidato</h1>} />
-        </Routes>
-      </ProveedorDatos>
+      <ProveedorAuth usuarioInicial={usuario}>
+        <ProveedorDatos datosIniciales={structuredClone(datosIniciales)}>
+          <Routes>
+            <Route path="/solicitudes/nueva" element={<NuevaSolicitud />} />
+            <Route path="/solicitudes/:id" element={<DetalleFalso />} />
+            <Route path="/candidatos/nuevo" element={<h1>Formulario nuevo candidato</h1>} />
+          </Routes>
+        </ProveedorDatos>
+      </ProveedorAuth>
     </MemoryRouter>,
   );
+
+const administrador = { id: 9, nombre: 'Administrador Demo', rol: 'admin' };
 
 const renderListado = (datosIniciales = datosDePrueba, ruta = '/solicitudes') =>
   render(
@@ -51,16 +57,31 @@ const elegir = (usuario, nombreGrupo, opcion) =>
 
 async function completarSolicitud(usuario, nombreCandidato) {
   await elegir(usuario, /reclutador/i, 'Carolina Muñoz');
-  await usuario.type(screen.getByLabelText(/nombre del candidato/i), nombreCandidato);
+  await usuario.type(screen.getByLabelText('Candidato/a *'), nombreCandidato);
   await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Oficina Central');
   await usuario.type(screen.getByLabelText(/^ceco/i), 'A170010311');
   await elegir(usuario, /requiere referencias/i, 'Sí');
 }
 
 describe('NuevaSolicitud', () => {
+  it('el analista con sesión es quien solicita: no se le pregunta el reclutador', () => {
+    renderNueva(datosDePrueba, { id: 1, nombre: 'Carolina Muñoz', rol: 'analista' });
+    expect(screen.getByText('Carolina Muñoz', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /reclutador/i })).toBeNull();
+    expect(screen.getByLabelText('Candidato/a *')).toHaveAttribute(
+      'placeholder',
+      'Buscar registrado o escribir uno nuevo',
+    );
+  });
+
+  it('el administrador elige a nombre de qué reclutador/a la pide', () => {
+    renderNueva(datosDePrueba, administrador);
+    expect(screen.getByRole('group', { name: /reclutador\/a que solicita/i })).toBeInTheDocument();
+  });
+
   it('crea la solicitud de un candidato registrado y navega al detalle', async () => {
     const usuario = userEvent.setup();
-    renderNueva(datosDePrueba);
+    renderNueva(datosDePrueba, administrador);
 
     await completarSolicitud(usuario, 'María González');
     await elegir(usuario, /origen/i, 'Interno');

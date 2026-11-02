@@ -51,7 +51,7 @@ describe('FormularioSolicitud', () => {
     const usuario = userEvent.setup();
     renderFormulario();
 
-    await usuario.type(screen.getByLabelText(/nombre del candidato/i), 'maría gonzález');
+    await usuario.type(screen.getByLabelText('Candidato/a *'), 'maría gonzález');
 
     expect(screen.getByText(/candidato\/a registrado\/a: maria@correo\.cl/i)).toBeInTheDocument();
     expect(within(grupo(/origen/i)).getByRole('radio', { name: 'Interno' })).toBeChecked();
@@ -118,7 +118,7 @@ describe('FormularioSolicitud', () => {
     renderFormulario({ alGuardar });
 
     await elegir(usuario, /reclutador/i, 'Carolina Muñoz');
-    await usuario.type(screen.getByLabelText(/nombre del candidato/i), 'María González');
+    await usuario.type(screen.getByLabelText('Candidato/a *'), 'María González');
     await completarCargo(usuario);
     await usuario.type(screen.getByLabelText(/aspectos a indagar/i), 'Indagar en liderazgo');
     await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
@@ -148,7 +148,7 @@ describe('FormularioSolicitud', () => {
     renderFormulario({ alGuardar });
 
     await elegir(usuario, /reclutador/i, 'Javiera Soto');
-    await usuario.type(screen.getByLabelText(/nombre del candidato/i), 'Pedro Soto');
+    await usuario.type(screen.getByLabelText('Candidato/a *'), 'Pedro Soto');
     expect(screen.getByText(/se creará junto con la solicitud/i)).toBeInTheDocument();
     await elegir(usuario, /origen/i, 'Externo');
     await elegir(usuario, /referido/i, 'Sí');
@@ -180,5 +180,33 @@ describe('FormularioSolicitud', () => {
   it('informa que la solicitud quedará en estado Pendiente', () => {
     renderFormulario();
     expect(screen.getByText(/queda en estado/i)).toBeInTheDocument();
+  });
+
+  it('con reclutador fijo no lo pregunta y lo entrega al guardar', async () => {
+    const usuario = userEvent.setup();
+    const alGuardar = vi.fn();
+    render(<FormularioSolicitud candidatos={candidatos} alGuardar={alGuardar} reclutadorFijo="Daniela Contreras" />);
+
+    expect(screen.getByText('Daniela Contreras', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /reclutador/i })).toBeNull();
+    await usuario.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+    expect(screen.queryByText('Debe seleccionar el reclutador/a.')).toBeNull();
+  });
+
+  it('muestra al postulante del portal como ficha y no pide su nombre ni su origen', () => {
+    render(
+      <FormularioSolicitud
+        candidatos={candidatos}
+        alGuardar={vi.fn()}
+        reclutadorFijo="Carolina Muñoz"
+        valoresIniciales={{ candidatoId: '1', nombreCandidato: 'Ana Pérez', origen: 'Externo' }}
+        postulante={{ nombre: 'Ana Pérez', correo: 'ana.perez@correo.cl', telefono: '+56911112222', origen: 'Externo' }}
+      />,
+    );
+    expect(screen.getByLabelText('Datos del postulante')).toHaveTextContent('ana.perez@correo.cl');
+    expect(screen.queryByLabelText('Candidato/a *')).toBeNull();
+    expect(screen.queryByRole('group', { name: /origen/i })).toBeNull();
+    // El referido sigue preguntándose para los externos.
+    expect(screen.getByRole('group', { name: /referido/i })).toBeInTheDocument();
   });
 });

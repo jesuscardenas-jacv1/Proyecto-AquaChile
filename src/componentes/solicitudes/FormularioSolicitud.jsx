@@ -114,19 +114,42 @@ function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error })
   );
 }
 
+/** Ficha de solo lectura del postulante que llega desde el portal "Trabaja con nosotros". */
+function FichaPostulante({ postulante }) {
+  return (
+    <div className="border rounded p-3 bg-body-tertiary" aria-label="Datos del postulante">
+      <p className="fw-semibold mb-1">{postulante.nombre}</p>
+      <p className="small text-secondary mb-1">
+        {[postulante.correo, postulante.telefono, postulante.origen].filter(Boolean).join(' · ')}
+      </p>
+      <small className="text-secondary">Datos que el postulante ingresó en el portal.</small>
+    </div>
+  );
+}
+
 /**
  * Formulario de solicitud de evaluación psicolaboral (réplica del Microsoft Forms).
  * Automatiza los datos derivables: al escribir un candidato registrado completa su origen
  * y cargo; el cargo completa la familia y el descriptor, y la ubicación la unidad.
+ *
+ * - `reclutadorFijo`: quien pide la evaluación es el analista con sesión; se muestra y no se
+ *   pregunta. Sin él (administrador) se elige de la lista de reclutadores.
+ * - `postulante`: viene del portal; sus datos ya se conocen y se muestran como ficha.
  */
 export default function FormularioSolicitud({
   candidatos = [],
   alGuardar,
   alCancelar,
   valoresIniciales = {},
+  reclutadorFijo = '',
+  postulante = null,
 }) {
   // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
-  const [formulario, setFormulario] = useState(() => ({ ...camposIniciales(), ...valoresIniciales }));
+  const [formulario, setFormulario] = useState(() => ({
+    ...camposIniciales(),
+    ...(reclutadorFijo ? { reclutador: reclutadorFijo } : {}),
+    ...valoresIniciales,
+  }));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
 
@@ -241,29 +264,43 @@ export default function FormularioSolicitud({
           </Mensaje>
         ) : null}
 
-        <section aria-labelledby="seccion-reclutador">
-          <h3 id="seccion-reclutador" className="h6 text-secondary text-uppercase small mb-3">
-            Reclutador/a
-          </h3>
-          <GrupoOpciones
-            nombre="reclutador"
-            etiqueta="Reclutador/a"
-            opciones={RECLUTADORES}
-            valor={formulario.reclutador}
-            alCambiar={cambiarCampo}
-            error={errorDe('reclutador')}
-            obligatorio
-          />
-        </section>
+        {reclutadorFijo ? (
+          <p className="mb-0 small">
+            <i className="bi bi-person-badge me-1 text-secondary" aria-hidden="true" />
+            Solicita: <strong>{reclutadorFijo}</strong>
+          </p>
+        ) : (
+          <section aria-labelledby="seccion-reclutador">
+            <h3 id="seccion-reclutador" className="h6 text-secondary text-uppercase small mb-3">
+              Reclutador/a
+            </h3>
+            <GrupoOpciones
+              nombre="reclutador"
+              etiqueta="Reclutador/a que solicita"
+              opciones={RECLUTADORES}
+              valor={formulario.reclutador}
+              alCambiar={cambiarCampo}
+              error={errorDe('reclutador')}
+              obligatorio
+            />
+          </section>
+        )}
 
         <section aria-labelledby="seccion-candidato">
           <h3 id="seccion-candidato" className="h6 text-secondary text-uppercase small mb-3">
             Candidato/a
           </h3>
           <div className="row g-3">
+            {postulante ? (
+              <div className="col-12">
+                <FichaPostulante postulante={postulante} />
+              </div>
+            ) : null}
+
+            {postulante ? null : (
             <div className="col-12">
               <label className="form-label" htmlFor="nombreCandidato">
-                Nombre del candidato/a *
+                Candidato/a *
               </label>
               <input
                 id="nombreCandidato"
@@ -271,6 +308,7 @@ export default function FormularioSolicitud({
                 type="text"
                 list="candidatos-registrados"
                 autoComplete="off"
+                placeholder="Buscar registrado o escribir uno nuevo"
                 className={clasesCampo('form-control', errorDe('nombreCandidato'))}
                 value={formulario.nombreCandidato}
                 onChange={cambiarCandidato}
@@ -296,12 +334,14 @@ export default function FormularioSolicitud({
                 </div>
               ) : (
                 <div className="form-text">
-                  Escribe el nombre; si ya está registrado/a se completan sus datos.
+                  Si ya está registrado/a, elígelo/a de la lista y se completan sus datos; si no, se
+                  registra junto con la solicitud.
                 </div>
               )}
             </div>
+            )}
 
-            {!candidatoRegistrado && formulario.nombreCandidato.trim() ? (
+            {!postulante && !candidatoRegistrado && formulario.nombreCandidato.trim() ? (
               <>
                 <div className="col-12 col-md-6">
                   <label className="form-label" htmlFor="correo">
@@ -339,17 +379,19 @@ export default function FormularioSolicitud({
               </>
             ) : null}
 
-            <div className="col-12 col-md-6">
-              <GrupoOpciones
-                nombre="origen"
-                etiqueta="Origen del candidato/a"
-                opciones={ORIGENES_CANDIDATO}
-                valor={formulario.origen}
-                alCambiar={cambiarOrigen}
-                error={errorDe('origen')}
-                obligatorio
-              />
-            </div>
+            {postulante?.origen ? null : (
+              <div className="col-12 col-md-6">
+                <GrupoOpciones
+                  nombre="origen"
+                  etiqueta="Origen del candidato/a"
+                  opciones={ORIGENES_CANDIDATO}
+                  valor={formulario.origen}
+                  alCambiar={cambiarOrigen}
+                  error={errorDe('origen')}
+                  obligatorio
+                />
+              </div>
+            )}
 
             {esExterno ? (
               <div className="col-12 col-md-6">
