@@ -30,7 +30,8 @@ export default function PanelGestion({
               id="estado-solicitud"
               className="form-select"
               value={solicitud.estado}
-              disabled={soloLectura}
+              // Cerrada sin evaluación: el estado solo cambia al reabrirla.
+              disabled={soloLectura || Boolean(solicitud.cierre)}
               onChange={(evento) => alCambiarEstado(evento.target.value)}
             >
               {ESTADOS_SOLICITUD.map((item) => (

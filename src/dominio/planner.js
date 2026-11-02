@@ -1,4 +1,4 @@
-import { ETAPAS_PLANNER, MODALIDADES_ENTREVISTA } from '../datos/constantes';
+import { ETAPAS_PLANNER, MODALIDADES_ENTREVISTA, MOTIVOS_CIERRE } from '../datos/constantes';
 import { normalizar as normalizarTexto } from './texto';
 
 /**
@@ -42,6 +42,8 @@ export function estadoDeEtapa(idEtapa) {
  */
 export function etapaDeSolicitud(solicitud) {
   if (!solicitud) return 'recibida';
+  // Cerrada sin evaluación: sale de las columnas del flujo (grupo aparte en el Planner).
+  if (solicitud.cierre) return 'cerrada';
   const guardada = ETAPA_POR_ID[solicitud.etapa];
   if (guardada && guardada.estado === solicitud.estado) return guardada.id;
   return ETAPA_POR_ESTADO[solicitud.estado] ?? 'recibida';
@@ -72,12 +74,13 @@ const fechaInforme = (solicitud, evaluacionesPorSolicitud) => {
  * - Recibidas: la más antigua primero (lleva más tiempo esperando).
  * - Agendadas y realizadas: por fecha y hora de la entrevista.
  * - Informe enviado: el más reciente primero.
+ * Las cerradas sin evaluación van en el grupo `cerrada`, la más reciente primero.
  */
 export function agruparPorEtapa(solicitudes = [], evaluaciones = []) {
   const evaluacionesPorSolicitud = Object.fromEntries(
     evaluaciones.map((evaluacion) => [evaluacion.solicitudId, evaluacion]),
   );
-  const grupos = Object.fromEntries(IDS_ETAPAS.map((id) => [id, []]));
+  const grupos = Object.fromEntries([...IDS_ETAPAS, 'cerrada'].map((id) => [id, []]));
 
   solicitudes.forEach((solicitud) => {
     grupos[etapaDeSolicitud(solicitud)].push(solicitud);
@@ -88,6 +91,7 @@ export function agruparPorEtapa(solicitudes = [], evaluaciones = []) {
   );
   grupos.agendada.sort((a, b) => claveEntrevista(a).localeCompare(claveEntrevista(b)));
   grupos.realizada.sort((a, b) => claveEntrevista(a).localeCompare(claveEntrevista(b)));
+  grupos.cerrada.sort((a, b) => (b.cierre?.fecha ?? '').localeCompare(a.cierre?.fecha ?? '') || b.id - a.id);
   grupos.informe.sort(
     (a, b) =>
       fechaInforme(b, evaluacionesPorSolicitud).localeCompare(
@@ -169,12 +173,23 @@ export function validarAgenda(agenda = {}, solicitud = {}) {
  */
 export function accionesDisponibles(idEtapa) {
   return {
+    // Cerrar sin evaluación: mientras no hay entrevista realizada (no se presentó, desistió…).
+    cerrar: idEtapa === 'recibida' || idEtapa === 'agendada',
     avanzar: idEtapa === 'recibida' || idEtapa === 'agendada',
     requiereAgenda: idEtapa === 'recibida',
     registrarInforme: idEtapa === 'realizada',
     reagendar: idEtapa === 'agendada',
     retroceder: idEtapa === 'agendada' || idEtapa === 'realizada',
   };
+}
+
+/** Valida el cierre sin evaluación: motivo del catálogo y comentario si el motivo es "Otro". */
+export function validarCierre({ motivo = '', comentario = '' } = {}) {
+  const errores = {};
+  if (!MOTIVOS_CIERRE.includes(motivo)) errores.motivo = 'Seleccione el motivo del cierre.';
+  if (motivo === 'Otro' && !comentario.trim()) errores.comentario = 'Explique el motivo en el comentario.';
+  if (comentario.length > 500) errores.comentario = 'El comentario no puede superar los 500 caracteres.';
+  return errores;
 }
 
 /* ------------------------------------------------------------------------- */

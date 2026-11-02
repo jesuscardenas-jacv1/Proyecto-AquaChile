@@ -169,6 +169,11 @@ function migrar() {
   agregarColumna('solicitudes', 'modalidad_entrevista', "TEXT NOT NULL DEFAULT ''");
   // Evaluación por competencias (lista JSON: competencia, nivel, fortalezas, oportunidades).
   agregarColumna('evaluaciones', 'competencias', "TEXT NOT NULL DEFAULT '[]'");
+  // Cierre sin evaluación (el candidato no se presentó, desistió, etc.).
+  agregarColumna('solicitudes', 'motivo_cierre', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'comentario_cierre', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'fecha_cierre', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'cerrada_por', "TEXT NOT NULL DEFAULT ''");
 
   actualizarRolesUsuarios();
 

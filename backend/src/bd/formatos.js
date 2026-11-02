@@ -40,6 +40,15 @@ function formatearSolicitud(s) {
     fechaEntrevista: s.fecha_entrevista ?? '',
     horaEntrevista: s.hora_entrevista ?? '',
     modalidadEntrevista: s.modalidad_entrevista ?? '',
+    // Solicitud cerrada sin evaluación: queda Finalizada con el motivo (null si no aplica).
+    cierre: s.motivo_cierre
+      ? {
+          motivo: s.motivo_cierre,
+          comentario: s.comentario_cierre ?? '',
+          fecha: s.fecha_cierre ?? '',
+          responsable: s.cerrada_por ?? '',
+        }
+      : null,
   };
 }
 

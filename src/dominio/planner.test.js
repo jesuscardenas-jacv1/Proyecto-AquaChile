@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  validarCierre,
   accionesDisponibles,
   agruparPorEtapa,
   diasEntre,
@@ -48,7 +49,11 @@ describe('etapas del Planner', () => {
     expect(accionesDisponibles('recibida')).toMatchObject({ requiereAgenda: true, retroceder: false });
     expect(accionesDisponibles('agendada')).toMatchObject({ reagendar: true, retroceder: true });
     expect(accionesDisponibles('realizada')).toMatchObject({ registrarInforme: true, avanzar: false });
+    expect(accionesDisponibles('recibida').cerrar).toBe(true);
+    expect(accionesDisponibles('agendada').cerrar).toBe(true);
+    expect(accionesDisponibles('realizada').cerrar).toBe(false);
     expect(accionesDisponibles('informe')).toEqual({
+      cerrar: false,
       avanzar: false,
       requiereAgenda: false,
       registrarInforme: false,
@@ -67,16 +72,21 @@ describe('agruparPorEtapa', () => {
     { id: 5, estado: 'En proceso', etapa: 'realizada', fechaEntrevista: '2026-10-08' },
     { id: 6, estado: 'Finalizada', fechaSolicitud: '2026-01-01' },
     { id: 7, estado: 'Finalizada', fechaSolicitud: '2026-02-01' },
+    { id: 8, estado: 'Finalizada', etapa: 'agendada', cierre: { motivo: 'Desistió del proceso', fecha: '2026-10-02' } },
+    { id: 9, estado: 'Finalizada', etapa: 'recibida', cierre: { motivo: 'Otro', fecha: '2026-10-05' } },
   ];
   const evaluaciones = [
     { solicitudId: 6, fechaInforme: '2026-03-10' },
     { solicitudId: 7, fechaEvaluacion: '2026-02-20' },
   ];
 
-  it('reparte las solicitudes en las cuatro columnas', () => {
+  it('reparte las solicitudes en las cuatro columnas y aparta las cerradas sin evaluación', () => {
     const grupos = agruparPorEtapa(solicitudes, evaluaciones);
-    expect(Object.keys(grupos)).toEqual(['recibida', 'agendada', 'realizada', 'informe']);
+    expect(Object.keys(grupos)).toEqual(['recibida', 'agendada', 'realizada', 'informe', 'cerrada']);
     expect(grupos.realizada.map((s) => s.id)).toEqual([5]);
+    // Las cerradas no aparecen como informe enviado; la más reciente primero.
+    expect(grupos.cerrada.map((s) => s.id)).toEqual([9, 8]);
+    expect(grupos.informe.map((s) => s.id)).not.toContain(8);
   });
 
   it('ordena cada columna según lo que se atiende primero', () => {
@@ -87,7 +97,7 @@ describe('agruparPorEtapa', () => {
   });
 
   it('devuelve columnas vacías sin datos', () => {
-    expect(agruparPorEtapa()).toEqual({ recibida: [], agendada: [], realizada: [], informe: [] });
+    expect(agruparPorEtapa()).toEqual({ recibida: [], agendada: [], realizada: [], informe: [], cerrada: [] });
   });
 });
 
@@ -206,5 +216,14 @@ describe('informes enviados', () => {
     expect(paginasVisibles(1, 9)).toEqual([1, 2, '…', 9]);
     expect(paginasVisibles(5, 9)).toEqual([1, '…', 4, 5, 6, '…', 9]);
     expect(paginasVisibles(9, 9)).toEqual([1, '…', 8, 9]);
+  });
+});
+
+describe('validarCierre', () => {
+  it('exige un motivo del catálogo y comentario si es "Otro"', () => {
+    expect(validarCierre({})).toEqual({ motivo: 'Seleccione el motivo del cierre.' });
+    expect(validarCierre({ motivo: 'Otro', comentario: '  ' })).toEqual({ comentario: 'Explique el motivo en el comentario.' });
+    expect(validarCierre({ motivo: 'Desistió del proceso' })).toEqual({});
+    expect(validarCierre({ motivo: 'Otro', comentario: 'x'.repeat(501) }).comentario).toMatch(/500/);
   });
 });

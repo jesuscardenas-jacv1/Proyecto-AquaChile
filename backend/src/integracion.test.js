@@ -173,6 +173,60 @@ describe('API integrada (Hito 2)', () => {
     await pedir('/solicitudes/101/estado', { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Pendiente' } });
   });
 
+  it('cierra una solicitud sin evaluación con motivo y la reabre en su etapa', async () => {
+    const agendar = await pedir('/solicitudes/102/etapa', {
+      rol: 'evaluador',
+      metodo: 'PATCH',
+      cuerpo: { etapa: 'agendada', fechaEntrevista: '2026-12-01', horaEntrevista: '10:00', modalidadEntrevista: 'Teams' },
+    });
+    assert.equal(agendar.status, 200);
+
+    const sinMotivo = await pedir('/solicitudes/102/cierre', { rol: 'evaluador', metodo: 'POST', cuerpo: { motivo: 'X' } });
+    assert.equal(sinMotivo.status, 400);
+    const otroSinComentario = await pedir('/solicitudes/102/cierre', { rol: 'evaluador', metodo: 'POST', cuerpo: { motivo: 'Otro' } });
+    assert.equal(otroSinComentario.status, 400);
+    assert.equal(
+      (await pedir('/solicitudes/102/cierre', { rol: 'jefatura', metodo: 'POST', cuerpo: { motivo: 'Desistió del proceso' } })).status,
+      403,
+    );
+
+    const cierre = await pedir('/solicitudes/102/cierre', {
+      rol: 'evaluador',
+      metodo: 'POST',
+      cuerpo: { motivo: 'No se presentó a la entrevista', comentario: 'No respondió llamados.' },
+    });
+    assert.equal(cierre.status, 200);
+    assert.equal(cierre.datos.solicitud.estado, 'Finalizada');
+    assert.equal(cierre.datos.solicitud.cierre.motivo, 'No se presentó a la entrevista');
+    assert.equal(cierre.datos.solicitud.cierre.comentario, 'No respondió llamados.');
+    assert.equal(cierre.datos.solicitud.cierre.responsable, 'Prueba');
+
+    // Cerrada: no se evalúa, no cambia de estado ni de etapa.
+    const evaluar = await pedir('/evaluaciones', {
+      rol: 'evaluador',
+      metodo: 'POST',
+      cuerpo: { solicitudId: 102, resultado: 'Recomendado', observaciones: 'Prueba', fechaEvaluacion: '2026-12-01' },
+    });
+    assert.equal(evaluar.status, 409);
+    assert.equal(
+      (await pedir('/solicitudes/102/estado', { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'En proceso' } })).status,
+      409,
+    );
+    assert.equal((await pedir('/solicitudes/102/etapa', { rol: 'evaluador', metodo: 'PATCH', cuerpo: { etapa: 'realizada' } })).status, 409);
+
+    const reabrir = await pedir('/solicitudes/102/cierre', { rol: 'analista', metodo: 'DELETE' });
+    assert.equal(reabrir.status, 200);
+    assert.equal(reabrir.datos.solicitud.cierre, null);
+    assert.deepEqual([reabrir.datos.solicitud.estado, reabrir.datos.solicitud.etapa], ['En proceso', 'agendada']);
+    assert.equal((await pedir('/solicitudes/102/cierre', { rol: 'analista', metodo: 'DELETE' })).status, 409);
+
+    // Con evaluación registrada no se puede cerrar sin evaluación.
+    assert.equal(
+      (await pedir('/solicitudes/1/cierre', { rol: 'evaluador', metodo: 'POST', cuerpo: { motivo: 'Desistió del proceso' } })).status,
+      409,
+    );
+  });
+
   it('asigna y quita la psicóloga responsable', async () => {
     const asignada = await pedir('/solicitudes/101/estado', {
       rol: 'analista',

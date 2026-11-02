@@ -165,6 +165,9 @@ export const apiDatos = {
     (await solicitar(`/solicitudes/${id}`, { metodo: 'PATCH', cuerpo: cambios })).solicitud,
   moverEtapa: async (id, etapa, agenda = {}) =>
     (await solicitar(`/solicitudes/${id}/etapa`, { metodo: 'PATCH', cuerpo: { etapa, ...agenda } })).solicitud,
+  cerrarSolicitud: async (id, cierre) =>
+    (await solicitar(`/solicitudes/${id}/cierre`, { metodo: 'POST', cuerpo: cierre })).solicitud,
+  reabrirSolicitud: async (id) => (await solicitar(`/solicitudes/${id}/cierre`, { metodo: 'DELETE' })).solicitud,
 
   /** Crea la evaluación o, si la solicitud ya tiene una, la actualiza. */
   async guardarEvaluacion(solicitudId, datos, existenteId) {

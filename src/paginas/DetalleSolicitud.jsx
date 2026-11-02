@@ -26,6 +26,7 @@ export default function DetalleSolicitud() {
     editarSolicitud,
     asignarProfesional,
     registrarEvaluacion,
+    reabrirSolicitud,
   } = useDatos();
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [avisoInforme, setAvisoInforme] = useState(null);
@@ -55,7 +56,8 @@ export default function DetalleSolicitud() {
 
   const candidato = obtenerCandidato(solicitud.candidatoId);
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
-  const puedeEvaluar = ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado);
+  // Una solicitud cerrada sin evaluación no se evalúa hasta reabrirla.
+  const puedeEvaluar = !solicitud.cierre && ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado);
   /**
    * Registra la evaluación y guarda el informe oficial (PDF) en la carpeta de la solicitud.
    * Si el servicio de documentos no responde, la evaluación queda registrada igual.
@@ -133,6 +135,24 @@ export default function DetalleSolicitud() {
         </div>
         <EtiquetaEstado valor={solicitud.estado} className="align-self-start fs-6" />
       </header>
+
+      {solicitud.cierre ? (
+        <Mensaje tipo="warning" titulo={`Cerrada sin evaluación: ${solicitud.cierre.motivo}`}>
+          {formatearFecha(solicitud.cierre.fecha)}
+          {solicitud.cierre.responsable ? ` · ${solicitud.cierre.responsable}` : ''}
+          {solicitud.cierre.comentario ? <span className="d-block">{solicitud.cierre.comentario}</span> : null}
+          {(esAnalista || esEvaluador) && !soloLectura ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-dark mt-2 d-block"
+              onClick={() => reabrirSolicitud(solicitud.id)}
+            >
+              <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />
+              Reabrir solicitud
+            </button>
+          ) : null}
+        </Mensaje>
+      ) : null}
 
       {mensaje ? (
         <Mensaje tipo={tipo} alCerrar={() => navegar(`/solicitudes/${solicitud.id}`, { replace: true })}>
@@ -276,7 +296,7 @@ export default function DetalleSolicitud() {
                 </Mensaje>
               ) : null}
 
-              {!puedeEvaluar ? (
+              {!puedeEvaluar && !solicitud.cierre ? (
                 <Mensaje tipo="info">
                   Para registrar o actualizar una evaluación, la solicitud debe estar en estado{' '}
                   <strong>En proceso</strong>. Cámbiala desde el panel de gestión.

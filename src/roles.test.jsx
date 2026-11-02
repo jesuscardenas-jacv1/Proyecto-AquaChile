@@ -1,4 +1,5 @@
 import { render, renderHook, act, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
@@ -12,11 +13,11 @@ const usuarioDe = (rol) => {
   return usuario;
 };
 
-const renderComo = (rol, ruta) =>
+const renderComo = (rol, ruta, datos = datosDePrueba) =>
   render(
     <MemoryRouter initialEntries={[ruta]}>
       <ProveedorAuth usuarioInicial={usuarioDe(rol)}>
-        <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+        <ProveedorDatos datosIniciales={structuredClone(datos)}>
           <App />
         </ProveedorDatos>
       </ProveedorAuth>
@@ -91,6 +92,28 @@ describe('Psicóloga (evaluador)', () => {
     expect(screen.getByLabelText('Estado')).toBeEnabled();
     expect(screen.queryByRole('combobox', { name: 'Psicóloga responsable' })).toBeNull();
     expect(screen.getByText(/la asigna el analista/i)).toBeInTheDocument();
+  });
+});
+
+describe('Solicitud cerrada sin evaluación', () => {
+  it('el detalle muestra el motivo, bloquea el estado y permite reabrirla', async () => {
+    const usuario = userEvent.setup();
+    const datos = structuredClone(datosDePrueba);
+    const solicitud = datos.solicitudes.find((item) => item.id === 2);
+    Object.assign(solicitud, {
+      estado: 'Finalizada',
+      etapa: 'agendada',
+      cierre: { motivo: 'No se presentó a la entrevista', comentario: '', fecha: '2026-10-20', responsable: 'Ignacia Valdés Ortiz' },
+    });
+    renderComo('evaluador', '/solicitudes/2', datos);
+
+    expect(screen.getByText('Cerrada sin evaluación: No se presentó a la entrevista')).toBeInTheDocument();
+    expect(screen.getByLabelText('Estado')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
+
+    await usuario.click(screen.getByRole('button', { name: 'Reabrir solicitud' }));
+    expect(screen.queryByText(/cerrada sin evaluación/i)).toBeNull();
+    expect(screen.getByLabelText('Estado')).toHaveValue('En proceso');
   });
 });
 

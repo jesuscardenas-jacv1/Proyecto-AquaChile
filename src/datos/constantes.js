@@ -70,6 +70,17 @@ export const ETAPAS_PLANNER = [
 
 export const MODALIDADES_ENTREVISTA = ['Teams', 'Presencial', 'Telefónica'];
 
+/**
+ * Motivos para cerrar una solicitud sin evaluación (mismo catálogo que el backend).
+ * La solicitud queda Finalizada con el motivo; no cuenta como evaluada.
+ */
+export const MOTIVOS_CIERRE = [
+  'No se presentó a la entrevista',
+  'Desistió del proceso',
+  'No cumple requisitos',
+  'Otro',
+];
+
 /** Estados de solicitud que permiten registrar o actualizar una evaluación. */
 export const ESTADOS_QUE_PERMITEN_EVALUAR = ['En proceso', 'Finalizada'];
 
