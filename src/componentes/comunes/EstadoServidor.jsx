@@ -22,8 +22,9 @@ export default function EstadoServidor() {
     }
   };
 
+  // Los avisos no se imprimen (p. ej. al guardar el informe en PDF).
   return (
-    <>
+    <div className="no-imprimir">
       {servidorConfigurado && modo === 'local' ? (
         <Mensaje tipo="warning" titulo="Sin conexión con el servidor">
           Estás viendo los datos de demostración de este navegador: los cambios no se guardan en la base
@@ -50,6 +51,6 @@ export default function EstadoServidor() {
           {errorOperacion}
         </Mensaje>
       ) : null}
-    </>
+    </div>
   );
 }

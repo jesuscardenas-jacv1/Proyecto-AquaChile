@@ -560,41 +560,72 @@ h1, h2, h3, h4, h5, h6,
   margin: 0 auto 0.5rem auto;
 }
 
+/* Medición previa a imprimir: la hoja sin límite de ancho ni borde, como queda en el papel. */
+.hoja-informe.hoja-midiendo {
+  max-width: none !important;
+  border: none !important;
+}
+
+/*
+ * Impresión del informe: una hoja A4 sin márgenes del navegador (así no agrega fecha,
+ * título ni URL), solo el informe, con sus colores aunque "Gráficos de fondo" esté
+ * desactivado, y a la escala que calcula la página para que quepa en una sola hoja.
+ */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
 @media print {
   .no-imprimir,
   .navbar,
+  .barra-lateral,
+  .pie-pagina,
   footer,
   .btn {
     display: none !important;
   }
 
-  body {
-    background-color: #fff !important;
-    color: #000 !important;
-    font-size: 11pt;
+  html,
+  body,
+  .app-shell,
+  .app-contenido,
+  .app-principal {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    background: #fff !important;
   }
 
-  .hoja-informe {
-    box-shadow: none !important;
-    border: none !important;
-    margin: 0 !important;
-    max-width: 100% !important;
+  .app-principal > div {
     padding: 0 !important;
   }
 
-  .cabecera-informe-marca {
+  .hoja-informe {
+    /* Más ancha en la misma proporción en que se reduce: impresa ocupa todo el A4. */
+    width: calc(210mm / var(--escala-impresion, 1)) !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    zoom: var(--escala-impresion, 1);
+    break-inside: avoid;
+  }
+
+  .hoja-informe,
+  .hoja-informe * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  .cabecera-informe-marca {
     background-color: #425563 !important;
     color: #fff !important;
-  }
-
-  .caja-dictamen {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    border-radius: 0 !important;
   }
 }
-
 
 /* Documentos de la solicitud (carpeta en Google Drive, OneDrive o almacenamiento local) */
 .documentos-categoria + .documentos-categoria {
