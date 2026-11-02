@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../datos/AuthContext';
 import { ContextoDatos } from '../datos/DatosContext';
 import logoAquaChile from '../assets/logo-aquachile-blanco.png';
-import fondoCentroCultivo from '../assets/fondo-login.jpg';
+import fondoCentroCultivo from '../assets/fondo-login.svg';
 
 /**
  * Pantalla formal de inicio de sesión corporativo para AquaChile.
@@ -54,7 +54,7 @@ export default function Login() {
     <div
       className="min-vh-100 d-flex align-items-center justify-content-center p-3"
       style={{
-        backgroundImage: `linear-gradient(rgba(8, 21, 29, 0.15), rgba(8, 21, 29, 0.6)), url(${fondoCentroCultivo})`,
+        backgroundImage: `url("${fondoCentroCultivo}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}
