@@ -1016,6 +1016,35 @@ h1, h2, h3, h4, h5, h6,
   flex: 0 0 auto;
 }
 
+.avatar-usuario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-iniciales {
+  background-color: var(--austral-elevada);
+  color: var(--austral-texto-suave);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.barra-perfil {
+  padding: 0.35rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.barra-perfil:hover,
+.barra-perfil:focus-visible {
+  background-color: var(--austral-elevada);
+}
+
 .pie-pagina {
   background-color: var(--austral-superficie);
   border-top: 1px solid var(--austral-borde);
@@ -1124,7 +1153,7 @@ h1, h2, h3, h4, h5, h6,
     padding-right: 0;
   }
 
-  .barra-colapsada .barra-usuario > div {
+  .barra-colapsada .barra-usuario > .barra-perfil {
     justify-content: center;
   }
 }

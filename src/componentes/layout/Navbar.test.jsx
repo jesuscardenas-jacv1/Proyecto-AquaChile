@@ -81,6 +81,15 @@ describe('Navbar · enlaces según el rol', () => {
     expect(screen.getByRole('link', { name: 'Postulaciones' })).toBeInTheDocument();
   });
 
+  it('el avatar abre la ventana Mi perfil', async () => {
+    const usuario = userEvent.setup();
+    renderComo('analista');
+    await usuario.click(screen.getByRole('button', { name: 'Mi perfil: Prueba' }));
+    expect(screen.getByRole('dialog', { name: 'Mi perfil' })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Listo' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it.each(['evaluador', 'jefatura', 'admin'])('%s ve el Planner', (rol) => {
     renderComo(rol);
     expect(screen.getByRole('link', { name: 'Planner' })).toHaveAttribute('href', '/planner');

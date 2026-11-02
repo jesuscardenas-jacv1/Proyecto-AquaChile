@@ -137,6 +137,7 @@ router.delete('/usuarios/:id', ...soloAdmin, (req, res) => {
     return res.status(400).json({ error: 'Debe quedar al menos un administrador.' });
   }
 
+  db.prepare('DELETE FROM fotos_usuario WHERE usuario_id = ?').run(id);
   db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
   res.json({ ok: true, mensaje: 'Usuario eliminado.' });
 });

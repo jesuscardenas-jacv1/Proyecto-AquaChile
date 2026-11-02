@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  inicialesDe,
+  validarCambioContrasena,
   hayErrores,
   validarCandidato,
   validarEdicionSolicitud,
@@ -146,5 +148,27 @@ describe('validarUsuario', () => {
     const errores = validarUsuario({ nombre: 'Al', correo: 'malo', rol: 'otro', contrasena: '' }, { esNuevo: true, roles });
     expect(Object.keys(errores).sort()).toEqual(['contrasena', 'correo', 'nombre', 'rol']);
     expect(validarUsuario({ ...valido, contrasena: 'corta' }, { roles }).contrasena).toMatch(/8 caracteres/);
+  });
+});
+
+describe('validarCambioContrasena', () => {
+  it('exige la actual, 8 caracteres, que sea distinta y que coincida la confirmación', () => {
+    expect(validarCambioContrasena({ nueva: 'corta', confirmacion: 'otra' })).toEqual({
+      actual: 'Ingrese su contraseña actual.',
+      nueva: 'La nueva contraseña debe tener al menos 8 caracteres.',
+      confirmacion: 'Las contraseñas no coinciden.',
+    });
+    expect(validarCambioContrasena({ actual: 'Clave2026!', nueva: 'Clave2026!', confirmacion: 'Clave2026!' }).nueva).toMatch(
+      /distinta/,
+    );
+    expect(validarCambioContrasena({ actual: 'Clave2026!', nueva: 'NuevaClave1', confirmacion: 'NuevaClave1' })).toEqual({});
+  });
+});
+
+describe('inicialesDe', () => {
+  it('toma el nombre y el primer apellido', () => {
+    expect(inicialesDe('Carolina Muñoz Pérez')).toBe('CM');
+    expect(inicialesDe('admin')).toBe('AD');
+    expect(inicialesDe('')).toBe('?');
   });
 });

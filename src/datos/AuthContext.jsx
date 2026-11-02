@@ -4,6 +4,25 @@ import { API_HABILITADA, cerrarSesionApi, iniciarSesionApi } from '../servicios/
 
 const ContextoAuth = createContext(null);
 const CLAVE_SESION = 'aquachile_sesion_activa';
+const claveFotoLocal = (id) => `aquachile_foto_usuario_${id}`;
+
+/** Sin servidor la foto de perfil se guarda en este navegador. */
+export function leerFotoLocal(id) {
+  try {
+    return localStorage.getItem(claveFotoLocal(id));
+  } catch {
+    return null;
+  }
+}
+
+export function guardarFotoLocal(id, foto) {
+  try {
+    if (foto) localStorage.setItem(claveFotoLocal(id), foto);
+    else localStorage.removeItem(claveFotoLocal(id));
+  } catch {
+    // Sin localStorage la foto dura solo esta sesión.
+  }
+}
 
 function obtenerSesionAlmacenada() {
   try {
@@ -58,11 +77,21 @@ export function ProveedorAuth({ children, usuarioInicial = undefined, apiHabilit
         }
       }
       const resultado = autenticarUsuario(correo, contrasena);
-      if (resultado.ok) entrar(resultado.usuario);
+      if (resultado.ok) entrar({ ...resultado.usuario, foto: leerFotoLocal(resultado.usuario.id) });
       return resultado;
     },
     [apiHabilitada, entrar],
   );
+
+  /** Cambios del propio usuario (p. ej. su foto) que deben verse en toda la app. */
+  const actualizarUsuario = useCallback((cambios) => {
+    setUsuarioActual((actual) => {
+      if (!actual) return actual;
+      const siguiente = { ...actual, ...cambios };
+      guardarSesion(siguiente);
+      return siguiente;
+    });
+  }, []);
 
   const cerrarSesion = useCallback(() => {
     setUsuarioActual(null);
@@ -85,8 +114,9 @@ export function ProveedorAuth({ children, usuarioInicial = undefined, apiHabilit
       soloEnEvaluacion: usuarioActual?.rol === 'evaluador',
       iniciarSesion,
       cerrarSesion,
+      actualizarUsuario,
     }),
-    [usuarioActual, iniciarSesion, cerrarSesion],
+    [usuarioActual, iniciarSesion, cerrarSesion, actualizarUsuario],
   );
 
   return <ContextoAuth.Provider value={valor}>{children}</ContextoAuth.Provider>;
@@ -113,6 +143,7 @@ export function useAuth() {
       soloEnEvaluacion: false,
       iniciarSesion: async () => ({ ok: true }),
       cerrarSesion: () => {},
+      actualizarUsuario: () => {},
     };
   }
   return contexto;
