@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { formatearFecha } from '../dominio/formateo';
+import { ANCHO_A4_PX, escalaParaUnaHoja } from '../dominio/impresion';
 import logoAquaChile from '../assets/logo-aquachile-blanco.png';
 import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
@@ -24,6 +26,36 @@ export default function InformePsicolaboral() {
   const navegar = useNavigate();
   const { esEvaluador } = useAuth();
   const { obtenerSolicitud, obtenerCandidato, obtenerEvaluacionDeSolicitud } = useDatos();
+  const refHoja = useRef(null);
+
+  // Antes de imprimir (botón o Cmd/Ctrl+P) se mide la hoja al ancho de un A4 y se fija la
+  // escala para que quepa en una sola página, sin depender de la configuración del navegador.
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const preparar = () => {
+      const hoja = refHoja.current;
+      if (!hoja) return;
+      // Al reducir la escala, la hoja se dibuja más ancha (ancho A4 / escala) para que impresa
+      // siga ocupando todo el ancho; eso cambia su alto, así que se ajusta en pocas pasadas.
+      let escala = 1;
+      hoja.classList.add('hoja-midiendo');
+      for (let pasada = 0; pasada < 3; pasada += 1) {
+        hoja.style.width = `${ANCHO_A4_PX / escala}px`;
+        escala = escalaParaUnaHoja(hoja.scrollHeight * escala, { altoHoja: 1123 }) * escala;
+      }
+      hoja.style.width = '';
+      hoja.classList.remove('hoja-midiendo');
+      raiz.style.setProperty('--escala-impresion', String(Math.round(escala * 1000) / 1000));
+    };
+    const limpiar = () => raiz.style.removeProperty('--escala-impresion');
+    window.addEventListener('beforeprint', preparar);
+    window.addEventListener('afterprint', limpiar);
+    return () => {
+      window.removeEventListener('beforeprint', preparar);
+      window.removeEventListener('afterprint', limpiar);
+      limpiar();
+    };
+  }, []);
 
   const solicitud = obtenerSolicitud(id);
 
@@ -94,7 +126,7 @@ export default function InformePsicolaboral() {
       </div>
 
       {/* Hoja oficial de informe */}
-      <article className="hoja-informe border overflow-hidden">
+      <article ref={refHoja} className="hoja-informe border overflow-hidden">
         {/* Cabecera institucional de marca */}
         <header className="cabecera-informe-marca d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
           <div className="d-flex align-items-center gap-3">
@@ -139,7 +171,7 @@ export default function InformePsicolaboral() {
               </div>
               <div className="col-6 col-sm-3">
                 <span className="text-secondary d-block">Correo de contacto:</span>
-                <span>{candidato?.correo || '—'}</span>
+                <span className="text-break">{candidato?.correo || '—'}</span>
               </div>
               <div className="col-6 col-sm-3">
                 <span className="text-secondary d-block">Teléfono:</span>
