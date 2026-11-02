@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
+import { useAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
 import Mensaje from '../componentes/comunes/Mensaje';
@@ -20,8 +21,11 @@ export default function NuevaSolicitud() {
     obtenerCandidato,
     actualizarPostulacion,
   } = useDatos();
+  const { usuarioActual, esAdmin } = useAuth();
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
+  // Quien pide la evaluación es el analista con sesión; el administrador puede pedirla por otro.
+  const reclutadorFijo = esAdmin ? '' : usuarioActual?.nombre ?? '';
 
   const postulacion = obtenerPostulacion(parametros.get('postulacion'));
   const postulacionPendiente = postulacion?.estado === 'Recibida' ? postulacion : null;
@@ -98,6 +102,8 @@ export default function NuevaSolicitud() {
             key={postulacionPendiente?.id ?? 'nueva'}
             candidatos={candidatos}
             valoresIniciales={valoresIniciales}
+            reclutadorFijo={reclutadorFijo}
+            postulante={postulante}
             alGuardar={guardar}
             alCancelar={() => navegar(postulacionPendiente ? '/postulaciones' : '/solicitudes')}
           />
