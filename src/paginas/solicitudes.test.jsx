@@ -133,6 +133,33 @@ describe('Solicitudes', () => {
     expect(screen.getByLabelText(/^estado$/i)).toHaveValue('En proceso');
   });
 
+  describe('con el perfil de la psicóloga', () => {
+    const psicologa = { id: 2, nombre: 'Ignacia Valdés Ortiz', rol: 'evaluador' };
+    const renderComoPsicologa = (ruta) =>
+      render(
+        <MemoryRouter initialEntries={[ruta]}>
+          <ProveedorAuth usuarioInicial={psicologa}>
+            <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+              <Routes>
+                <Route path="/solicitudes" element={<Solicitudes />} />
+              </Routes>
+            </ProveedorDatos>
+          </ProveedorAuth>
+        </MemoryRouter>,
+      );
+
+    it('parte viendo solo las solicitudes asignadas a ella', () => {
+      renderComoPsicologa('/solicitudes');
+      expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Ignacia Valdés Ortiz');
+    });
+
+    it('desde el dashboard (?estado=Pendiente) ve todas las pendientes, que aún no tienen psicóloga', () => {
+      renderComoPsicologa('/solicitudes?estado=Pendiente');
+      expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('');
+      expect(screen.getByText(/mostrando 1 de 3 solicitudes/i)).toBeInTheDocument();
+    });
+  });
+
   it('ignora un estado desconocido en la URL', () => {
     renderListado(datosDePrueba, '/solicitudes?estado=Inventado');
     expect(screen.getByLabelText(/^estado$/i)).toHaveValue('');
