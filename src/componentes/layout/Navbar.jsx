@@ -34,7 +34,7 @@ export default function Navbar() {
       return !actual;
     });
   };
-  const { usuarioActual, esAnalista, esAdmin, esJefatura, cerrarSesion } = useAuth();
+  const { usuarioActual, esAnalista, esEvaluador, esAdmin, esJefatura, cerrarSesion } = useAuth();
   const navegar = useNavigate();
 
   const enlaces = [
@@ -44,7 +44,8 @@ export default function Navbar() {
       : []),
     { ruta: '/candidatos', etiqueta: 'Candidatos', icono: 'bi-people' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes', icono: 'bi-clipboard' },
-    { ruta: '/planner', etiqueta: 'Planner', icono: 'bi-calendar3' },
+    // El Planner es la herramienta de la psicóloga; la jefatura lo consulta en modo lectura.
+    ...(esEvaluador || esJefatura ? [{ ruta: '/planner', etiqueta: 'Planner', icono: 'bi-calendar3' }] : []),
     ...(esAnalista ? [{ ruta: '/solicitudes/nueva', etiqueta: 'Nueva solicitud', icono: 'bi-plus-circle' }] : []),
     ...(esAdmin ? [{ ruta: '/administracion', etiqueta: 'Administración', icono: 'bi-gear' }] : []),
   ];
