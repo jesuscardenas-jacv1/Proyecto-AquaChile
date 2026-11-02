@@ -85,14 +85,25 @@ export async function descargarDocumento(solicitudId, archivo) {
   const respuesta = await llamar(
     `${rutaDocumentos(solicitudId)}/${encodeURIComponent(archivo.id)}/contenido`,
   );
+  await entregarDescarga(respuesta, archivo.nombre);
+}
+
+/** Entrega la respuesta al navegador como descarga con el nombre indicado. */
+async function entregarDescarga(respuesta, nombre) {
   const url = URL.createObjectURL(await respuesta.blob());
   const enlace = document.createElement('a');
   enlace.href = url;
-  enlace.download = archivo.nombre;
+  enlace.download = nombre;
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Descarga el CV que el postulante subió desde el portal (bandeja de Postulaciones). */
+export async function descargarCvPostulacion(postulacion) {
+  const respuesta = await llamar(`/postulaciones/${postulacion.id}/cv`);
+  await entregarDescarga(respuesta, postulacion.cvNombre || `CV postulación ${postulacion.id}.pdf`);
 }
 
 export async function eliminarDocumento(solicitudId, archivoId) {
@@ -179,4 +190,5 @@ export const apiDocumentos = {
   eliminar: eliminarDocumento,
   generarInforme,
   traerCvDePostulacion,
+  descargarCvPostulacion,
 };

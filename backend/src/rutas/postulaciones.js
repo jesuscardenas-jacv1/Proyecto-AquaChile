@@ -6,6 +6,7 @@ const { obtenerAlmacenamiento } = require('../almacenamiento');
 const {
   ErrorAlmacenamiento,
   TAMANO_MAXIMO_CV_PORTAL,
+  categoriaDeArchivo,
   claveCarpetaPostulacion,
   nombreArchivo,
   nombreCarpetaPostulacion,
@@ -137,6 +138,7 @@ router.patch('/:id', autenticar, requerirRol('analista'), (req, res) => {
   );
   res.json({ ok: true, postulacion: formatearPostulacion(obtener(id)) });
 });
+
 const manejar = (fn) => (req, res, next) => fn(req, res).catch(next);
 
 /**
@@ -177,6 +179,36 @@ router.post(
 
     // No se devuelven ids ni rutas internas al público.
     res.status(201).json({ ok: true, mensaje: 'Currículum recibido.' });
+  }),
+);
+
+/**
+ * GET /api/postulaciones/:id/cv
+ * Descarga el CV que el postulante subió desde el portal (carpeta P0001 - Nombre).
+ * Lo usan el analista y la jefatura para revisar al postulante antes de decidir.
+ */
+router.get(
+  '/:id/cv',
+  autenticar,
+  requerirRol('analista', 'jefatura'),
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!obtener(id)) return res.status(404).json({ error: `Postulación #${id} no encontrada.` });
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const carpeta = await almacenamiento.obtenerCarpeta(claveCarpetaPostulacion(id), null);
+    const cv = carpeta
+      ? (await almacenamiento.listarArchivos(carpeta)).find((archivo) => categoriaDeArchivo(archivo.nombre) === 'cv')
+      : null;
+    if (!cv) return res.status(404).json({ error: 'El postulante no tiene un CV cargado.' });
+
+    const { nombre, tipo, contenido } = await almacenamiento.descargarArchivo(carpeta, cv.id);
+    res.set({
+      'Content-Type': tipo,
+      'Content-Length': contenido.length,
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`,
+    });
+    res.send(contenido);
   }),
 );
 
