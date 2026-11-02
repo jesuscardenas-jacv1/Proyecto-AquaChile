@@ -53,9 +53,9 @@ export function filtrarRegistros(registros = [], { mes = '', tipo = '' } = {}) {
   );
 }
 
-/** Meses con evaluaciones, en orden cronológico. */
+/** Meses con evaluaciones, del más reciente al más antiguo (para el filtro por mes). */
 export function mesesDisponibles(registros = []) {
-  return [...new Set(registros.map((registro) => registro.mes).filter(Boolean))].sort();
+  return [...new Set(registros.map((registro) => registro.mes).filter(Boolean))].sort().reverse();
 }
 
 /** Candidatos/as por categoría de resultado, en el orden fijo de las categorías. */

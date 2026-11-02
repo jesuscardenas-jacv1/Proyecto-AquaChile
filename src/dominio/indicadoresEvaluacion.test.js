@@ -74,8 +74,8 @@ describe('indicadores de evaluación', () => {
     expect(filtrarRegistros(registros, {})).toHaveLength(3);
   });
 
-  it('lista los meses disponibles y su etiqueta', () => {
-    expect(mesesDisponibles(registros)).toEqual(['2026-03', '2026-04']);
+  it('lista los meses disponibles, el más reciente primero, y su etiqueta', () => {
+    expect(mesesDisponibles(registros)).toEqual(['2026-04', '2026-03']);
     expect(etiquetaMes('2026-03')).toBe('mar 2026');
   });
 });
