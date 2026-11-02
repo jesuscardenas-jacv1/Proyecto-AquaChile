@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Navbar from './Navbar';
+import { ProveedorAuth } from '../../datos/AuthContext';
 
 const ENLACES = [
   { nombre: 'Dashboard', ruta: '/' },
@@ -61,6 +62,28 @@ describe('Navbar', () => {
       'href',
       '/solicitudes/nueva',
     );
+  });
+});
+
+describe('Navbar · enlaces según el rol', () => {
+  const renderComo = (rol) =>
+    render(
+      <MemoryRouter>
+        <ProveedorAuth usuarioInicial={{ id: 9, nombre: 'Prueba', rol }}>
+          <Navbar />
+        </ProveedorAuth>
+      </MemoryRouter>,
+    );
+
+  it('el analista no ve el Planner (lo gestiona la psicóloga)', () => {
+    renderComo('analista');
+    expect(screen.queryByRole('link', { name: 'Planner' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Postulaciones' })).toBeInTheDocument();
+  });
+
+  it.each(['evaluador', 'jefatura', 'admin'])('%s ve el Planner', (rol) => {
+    renderComo(rol);
+    expect(screen.getByRole('link', { name: 'Planner' })).toHaveAttribute('href', '/planner');
   });
 });
 

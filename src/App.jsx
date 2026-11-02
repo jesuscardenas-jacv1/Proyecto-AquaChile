@@ -72,8 +72,22 @@ export default function App() {
           />
           <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
           <Route path="/solicitudes/:id/informe" element={<InformePsicolaboral />} />
-          <Route path="/planner" element={<Planner />} />
-          <Route path="/planner/informes" element={<InformesEnviados />} />
+          <Route
+            path="/planner"
+            element={
+              <RutaProtegida rolesPermitidos={['evaluador', 'jefatura']}>
+                <Planner />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/planner/informes"
+            element={
+              <RutaProtegida rolesPermitidos={['evaluador', 'jefatura']}>
+                <InformesEnviados />
+              </RutaProtegida>
+            }
+          />
           <Route
             path="/administracion"
             element={
