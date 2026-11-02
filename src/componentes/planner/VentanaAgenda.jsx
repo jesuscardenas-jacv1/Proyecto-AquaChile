@@ -109,16 +109,15 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
                     onChange={cambiar('fechaEntrevista')}
                     refInicial={refPrimerCampo}
                   />
-                  <div className={errores.fechaEntrevista ? 'text-danger small mt-1' : 'visually-hidden'}>
-                    {errores.fechaEntrevista}
-                  </div>
                 </div>
 
                 <div className="col-12 col-md-6">
                   <SelectorHora valor={agenda.horaEntrevista} onChange={cambiar('horaEntrevista')} />
-                  <div className={errores.horaEntrevista ? 'text-danger small mt-1' : 'visually-hidden'}>
-                    {errores.horaEntrevista}
-                  </div>
+                </div>
+
+                <div className="col-12">
+                  {errores.fechaEntrevista ? <p className="text-danger small mb-0">{errores.fechaEntrevista}</p> : null}
+                  {errores.horaEntrevista ? <p className="text-danger small mb-0">{errores.horaEntrevista}</p> : null}
                 </div>
 
                 <div className="col-12">
