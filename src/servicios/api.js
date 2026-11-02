@@ -115,6 +115,14 @@ export function cerrarSesionApi() {
   guardarToken(null);
 }
 
+/** Perfil del usuario con sesión: su foto y su contraseña. */
+export const apiPerfil = {
+  guardarFoto: async (foto) => (await solicitar('/auth/perfil/foto', { metodo: 'PUT', cuerpo: { foto } })).foto,
+  quitarFoto: () => solicitar('/auth/perfil/foto', { metodo: 'DELETE' }),
+  cambiarContrasena: (actual, nueva) =>
+    solicitar('/auth/contrasena', { metodo: 'PUT', cuerpo: { actual, nueva } }),
+};
+
 const ROLES_CON_POSTULACIONES = ['admin', 'analista', 'jefatura'];
 
 /** Operaciones de datos sobre la API, con la misma forma que usa DatosContext. */

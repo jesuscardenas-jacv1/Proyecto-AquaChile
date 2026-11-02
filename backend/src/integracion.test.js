@@ -335,4 +335,50 @@ describe('API integrada (Hito 2)', () => {
     });
     assert.equal(otro.status, 400);
   });
+
+  it('cada usuario cambia su foto de perfil y su contraseña', async () => {
+    const foto = `data:image/jpeg;base64,${Buffer.from('foto de prueba').toString('base64')}`;
+    assert.equal((await pedir('/auth/perfil/foto', { metodo: 'PUT', cuerpo: { foto } })).status, 401);
+    assert.equal(
+      (await pedir('/auth/perfil/foto', { rol: 'analista', metodo: 'PUT', cuerpo: { foto: 'data:text/html;base64,PGI+' } }))
+        .status,
+      400,
+    );
+    const guardada = await pedir('/auth/perfil/foto', { rol: 'analista', metodo: 'PUT', cuerpo: { foto } });
+    assert.equal(guardada.status, 200);
+    assert.equal((await pedir('/auth/perfil', { rol: 'analista' })).datos.usuario.foto, foto);
+
+    const login = await pedir('/auth/login', {
+      metodo: 'POST',
+      cuerpo: { correo: 'analista@aquachile.cl', contrasena: 'AquaChile2026!' },
+    });
+    assert.equal(login.datos.usuario.foto, foto);
+
+    assert.equal((await pedir('/auth/perfil/foto', { rol: 'analista', metodo: 'DELETE' })).status, 200);
+    assert.equal((await pedir('/auth/perfil', { rol: 'analista' })).datos.usuario.foto, null);
+
+    const incorrecta = await pedir('/auth/contrasena', {
+      rol: 'analista',
+      metodo: 'PUT',
+      cuerpo: { actual: 'otra-clave', nueva: 'NuevaClave2026' },
+    });
+    assert.equal(incorrecta.status, 400);
+    const corta = await pedir('/auth/contrasena', {
+      rol: 'analista',
+      metodo: 'PUT',
+      cuerpo: { actual: 'AquaChile2026!', nueva: 'corta' },
+    });
+    assert.equal(corta.status, 400);
+    const cambio = await pedir('/auth/contrasena', {
+      rol: 'analista',
+      metodo: 'PUT',
+      cuerpo: { actual: 'AquaChile2026!', nueva: 'NuevaClave2026' },
+    });
+    assert.equal(cambio.status, 200);
+    const conNueva = await pedir('/auth/login', {
+      metodo: 'POST',
+      cuerpo: { correo: 'analista@aquachile.cl', contrasena: 'NuevaClave2026' },
+    });
+    assert.equal(conNueva.status, 200);
+  });
 });

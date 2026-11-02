@@ -3,6 +3,9 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
 import { ROLES } from '../../datos/usuarios';
+import { obtenerToken } from '../../servicios/api';
+import AvatarUsuario from '../perfil/AvatarUsuario';
+import VentanaPerfil from '../perfil/VentanaPerfil';
 
 const CLAVE_COLAPSADA = 'aquachile_menu_colapsado';
 
@@ -35,6 +38,7 @@ export default function Navbar() {
     });
   };
   const { usuarioActual, esAnalista, esEvaluador, esAdmin, esJefatura, cerrarSesion } = useAuth();
+  const [perfilAbierto, setPerfilAbierto] = useState(false);
   const navegar = useNavigate();
 
   const enlaces = [
@@ -111,17 +115,26 @@ export default function Navbar() {
 
         {usuarioActual ? (
           <div className="barra-usuario">
-            <div className="d-flex align-items-center gap-2 mb-2">
-              <span className="barra-avatar" aria-hidden="true">
-                <i className="bi bi-person" />
-              </span>
-              <div className="lh-sm overflow-hidden barra-texto">
+            <button
+              type="button"
+              className="barra-perfil d-flex align-items-center gap-2 mb-2 w-100"
+              aria-label={`Mi perfil: ${usuarioActual.nombre}`}
+              aria-haspopup="dialog"
+              title={colapsada ? 'Mi perfil' : undefined}
+              onClick={() => {
+                setAbierto(false);
+                setPerfilAbierto(true);
+              }}
+            >
+              <AvatarUsuario usuario={usuarioActual} className="barra-avatar" />
+              <span className="lh-sm overflow-hidden barra-texto text-start flex-grow-1">
                 <span className="d-block small fw-semibold text-truncate">{usuarioActual.nombre}</span>
                 <span className="d-block small text-secondary">
                   {ROLES[usuarioActual.rol]?.etiqueta ?? usuarioActual.rol}
                 </span>
-              </div>
-            </div>
+              </span>
+              <i className="bi bi-chevron-right small text-secondary barra-texto" aria-hidden="true" />
+            </button>
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
@@ -134,6 +147,16 @@ export default function Navbar() {
           </div>
         ) : null}
       </div>
+      {perfilAbierto ? (
+        <VentanaPerfil
+          conServidor={Boolean(obtenerToken())}
+          alCerrar={() => setPerfilAbierto(false)}
+          alCerrarSesion={() => {
+            setPerfilAbierto(false);
+            manejarCerrarSesion();
+          }}
+        />
+      ) : null}
     </aside>
   );
 }

@@ -216,6 +216,22 @@ export function validarUsuario(usuario = {}, { esNuevo = false, roles = [] } = {
   return errores;
 }
 
+/** Cambio de contraseña desde "Mi perfil": la actual, la nueva (8+) y su confirmación. */
+export function validarCambioContrasena({ actual = '', nueva = '', confirmacion = '' } = {}) {
+  const errores = {};
+  if (!actual) errores.actual = 'Ingrese su contraseña actual.';
+  if (nueva.length < 8) errores.nueva = 'La nueva contraseña debe tener al menos 8 caracteres.';
+  else if (nueva === actual) errores.nueva = 'La nueva contraseña debe ser distinta de la actual.';
+  if (confirmacion !== nueva) errores.confirmacion = 'Las contraseñas no coinciden.';
+  return errores;
+}
+
+/** Iniciales para el avatar: primera letra del nombre y del primer apellido. */
+export function inicialesDe(nombre = '') {
+  const partes = nombre.trim().split(/\s+/).filter(Boolean);
+  return (partes.length > 1 ? partes[0][0] + partes[1][0] : (partes[0] ?? '?').slice(0, 2)).toUpperCase();
+}
+
 export function hayErrores(errores) {
   return Object.keys(errores).length > 0;
 }

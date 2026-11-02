@@ -171,6 +171,16 @@ function migrar() {
   agregarColumna('evaluaciones', 'competencias', "TEXT NOT NULL DEFAULT '[]'");
 
   actualizarRolesUsuarios();
+
+  // Foto de perfil en una tabla aparte: así la tabla usuarios no cambia (se recrea al
+  // actualizar sus roles). Sin FK por lo mismo; se borra junto con el usuario.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fotos_usuario (
+      usuario_id     INTEGER PRIMARY KEY,
+      foto           TEXT    NOT NULL,
+      actualizado_en TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 
