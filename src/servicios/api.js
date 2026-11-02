@@ -40,18 +40,25 @@ export function guardarToken(token) {
   }
 }
 
-/** ¿Responde el backend? Espera poco para no demorar la carga si no está levantado. */
-export async function backendDisponible({ esperaMs = 2500 } = {}) {
-  const control = new AbortController();
-  const temporizador = setTimeout(() => control.abort(), esperaMs);
-  try {
-    const respuesta = await fetch(`${URL_API}/salud`, { signal: control.signal });
-    return respuesta.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(temporizador);
+/**
+ * ¿Responde el backend? Reintenta una vez antes de rendirse: al abrir la página justo
+ * después de encender el equipo, la primera llamada puede fallar aunque el servidor esté arriba.
+ */
+export async function backendDisponible({ esperaMs = 4000, intentos = 2, pausaMs = 500 } = {}) {
+  for (let intento = 1; intento <= intentos; intento += 1) {
+    const control = new AbortController();
+    const temporizador = setTimeout(() => control.abort(), esperaMs);
+    try {
+      const respuesta = await fetch(`${URL_API}/salud`, { signal: control.signal });
+      if (respuesta.ok) return true;
+    } catch {
+      // Sin respuesta: se reintenta.
+    } finally {
+      clearTimeout(temporizador);
+    }
+    if (intento < intentos) await new Promise((resolver) => setTimeout(resolver, pausaMs));
   }
+  return false;
 }
 
 /**

@@ -17,8 +17,15 @@ describe('cliente de la API', () => {
   it('detecta si el backend responde', async () => {
     fetch.mockReturnValueOnce(respuesta({ ok: true }));
     expect(await backendDisponible()).toBe(true);
-    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
-    expect(await backendDisponible()).toBe(false);
+    fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(await backendDisponible({ pausaMs: 0 })).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('reintenta una vez si la primera llamada falla (p. ej. recién encendido el equipo)', async () => {
+    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch')).mockReturnValueOnce(respuesta({ ok: true }));
+    expect(await backendDisponible({ pausaMs: 0 })).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it('exige sesión salvo en las rutas públicas', async () => {

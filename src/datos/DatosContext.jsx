@@ -45,6 +45,7 @@ export function ProveedorDatos({
   api = apiDatos,
   apiHabilitada = API_HABILITADA,
   comprobarServidor = backendDisponible,
+  intervaloReconexion = 30000,
 }) {
   const { usuarioActual, cerrarSesion } = useAuth();
   const usarApi = !datosIniciales && apiHabilitada;
@@ -122,6 +123,39 @@ export function ProveedorDatos({
   useEffect(() => {
     if (modo === 'local') guardarDatos(datos);
   }, [modo, datos]);
+
+  /**
+   * Hay servidor configurado pero se está en modo local (no respondió al abrir la página o
+   * se cayó): vuelve a intentarlo. Si responde se pasa a modo api y `cargar` decide si la
+   * sesión sirve o hay que volver a entrar.
+   */
+  const reconectar = useCallback(async () => {
+    if (!usarApi) return false;
+    const disponible = await comprobarServidor();
+    if (disponible) setModo('api');
+    return disponible;
+  }, [usarApi, comprobarServidor]);
+
+  // En modo local con servidor configurado se reintenta cada cierto tiempo, al volver la
+  // conexión a internet y al volver a la pestaña.
+  useEffect(() => {
+    if (!usarApi || modo !== 'local') return undefined;
+    const intervalo = setInterval(reconectar, intervaloReconexion);
+    window.addEventListener('online', reconectar);
+    window.addEventListener('focus', reconectar);
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener('online', reconectar);
+      window.removeEventListener('focus', reconectar);
+    };
+  }, [usarApi, modo, reconectar, intervaloReconexion]);
+
+  // Al iniciar o cerrar sesión estando en modo local se comprueba de nuevo el servidor.
+  const modoRef = useRef(modo);
+  modoRef.current = modo;
+  useEffect(() => {
+    if (modoRef.current === 'local') reconectar();
+  }, [idUsuario, reconectar]);
 
   const conApi = modo === 'api';
 
@@ -451,6 +485,8 @@ export function ProveedorDatos({
       ofertas: datos.ofertas,
       postulaciones: datos.postulaciones,
       modo,
+      servidorConfigurado: usarApi,
+      reconectar,
       cargando,
       errorOperacion,
       limpiarError,
@@ -476,6 +512,8 @@ export function ProveedorDatos({
     [
       datos,
       modo,
+      usarApi,
+      reconectar,
       cargando,
       errorOperacion,
       limpiarError,
