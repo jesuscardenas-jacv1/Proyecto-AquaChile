@@ -9,9 +9,6 @@ import Mensaje from '../componentes/comunes/Mensaje';
 export default function Solicitudes() {
   const { solicitudes, candidatos } = useDatos();
   const { esAnalista, soloEnEvaluacion, usuarioActual } = useAuth();
-  // La psicóloga parte viendo las solicitudes asignadas a ella (puede quitar el filtro).
-  const responsableInicial =
-    soloEnEvaluacion && EVALUADORES.includes(usuarioActual?.nombre) ? usuarioActual.nombre : '';
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
   // Aviso enviado por otra vista, p. ej. RutaProtegida al negar el acceso.
@@ -20,6 +17,11 @@ export default function Solicitudes() {
   const total = solicitudes.length;
   const estadoUrl = parametros.get('estado');
   const estadoInicial = ESTADOS_SOLICITUD.includes(estadoUrl) ? estadoUrl : '';
+  // La psicóloga parte viendo las solicitudes asignadas a ella (puede quitar el filtro).
+  // Si llega desde una tarjeta del dashboard (?estado=) se muestran todas las de ese estado,
+  // para que el listado coincida con el número de la tarjeta (las pendientes no tienen psicóloga).
+  const responsableInicial =
+    !estadoInicial && soloEnEvaluacion && EVALUADORES.includes(usuarioActual?.nombre) ? usuarioActual.nombre : '';
 
   return (
     <div className="d-flex flex-column gap-3">
