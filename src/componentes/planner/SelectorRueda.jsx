@@ -203,6 +203,8 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
 
   const cambiar = (cambio) => onChange(componerHora({ ...actual, ...cambio }));
 
+  const periodo = actual.hora < 12 ? 'AM' : 'PM';
+
   return (
     <div role="group" aria-label={etiqueta}>
       <div className="selector-rueda-grupo selector-rueda-grupo-hora">
@@ -221,7 +223,9 @@ export function SelectorHora({ valor, onChange, etiqueta = 'Hora de la entrevist
           alCambiar={(minuto) => cambiar({ minuto })}
         />
       </div>
-      <p className="selector-resumen small mb-0 mt-2">{valor ? `${componerHora(actual)} h` : 'Elija hora y minuto'}</p>
+      <p className="selector-resumen small mb-0 mt-2">
+        {valor ? `${componerHora(actual)} h (${periodo})` : 'Elija hora y minuto'}
+      </p>
     </div>
   );
 }
