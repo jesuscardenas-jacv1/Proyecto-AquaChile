@@ -1370,15 +1370,15 @@ h1, h2, h3, h4, h5, h6,
 /* Contenido principal con fondo claro (blanco cálido). La barra lateral y el pie
    se mantienen oscuros para enmarcar la pantalla. Redefine los tokens solo aquí. */
 .app-principal {
-  --austral-fondo: #edeae5;
-  --austral-superficie: #e9e5df;
+  --austral-fondo: #e2eaef;
+  --austral-superficie: #d2dde5;
   --austral-tarjeta: #ffffff;
-  --austral-elevada: #f7f5f2;
-  --austral-activa: #ece8e3;
-  --austral-borde: #cfc8bf;
-  --austral-borde-activo: #b8b1a8;
-  --austral-texto: #16252f;
-  --austral-texto-suave: #4e5c67;
+  --austral-elevada: #f2f6f8;
+  --austral-activa: #dfe8ee;
+  --austral-borde: #9fb2bf;
+  --austral-borde-activo: #7f95a4;
+  --austral-texto: #10202a;
+  --austral-texto-suave: #3b4b57;
   --austral-titulo: #0e1a22;
   --austral-enlace: #2c4a5e;
   --austral-hover-texto: #0e1a22;
@@ -1393,7 +1393,7 @@ h1, h2, h3, h4, h5, h6,
   --bs-emphasis-color: var(--austral-titulo);
   --bs-heading-color: var(--austral-titulo);
   --bs-secondary-color: var(--austral-texto-suave);
-  --bs-secondary-rgb: 78, 92, 103;
+  --bs-secondary-rgb: 59, 75, 87;
   --bs-secondary-bg: #ffffff;
   --bs-tertiary-bg: var(--austral-superficie);
   --bs-tertiary-bg-rgb: 233, 229, 223;
@@ -1436,7 +1436,9 @@ h1, h2, h3, h4, h5, h6,
    fijarlo aquí: tarjetas blancas con borde y sombra suave, para que se separen de la página. */
 .app-principal .card {
   --bs-card-bg: #ffffff;
-  box-shadow: 0 1px 2px rgba(22, 37, 47, 0.08), 0 4px 12px rgba(22, 37, 47, 0.06) !important;
+  /* Banda de color del módulo arriba de cada tarjeta, y sombra que la separa del fondo. */
+  box-shadow: inset 0 4px 0 var(--modulo-color), 0 2px 6px rgba(16, 32, 42, 0.14),
+    0 10px 24px rgba(16, 32, 42, 0.1) !important;
 }
 
 .app-principal .card-header,
@@ -1552,4 +1554,103 @@ h1, h2, h3, h4, h5, h6,
 .hoja-informe .tabla-competencias thead th {
   color: #425563 !important;
   font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Color por módulo: cada pantalla se reconoce de un vistazo.                 */
+/* El atributo data-modulo lo pone Layout (ver dominio/modulos.js).           */
+/* ------------------------------------------------------------------------- */
+.app-shell {
+  --modulo-color: #425563;
+}
+.app-shell[data-modulo='dashboard'] {
+  --modulo-color: #1f4e5f;
+}
+.app-shell[data-modulo='postulaciones'] {
+  --modulo-color: #2b6cb0;
+}
+.app-shell[data-modulo='candidatos'] {
+  --modulo-color: #2f7d62;
+}
+.app-shell[data-modulo='solicitudes'] {
+  --modulo-color: #c93f00;
+}
+.app-shell[data-modulo='planner'] {
+  --modulo-color: #6a4c9c;
+}
+.app-shell[data-modulo='administracion'] {
+  --modulo-color: #5f6b73;
+}
+
+.app-principal {
+  border-top: 6px solid var(--modulo-color);
+}
+
+.app-principal h1.h4 {
+  position: relative;
+  padding-left: 0.75rem;
+}
+.app-principal h1.h4::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--modulo-color);
+}
+
+/* Enlace activo de la barra lateral con la marca de su módulo. */
+.app-shell a.active {
+  box-shadow: inset 4px 0 0 var(--modulo-color);
+}
+
+/* Botón de acento (naranja) y aviso en tiempo real. */
+.btn-acento {
+  background-color: var(--aqua-acento);
+  border-color: var(--aqua-acento);
+  color: #ffffff;
+}
+.btn-acento:hover,
+.btn-acento:focus {
+  background-color: var(--aqua-acento-oscuro);
+  border-color: var(--aqua-acento-oscuro);
+  color: #ffffff;
+}
+
+.aviso-tiempo-real {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1080;
+  max-width: min(420px, calc(100vw - 2rem));
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.6rem;
+  background: var(--aqua-primario-profundo);
+  color: #ffffff;
+  border-left: 5px solid var(--aqua-acento);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  animation: aviso-entrada 0.3s ease-out;
+}
+.aviso-tiempo-real .btn-close {
+  filter: invert(1);
+}
+@keyframes aviso-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aviso-tiempo-real {
+    animation: none;
+  }
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
+const { notificarRol } = require('../bd/notificaciones');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearCandidato } = require('../bd/formatos');
 
@@ -82,10 +83,18 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
       texto(origen) || 'Externo',
     );
 
+  const candidato = formatearCandidato(obtener(resultado.lastInsertRowid));
+  // Los demás analistas se enteran al instante de que hay un candidato nuevo.
+  notificarRol(
+    'analista',
+    { tipo: 'candidato', mensaje: `Nuevo candidato registrado: ${candidato.nombre} · ${candidato.cargo}`, enlace: `/candidatos/${candidato.id}` },
+    req.usuario.id,
+  );
+
   res.status(201).json({
     ok: true,
     mensaje: 'Candidato registrado exitosamente.',
-    candidato: formatearCandidato(obtener(resultado.lastInsertRowid)),
+    candidato,
   });
 });
 

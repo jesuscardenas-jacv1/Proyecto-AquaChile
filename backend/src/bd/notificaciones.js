@@ -1,4 +1,5 @@
 const db = require('./conexion');
+const { emitir } = require('../tiempoReal');
 
 const insertar = (usuarioId, { tipo, mensaje, enlace }) =>
   db
@@ -11,7 +12,22 @@ const insertar = (usuarioId, { tipo, mensaje, enlace }) =>
  */
 function notificar(destinatarios, aviso) {
   try {
-    destinatarios.forEach(({ id }) => insertar(id, aviso));
+    destinatarios.forEach(({ id }) => {
+      const { lastInsertRowid } = insertar(id, aviso);
+      // Se avisa al instante a la pantalla abierta de ese usuario (si la hay).
+      emitir(
+        'notificacion',
+        {
+          id: Number(lastInsertRowid),
+          tipo: aviso.tipo,
+          mensaje: aviso.mensaje,
+          enlace: aviso.enlace ?? '',
+          leida: false,
+          creadaEn: new Date().toISOString(),
+        },
+        [id],
+      );
+    });
   } catch (error) {
     console.error('No se pudo crear la notificación:', error.message);
   }
@@ -19,9 +35,12 @@ function notificar(destinatarios, aviso) {
 
 const usuariosConRol = (rol) => db.prepare('SELECT id FROM usuarios WHERE rol = ?').all(rol);
 
-/** Avisa a todos los usuarios de un rol (p. ej. a los analistas). */
-function notificarRol(rol, aviso) {
-  notificar(usuariosConRol(rol), aviso);
+/** Avisa a todos los usuarios de un rol (p. ej. a los analistas), salvo a `excepto` (quien hizo el cambio). */
+function notificarRol(rol, aviso, excepto = null) {
+  notificar(
+    usuariosConRol(rol).filter(({ id }) => id !== excepto),
+    aviso,
+  );
 }
 
 /** Avisa a la psicóloga responsable, que se guarda por nombre en la solicitud. */
@@ -35,4 +54,4 @@ function resumenSolicitud(solicitud) {
   return `#${solicitud.id} · ${candidato?.nombre ?? 'Candidato'} · ${solicitud.cargo}`;
 }
 
-module.exports = { notificarRol, notificarPsicologa, resumenSolicitud };
+module.exports = { notificar, notificarRol, notificarPsicologa, resumenSolicitud };

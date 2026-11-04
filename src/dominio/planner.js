@@ -72,7 +72,8 @@ const fechaInforme = (solicitud, evaluacionesPorSolicitud) => {
  * Agrupa las solicitudes en las 4 columnas del Planner y las ordena según lo que
  * la psicóloga necesita ver primero en cada una:
  * - Recibidas: la más antigua primero (lleva más tiempo esperando).
- * - Agendadas y realizadas: por fecha y hora de la entrevista.
+ * - Agendadas: por fecha y hora de la entrevista.
+ * - Realizadas: la que se finalizó más recientemente, primero.
  * - Informe enviado: el más reciente primero.
  * Las cerradas sin evaluación van en el grupo `cerrada`, la más reciente primero.
  */
@@ -90,7 +91,10 @@ export function agruparPorEtapa(solicitudes = [], evaluaciones = []) {
     (a, b) => (a.fechaSolicitud ?? '').localeCompare(b.fechaSolicitud ?? '') || a.id - b.id,
   );
   grupos.agendada.sort((a, b) => claveEntrevista(a).localeCompare(claveEntrevista(b)));
-  grupos.realizada.sort((a, b) => claveEntrevista(a).localeCompare(claveEntrevista(b)));
+  // La entrevista que se acaba de finalizar queda arriba; las demás, debajo.
+  grupos.realizada.sort(
+    (a, b) => (b.etapaCambiadaEn ?? '').localeCompare(a.etapaCambiadaEn ?? '') || b.id - a.id,
+  );
   grupos.cerrada.sort((a, b) => (b.cierre?.fecha ?? '').localeCompare(a.cierre?.fecha ?? '') || b.id - a.id);
   grupos.informe.sort(
     (a, b) =>
