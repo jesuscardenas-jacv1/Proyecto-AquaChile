@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CampanaNotificaciones from './CampanaNotificaciones';
+import { suscribirTiempoReal } from '../../servicios/tiempoReal';
+
+vi.mock('../../servicios/tiempoReal', () => ({
+  suscribirTiempoReal: vi.fn(() => () => {}),
+}));
 
 const aviso = (cambios = {}) => ({
   id: 1,
@@ -100,5 +105,19 @@ describe('CampanaNotificaciones', () => {
     renderCampana(crearApi([]));
     await usuario.click(await screen.findByRole('button', { name: 'Notificaciones' }));
     expect(screen.getByText('No tienes notificaciones.')).toBeInTheDocument();
+  });
+
+  it('un aviso en tiempo real aparece en pantalla y suma al contador', async () => {
+    const api = crearApi([]);
+    renderCampana(api);
+    await screen.findByRole('button', { name: 'Notificaciones' });
+
+    const nuevo = aviso({ id: 7, tipo: 'candidato', mensaje: 'Nuevo candidato registrado: Luis Soto · Operario', enlace: '/candidatos/7' });
+    api.listar.mockResolvedValue({ noLeidas: 1, notificaciones: [nuevo] });
+    const oyente = suscribirTiempoReal.mock.calls.find(([tipo]) => tipo === 'notificacion')[1];
+    oyente(nuevo);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Nuevo candidato registrado: Luis Soto');
+    expect(screen.getByRole('button', { name: 'Notificaciones: 1 sin leer' })).toBeInTheDocument();
   });
 });

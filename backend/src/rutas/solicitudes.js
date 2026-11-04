@@ -359,12 +359,14 @@ router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
           modalidad: texto(modalidadEntrevista) || actual.modalidad_entrevista,
         };
 
+  // La fecha de cambio de etapa solo se renueva cuando la etapa realmente cambia.
   db.prepare(
     `UPDATE solicitudes
      SET etapa = ?, estado = ?, fecha_entrevista = ?, hora_entrevista = ?, modalidad_entrevista = ?,
+         etapa_cambiada_en = CASE WHEN etapa = ? THEN etapa_cambiada_en ELSE datetime('now') END,
          actualizado_en = datetime('now')
      WHERE id = ?`,
-  ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, id);
+  ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, etapa, id);
 
   res.json({ ok: true, mensaje: 'Etapa actualizada.', solicitud: formatearSolicitud(obtener(id)) });
 });
