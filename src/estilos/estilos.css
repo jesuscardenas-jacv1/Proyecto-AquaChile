@@ -628,6 +628,44 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Documentos de la solicitud (carpeta en Google Drive, OneDrive o almacenamiento local) */
+.carpeta-documentos {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--aqua-gris-calido);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+}
+
+.carpeta-documentos:hover,
+.carpeta-documentos:focus-visible {
+  background-color: var(--aqua-gris-calido-claro);
+}
+
+.carpeta-documentos-icono {
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--bs-warning);
+}
+
+.visor-documento {
+  min-height: 12rem;
+}
+
+.visor-documento-marco {
+  display: block;
+  width: 100%;
+  height: 78vh;
+  border: 0;
+  background: #fff;
+}
+
+.visor-documento-imagen {
+  display: block;
+  max-width: 100%;
+  max-height: 78vh;
+  margin: 0 auto;
+}
+
 .documentos-categoria + .documentos-categoria {
   border-top: 1px solid var(--aqua-gris-calido);
   margin-top: 0.75rem;

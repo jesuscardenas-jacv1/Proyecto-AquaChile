@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ErrorApi, apiDocumentos } from '../../servicios/apiDocumentos';
 import { ARCHIVOS_PERMITIDOS } from '../../datos/constantes';
+import { useAuth } from '../../datos/AuthContext';
+import { nombreCarpetaSolicitud } from '../../dominio/documentos';
 import { formatearFecha } from '../../dominio/formateo';
 import Mensaje from '../comunes/Mensaje';
+import VentanaDocumento from './VentanaDocumento';
 
 /** Categorías de la carpeta de la solicitud, en el orden en que se muestran. */
 export const CATEGORIAS_DOCUMENTO = [
@@ -27,9 +30,9 @@ function formatearTamano(bytes) {
 }
 
 /**
- * Documentos de la solicitud: CV, descriptor de cargo e informe psicolaboral.
- * Los archivos viven en la carpeta de la solicitud (Google Drive, OneDrive o disco local,
- * según el backend); este panel solo los muestra, sube, descarga y elimina.
+ * Carpeta de documentos de la solicitud: CV, descriptor de cargo e informe psicolaboral.
+ * Al pincharla lista los archivos y al pinchar uno se abre dentro del portal, sin ir a
+ * Google Drive u OneDrive (el backend decide dónde viven). También sube, descarga y elimina.
  */
 export default function PanelDocumentos({
   solicitud,
@@ -40,6 +43,9 @@ export default function PanelDocumentos({
   const [estado, setEstado] = useState({ cargando: true });
   const [ocupado, setOcupado] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [abierta, setAbierta] = useState(false);
+  const [documento, setDocumento] = useState(null);
+  const { esAdmin } = useAuth();
   const entradas = useRef({});
   // Nombres que la solicitud trae de su creación (el CV elegido y el descriptor del
   // catálogo de cargos): se muestran como referencia mientras no estén en la carpeta.
@@ -117,6 +123,12 @@ export default function PanelDocumentos({
       archivos.some((archivo) => archivo.categoria === categoria.id),
   );
   const categorias = archivos.some((archivo) => archivo.categoria === 'otro') ? [...visibles, OTROS] : visibles;
+  const idLista = `carpeta-solicitud-${solicitud.id}`;
+  const nombreDeCarpeta = datos?.carpeta?.nombre ?? nombreCarpetaSolicitud(solicitud.id, nombreCandidato);
+  const textoCantidad =
+    archivos.length === 0
+      ? 'Sin documentos todavía'
+      : `${archivos.length} ${archivos.length === 1 ? 'documento' : 'documentos'}`;
 
   return (
     <section className="card border-0 shadow-sm" aria-labelledby="titulo-documentos">
@@ -125,12 +137,6 @@ export default function PanelDocumentos({
           <h2 id="titulo-documentos" className="h6 mb-0">
             Documentos
           </h2>
-          {datos ? (
-            <small className="text-secondary">
-              <i className="bi bi-folder2-open me-1" aria-hidden="true" />
-              {datos.carpeta ? datos.carpeta.nombre : 'La carpeta se crea al subir el primer archivo'}
-            </small>
-          ) : null}
         </div>
         <div className="d-flex align-items-center gap-2">
           {proveedor ? (
@@ -139,7 +145,8 @@ export default function PanelDocumentos({
               {proveedor.etiqueta}
             </span>
           ) : null}
-          {datos?.carpeta?.webUrl ? (
+          {/* Enlace técnico: la carpeta en la nube es de la cuenta del sistema; el resto trabaja aquí. */}
+          {esAdmin && datos?.carpeta?.webUrl ? (
             <a
               href={datos.carpeta.webUrl}
               target="_blank"
@@ -184,7 +191,25 @@ export default function PanelDocumentos({
         ) : null}
 
         {datos ? (
-          <ul className="list-unstyled mb-0 documentos-lista">
+          <button
+            type="button"
+            className="carpeta-documentos d-flex align-items-center gap-3 w-100 text-start"
+            aria-expanded={abierta}
+            aria-controls={idLista}
+            aria-label={`Carpeta ${nombreDeCarpeta}: ${textoCantidad}`}
+            onClick={() => setAbierta((valor) => !valor)}
+          >
+            <i className={`bi ${abierta ? 'bi-folder2-open' : 'bi-folder-fill'} carpeta-documentos-icono`} aria-hidden="true" />
+            <span className="flex-grow-1 overflow-hidden">
+              <span className="d-block fw-semibold text-truncate">{nombreDeCarpeta}</span>
+              <small className="text-secondary">{textoCantidad}</small>
+            </span>
+            <i className={`bi ${abierta ? 'bi-chevron-up' : 'bi-chevron-down'} text-secondary`} aria-hidden="true" />
+          </button>
+        ) : null}
+
+        {datos && abierta ? (
+          <ul id={idLista} className="list-unstyled mb-0 mt-3 documentos-lista">
             {categorias.map((categoria) => {
               const deCategoria = archivos.filter((archivo) => archivo.categoria === categoria.id);
               const puedeSubir = permisos.includes(categoria.id);
@@ -251,12 +276,10 @@ export default function PanelDocumentos({
                           <button
                             type="button"
                             className="btn btn-link btn-sm p-0 text-start text-break"
-                            title="Descargar"
-                            onClick={() =>
-                              ejecutar(archivo.id, () => api.descargar(solicitud.id, archivo))
-                            }
+                            title="Ver documento"
+                            onClick={() => setDocumento(archivo)}
                           >
-                            <i className="bi bi-file-earmark-arrow-down me-1" aria-hidden="true" />
+                            <i className="bi bi-file-earmark-text me-1" aria-hidden="true" />
                             {archivo.nombre}
                           </button>
                           <span className="d-flex align-items-center gap-2 flex-shrink-0">
@@ -264,6 +287,16 @@ export default function PanelDocumentos({
                               {formatearTamano(archivo.tamano)}
                               {archivo.modificado ? ` · ${formatearFecha(archivo.modificado)}` : ''}
                             </small>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0"
+                              aria-label={`Descargar ${archivo.nombre}`}
+                              title="Descargar"
+                              disabled={ocupado !== null}
+                              onClick={() => ejecutar(archivo.id, () => api.descargar(solicitud.id, archivo))}
+                            >
+                              <i className="bi bi-download" aria-hidden="true" />
+                            </button>
                             {archivo.puedeEliminar ? (
                               <button
                                 type="button"
@@ -286,6 +319,15 @@ export default function PanelDocumentos({
           </ul>
         ) : null}
       </div>
+
+      {documento ? (
+        <VentanaDocumento
+          solicitudId={solicitud.id}
+          archivo={documento}
+          api={api}
+          alCerrar={() => setDocumento(null)}
+        />
+      ) : null}
     </section>
   );
 }

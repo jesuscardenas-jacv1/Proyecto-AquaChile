@@ -80,6 +80,14 @@ export async function subirDocumento(solicitudId, { categoria, archivo, nombreCa
   return respuesta.json();
 }
 
+/** Contenido del archivo, para mostrarlo dentro del portal. */
+export async function contenidoDocumento(solicitudId, archivo) {
+  const respuesta = await llamar(
+    `${rutaDocumentos(solicitudId)}/${encodeURIComponent(archivo.id)}/contenido`,
+  );
+  return respuesta.blob();
+}
+
 /** Descarga el archivo con el token y lo entrega al navegador como descarga. */
 export async function descargarDocumento(solicitudId, archivo) {
   const respuesta = await llamar(
@@ -187,6 +195,7 @@ export const apiDocumentos = {
   listar: listarDocumentos,
   subir: subirDocumento,
   descargar: descargarDocumento,
+  contenido: contenidoDocumento,
   eliminar: eliminarDocumento,
   generarInforme,
   traerCvDePostulacion,

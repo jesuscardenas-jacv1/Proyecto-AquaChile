@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import PanelDocumentos from './PanelDocumentos';
+import { ProveedorAuth } from '../../datos/AuthContext';
 import { ErrorApi } from '../../servicios/apiDocumentos';
 
 const solicitud = { id: 7 };
@@ -11,6 +12,7 @@ function crearApi(datos) {
     listar: vi.fn().mockResolvedValue(datos),
     subir: vi.fn().mockResolvedValue({ ok: true }),
     descargar: vi.fn().mockResolvedValue(undefined),
+    contenido: vi.fn().mockResolvedValue(new Blob(['pdf'])),
     eliminar: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -39,11 +41,68 @@ const datosConArchivos = {
   ],
 };
 
+const abrirCarpeta = async (usuario = userEvent.setup()) => {
+  await usuario.click(await screen.findByRole('button', { name: /^Carpeta / }));
+  return usuario;
+};
+
 describe('PanelDocumentos', () => {
+  it('la carpeta parte cerrada, indica cuántos documentos tiene y al pincharla los lista', async () => {
+    const usuario = userEvent.setup();
+    render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
+
+    const carpeta = await screen.findByRole('button', { name: 'Carpeta S0007 - Ana Pérez: 2 documentos' });
+    expect(carpeta).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'CV - ana.pdf' })).toBeNull();
+
+    await usuario.click(carpeta);
+    expect(carpeta).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'CV - ana.pdf' })).toBeInTheDocument();
+
+    await usuario.click(carpeta);
+    expect(screen.queryByRole('button', { name: 'CV - ana.pdf' })).toBeNull();
+  });
+
+  it('al pinchar un documento lo abre dentro del portal, sin descargarlo', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:cv');
+    URL.revokeObjectURL = vi.fn();
+    const api = crearApi(datosConArchivos);
+    render(<PanelDocumentos solicitud={solicitud} api={api} />);
+    const usuario = await abrirCarpeta();
+
+    await usuario.click(screen.getByRole('button', { name: 'CV - ana.pdf' }));
+    expect(screen.getByRole('dialog', { name: 'CV - ana.pdf' })).toBeInTheDocument();
+    expect(await screen.findByTitle('CV - ana.pdf')).toHaveAttribute('src', 'blob:cv');
+    expect(api.contenido).toHaveBeenCalledWith(7, datosConArchivos.archivos[0]);
+    expect(api.descargar).not.toHaveBeenCalled();
+  });
+
+  it('sin carpeta creada muestra el nombre que tendrá', async () => {
+    render(
+      <PanelDocumentos
+        solicitud={solicitud}
+        nombreCandidato="Ana Pérez"
+        api={crearApi({ ...datosConArchivos, carpeta: null, archivos: [] })}
+      />,
+    );
+    expect(await screen.findByRole('button', { name: 'Carpeta S0007 - Ana Pérez: Sin documentos todavía' })).toBeInTheDocument();
+  });
+
+  it('solo el administrador ve el enlace a la nube; los demás trabajan en el portal', async () => {
+    render(
+      <ProveedorAuth usuarioInicial={{ id: 2, nombre: 'Psicóloga', rol: 'evaluador' }}>
+        <PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />
+      </ProveedorAuth>,
+    );
+    await screen.findByText('S0007 - Ana Pérez');
+    expect(screen.queryByRole('link', { name: /abrir en/i })).toBeNull();
+  });
+
   it('muestra la carpeta de OneDrive y los archivos agrupados por categoría', async () => {
     render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
 
     expect(await screen.findByText('S0007 - Ana Pérez')).toBeInTheDocument();
+    await abrirCarpeta();
     expect(screen.getByText('OneDrive')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /abrir en onedrive/i })).toHaveAttribute(
       'href',
@@ -63,6 +122,7 @@ describe('PanelDocumentos', () => {
         api={crearApi(datosConArchivos)}
       />,
     );
+    await abrirCarpeta();
     expect(await screen.findByText('DC_Analista.pdf')).toBeInTheDocument();
     expect(screen.getByText(/súbelo aquí para guardarlo en la carpeta/i)).toBeInTheDocument();
   });
@@ -84,7 +144,7 @@ describe('PanelDocumentos', () => {
 
   it('solo ofrece subir y eliminar en las categorías permitidas', async () => {
     render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
-    await screen.findByText('S0007 - Ana Pérez');
+    await abrirCarpeta();
 
     expect(screen.getAllByRole('button', { name: /subir/i })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Eliminar CV - ana.pdf' })).toBeInTheDocument();
@@ -95,7 +155,8 @@ describe('PanelDocumentos', () => {
     const usuario = userEvent.setup();
     const api = crearApi({ ...datosConArchivos, carpeta: null, archivos: [] });
     render(<PanelDocumentos solicitud={solicitud} nombreCandidato="Ana Pérez" api={api} />);
-    expect(await screen.findByText(/la carpeta se crea al subir/i)).toBeInTheDocument();
+    expect(await screen.findByText(/sin documentos todavía/i)).toBeInTheDocument();
+    await abrirCarpeta(usuario);
 
     const archivo = new File(['pdf'], 'curriculum.pdf', { type: 'application/pdf' });
     await usuario.upload(screen.getByLabelText('Archivo para CV del candidato'), archivo);
@@ -117,7 +178,8 @@ describe('PanelDocumentos', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PanelDocumentos solicitud={solicitud} api={api} />);
 
-    await usuario.click(await screen.findByRole('button', { name: 'CV - ana.pdf' }));
+    await abrirCarpeta(usuario);
+    await usuario.click(screen.getByRole('button', { name: 'Descargar CV - ana.pdf' }));
     expect(api.descargar).toHaveBeenCalledWith(7, datosConArchivos.archivos[0]);
 
     await usuario.click(screen.getByRole('button', { name: 'Eliminar CV - ana.pdf' }));
@@ -131,7 +193,7 @@ describe('PanelDocumentos', () => {
     const api = crearApi(datosConArchivos);
     api.subir.mockRejectedValue(new ErrorApi('Tipo de archivo no permitido.', { status: 400 }));
     render(<PanelDocumentos solicitud={solicitud} api={api} />);
-    await screen.findByText('S0007 - Ana Pérez');
+    await abrirCarpeta(usuario);
 
     await usuario.upload(
       screen.getByLabelText('Archivo para Descriptor de cargo'),
@@ -156,13 +218,14 @@ describe('PanelDocumentos', () => {
     const { unmount } = render(
       <PanelDocumentos solicitud={solicitud} api={crearApi({ ...datosConArchivos, permisos: ['informe', 'pauta'] })} />,
     );
+    await abrirCarpeta();
     expect(await screen.findByText('Pauta de entrevista')).toBeInTheDocument();
     expect(screen.getByText('Confidencial')).toBeInTheDocument();
     expect(screen.getByLabelText('Archivo para Pauta de entrevista')).toBeInTheDocument();
     unmount();
 
     render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
-    await screen.findByText('S0007 - Ana Pérez');
+    await abrirCarpeta();
     expect(screen.queryByText('Pauta de entrevista')).toBeNull();
   });
 });

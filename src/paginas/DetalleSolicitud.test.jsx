@@ -133,7 +133,7 @@ describe('DetalleSolicitud', () => {
       const generarInforme = vi.spyOn(apiDocumentos, 'generarInforme').mockResolvedValue({ ok: true });
       const usuario = userEvent.setup();
       renderDetalle('2');
-      await screen.findByText(/la carpeta se crea al subir/i);
+      await screen.findByText(/sin documentos todavía/i);
 
       await registrarRecomendado(usuario);
 
@@ -171,7 +171,7 @@ describe('DetalleSolicitud', () => {
       vi.spyOn(apiDocumentos, 'generarInforme').mockRejectedValue(new Error('Error de Microsoft Graph (503)'));
       const usuario = userEvent.setup();
       renderDetalle('2');
-      await screen.findByText(/la carpeta se crea al subir/i);
+      await screen.findByText(/sin documentos todavía/i);
 
       await registrarRecomendado(usuario);
 
