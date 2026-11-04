@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { ESTADOS_SOLICITUD, EVALUADORES, FAMILIAS_CARGO } from '../../datos/constantes';
-import { SIN_RESPONSABLE, filtrarSolicitudes } from '../../dominio/consultas';
+import { MIAS_Y_SIN_ASIGNAR, SIN_RESPONSABLE, filtrarSolicitudes } from '../../dominio/consultas';
 import { formatearFecha } from '../../dominio/formateo';
 import EstadoVacio from '../comunes/EstadoVacio';
 import EtiquetaEstado from '../comunes/EtiquetaEstado';
 
 /**
  * Listado de solicitudes con búsqueda por texto y filtros por estado, familia,
- * psicóloga responsable y rango de fechas. `responsableInicial` permite que la
- * evaluadora parta viendo solo las solicitudes asignadas a ella.
+ * psicóloga responsable y rango de fechas. `responsableInicial` y `miNombre` permiten
+ * que la evaluadora parta viendo las suyas y las que aún no tienen psicóloga.
  */
 export default function ListaSolicitudes({
   solicitudes = [],
@@ -16,6 +16,7 @@ export default function ListaSolicitudes({
   alAbrir,
   estadoInicial = '',
   responsableInicial = '',
+  miNombre = '',
 }) {
   const [texto, setTexto] = useState('');
   const [estado, setEstado] = useState(estadoInicial);
@@ -26,7 +27,7 @@ export default function ListaSolicitudes({
 
   const visibles = filtrarSolicitudes(
     solicitudes,
-    { texto, estado, familiaCargo, responsable, desde, hasta },
+    { texto, estado, familiaCargo, responsable, miNombre, desde, hasta },
     candidatos,
   );
   const nombreCandidato = (id) => candidatos.find((c) => c.id === Number(id))?.nombre ?? 'Sin candidato';
@@ -107,6 +108,7 @@ export default function ListaSolicitudes({
               onChange={(evento) => setResponsable(evento.target.value)}
             >
               <option value="">Todas</option>
+              {miNombre ? <option value={MIAS_Y_SIN_ASIGNAR}>Mías y sin asignar</option> : null}
               {EVALUADORES.map((nombre) => (
                 <option key={nombre} value={nombre}>
                   {nombre}

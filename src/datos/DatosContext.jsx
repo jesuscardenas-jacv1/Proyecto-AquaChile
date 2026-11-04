@@ -46,6 +46,7 @@ export function ProveedorDatos({
   apiHabilitada = API_HABILITADA,
   comprobarServidor = backendDisponible,
   intervaloReconexion = 30000,
+  intervaloRefresco = 30000,
 }) {
   const { usuarioActual, cerrarSesion } = useAuth();
   const usarApi = !datosIniciales && apiHabilitada;
@@ -120,6 +121,47 @@ export function ProveedorDatos({
     if (modo === 'api') cargar();
   }, [modo, cargar]);
 
+  // Cuenta las escrituras, para descartar un refresco que partió antes de una de ellas.
+  const escrituras = useRef(0);
+  const refrescoEnCurso = useRef(false);
+
+  /**
+   * Trae de nuevo los datos sin indicador de carga, para ver lo que otros usuarios cambiaron.
+   * Si falla la conexión conserva lo que hay; solo reacciona si la sesión venció.
+   */
+  const refrescar = useCallback(async () => {
+    if (modo !== 'api' || !idUsuario || !obtenerToken() || refrescoEnCurso.current) return;
+    refrescoEnCurso.current = true;
+    const escriturasAlPartir = escrituras.current;
+    try {
+      const cargados = await api.cargarTodo(rol);
+      if (escriturasAlPartir === escrituras.current) setDatos(completar(cargados));
+    } catch (error) {
+      if (error.status === 401) {
+        setErrorOperacion(error.message);
+        cerrarSesion();
+      }
+    } finally {
+      refrescoEnCurso.current = false;
+    }
+  }, [modo, idUsuario, rol, api, cerrarSesion]);
+
+  // Refresco cada cierto tiempo (con la pestaña visible) y al volver a la pestaña o ventana.
+  useEffect(() => {
+    if (modo !== 'api' || !idUsuario) return undefined;
+    const siVisible = () => {
+      if (!document.hidden) refrescar();
+    };
+    const intervalo = setInterval(siVisible, intervaloRefresco);
+    window.addEventListener('focus', refrescar);
+    document.addEventListener('visibilitychange', siVisible);
+    return () => {
+      clearInterval(intervalo);
+      window.removeEventListener('focus', refrescar);
+      document.removeEventListener('visibilitychange', siVisible);
+    };
+  }, [modo, idUsuario, refrescar, intervaloRefresco]);
+
   useEffect(() => {
     if (modo === 'local') guardarDatos(datos);
   }, [modo, datos]);
@@ -163,6 +205,7 @@ export function ProveedorDatos({
   const ejecutar = useCallback(
     async (operacion) => {
       setErrorOperacion(null);
+      escrituras.current += 1;
       try {
         return await operacion();
       } catch (error) {
@@ -529,6 +572,7 @@ export function ProveedorDatos({
       errorOperacion,
       limpiarError,
       recargar: cargar,
+      refrescar,
       obtenerOferta,
       obtenerPostulacion,
       postular,
@@ -558,6 +602,7 @@ export function ProveedorDatos({
       errorOperacion,
       limpiarError,
       cargar,
+      refrescar,
       agregarCandidato,
       actualizarCandidato,
       eliminarCandidato,

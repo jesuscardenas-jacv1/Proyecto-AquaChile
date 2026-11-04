@@ -217,3 +217,90 @@ describe('DatosContext se reconecta cuando vuelve el servidor', () => {
     await waitFor(() => expect(result.current.modo).toBe('api'));
   });
 });
+
+describe('DatosContext refresca los datos del servidor', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  const montarConApi = (api, intervaloRefresco = 30000) => {
+    sessionStorage.setItem('aquachile_token_api', 'jwt');
+    const wrapper = ({ children }) => (
+      <ProveedorAuth usuarioInicial={analista} apiHabilitada>
+        <ProveedorDatos
+          apiHabilitada
+          api={api}
+          comprobarServidor={vi.fn().mockResolvedValue(true)}
+          intervaloRefresco={intervaloRefresco}
+        >
+          {children}
+        </ProveedorDatos>
+      </ProveedorAuth>
+    );
+    return renderHook(() => ({ datos: useDatos(), auth: useAuth() }), { wrapper });
+  };
+  const conNueva = () => {
+    const datos = structuredClone(datosPortal);
+    datos.solicitudes.push({ ...datos.solicitudes[0], id: 999 });
+    return datos;
+  };
+
+  it('muestra lo que otro usuario creó al volver a la ventana, sin indicador de carga', async () => {
+    const api = crearApi();
+    const { result } = montarConApi(api);
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+    const total = result.current.datos.solicitudes.length;
+
+    api.cargarTodo.mockResolvedValue(conNueva());
+    act(() => window.dispatchEvent(new Event('focus')));
+    expect(result.current.datos.cargando).toBe(false);
+    await waitFor(() => expect(result.current.datos.solicitudes).toHaveLength(total + 1));
+  });
+
+  it('también refresca cada cierto tiempo', async () => {
+    const api = crearApi();
+    const { result } = montarConApi(api, 20);
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+    const total = result.current.datos.solicitudes.length;
+    api.cargarTodo.mockResolvedValue(conNueva());
+    await waitFor(() => expect(result.current.datos.solicitudes).toHaveLength(total + 1));
+  });
+
+  it('si falla la conexión conserva los datos y sigue con el servidor', async () => {
+    const api = crearApi();
+    const { result } = montarConApi(api);
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+    const total = result.current.datos.solicitudes.length;
+
+    api.cargarTodo.mockRejectedValue(new ErrorApi('Sin conexión', { noDisponible: true }));
+    await act(() => result.current.datos.refrescar());
+    expect(result.current.datos.modo).toBe('api');
+    expect(result.current.datos.solicitudes).toHaveLength(total);
+    expect(result.current.datos.errorOperacion).toBeNull();
+  });
+
+  it('descarta un refresco que partió antes de una escritura', async () => {
+    const api = crearApi();
+    const { result } = montarConApi(api);
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+
+    let responder;
+    api.cargarTodo.mockReturnValue(new Promise((resolver) => { responder = resolver; }));
+    let refresco;
+    act(() => { refresco = result.current.datos.refrescar(); });
+    await act(() =>
+      result.current.datos.agregarCandidato({
+        nombre: 'Nueva Persona', correo: 'nueva@correo.cl', telefono: '+56911112222', cargo: 'Operario', familiaCargo: 'Operario',
+      }),
+    );
+    await act(async () => { responder(structuredClone(datosPortal)); await refresco; });
+    expect(result.current.datos.candidatos.some((c) => c.id === 500)).toBe(true);
+  });
+
+  it('si la sesión venció al refrescar, la cierra', async () => {
+    const api = crearApi();
+    const { result } = montarConApi(api);
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+    api.cargarTodo.mockRejectedValue(new ErrorApi('Token inválido o expirado.', { status: 401 }));
+    await act(() => result.current.datos.refrescar());
+    expect(result.current.auth.estaAutenticado).toBe(false);
+  });
+});

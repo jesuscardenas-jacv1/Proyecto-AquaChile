@@ -148,9 +148,11 @@ describe('Solicitudes', () => {
         </MemoryRouter>,
       );
 
-    it('parte viendo solo las solicitudes asignadas a ella', () => {
+    it('parte viendo las suyas y las sin asignar, no las de otra psicóloga', () => {
       renderComoPsicologa('/solicitudes');
-      expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Ignacia Valdés Ortiz');
+      expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveDisplayValue('Mías y sin asignar');
+      // #1 es suya, #3 no tiene psicóloga y #2 es de otra.
+      expect(screen.getByText(/mostrando 2 de 3 solicitudes/i)).toBeInTheDocument();
     });
 
     it('desde el dashboard (?estado=Pendiente) ve todas las pendientes, que aún no tienen psicóloga', () => {

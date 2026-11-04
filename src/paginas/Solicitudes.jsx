@@ -2,6 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { ESTADOS_SOLICITUD, EVALUADORES } from '../datos/constantes';
+import { MIAS_Y_SIN_ASIGNAR } from '../dominio/consultas';
 import ListaSolicitudes from '../componentes/solicitudes/ListaSolicitudes';
 import Mensaje from '../componentes/comunes/Mensaje';
 
@@ -17,11 +18,11 @@ export default function Solicitudes() {
   const total = solicitudes.length;
   const estadoUrl = parametros.get('estado');
   const estadoInicial = ESTADOS_SOLICITUD.includes(estadoUrl) ? estadoUrl : '';
-  // La psicóloga parte viendo las solicitudes asignadas a ella (puede quitar el filtro).
+  const miNombre = soloEnEvaluacion && EVALUADORES.includes(usuarioActual?.nombre) ? usuarioActual.nombre : '';
+  // La psicóloga parte viendo las suyas y las aún sin asignar (puede quitar el filtro).
   // Si llega desde una tarjeta del dashboard (?estado=) se muestran todas las de ese estado,
-  // para que el listado coincida con el número de la tarjeta (las pendientes no tienen psicóloga).
-  const responsableInicial =
-    !estadoInicial && soloEnEvaluacion && EVALUADORES.includes(usuarioActual?.nombre) ? usuarioActual.nombre : '';
+  // para que el listado coincida con el número de la tarjeta.
+  const responsableInicial = !estadoInicial && miNombre ? MIAS_Y_SIN_ASIGNAR : '';
 
   return (
     <div className="d-flex flex-column gap-3">
@@ -57,6 +58,7 @@ export default function Solicitudes() {
         key={`${estadoInicial}-${responsableInicial}`}
         estadoInicial={estadoInicial}
         responsableInicial={responsableInicial}
+        miNombre={miNombre}
         solicitudes={solicitudes}
         candidatos={candidatos}
         alAbrir={(solicitud) => navegar(`/solicitudes/${solicitud.id}`)}

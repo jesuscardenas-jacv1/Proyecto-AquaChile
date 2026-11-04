@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filtrarCandidatos, filtrarSolicitudes, ordenarPorFecha } from './consultas';
+import { MIAS_Y_SIN_ASIGNAR, filtrarCandidatos, filtrarSolicitudes, ordenarPorFecha } from './consultas';
 import {
   contarPor,
   estadoSolicitudDesdeEvaluacion,
@@ -104,5 +104,17 @@ describe('promedioDiasRespuesta', () => {
   it('devuelve null cuando no hay datos', () => {
     expect(promedioDiasRespuesta([{}])).toBeNull();
     expect(promedioDiasRespuesta()).toBeNull();
+  });
+});
+
+describe('filtrarSolicitudes · mías y sin asignar', () => {
+  it('incluye las de la psicóloga y las sin responsable, no las de otra', () => {
+    const lista = [
+      { id: 1, profesionalResponsable: 'Ignacia Valdés Ortiz' },
+      { id: 2, profesionalResponsable: 'Tomás Riquelme Soto' },
+      { id: 3, profesionalResponsable: '' },
+    ];
+    const visibles = filtrarSolicitudes(lista, { responsable: MIAS_Y_SIN_ASIGNAR, miNombre: 'Ignacia Valdés Ortiz' });
+    expect(visibles.map((s) => s.id)).toEqual([1, 3]);
   });
 });
