@@ -20,16 +20,20 @@ const coincideTexto = (solicitud, texto, candidatosPorId) => {
 /** Valor del filtro de responsable que selecciona las solicitudes sin psicóloga asignada. */
 export const SIN_RESPONSABLE = '__sin_asignar__';
 
+/** Valor del filtro que selecciona las solicitudes de `miNombre` y las aún sin psicóloga. */
+export const MIAS_Y_SIN_ASIGNAR = '__mias_y_sin_asignar__';
+
 /**
  * Filtra las solicitudes por texto libre, estado, familia de cargo, psicóloga
  * responsable y rango de fechas de solicitud (RF07).
  * @param {Array} solicitudes
- * @param {Object} criterios { texto, estado, familiaCargo, responsable, desde, hasta } (fechas yyyy-mm-dd, inclusivas)
+ * @param {Object} criterios { texto, estado, familiaCargo, responsable, miNombre, desde, hasta } (fechas yyyy-mm-dd, inclusivas)
  * @param {Array} candidatos lista de candidatos (para buscar por nombre)
  */
 export function filtrarSolicitudes(solicitudes = [], criterios = {}, candidatos = []) {
-  const { texto = '', estado = '', familiaCargo = '', responsable = '', desde = '', hasta = '' } =
+  const { texto = '', estado = '', familiaCargo = '', responsable = '', miNombre = '', desde = '', hasta = '' } =
     criterios;
+  const filtroEspecial = responsable === SIN_RESPONSABLE || responsable === MIAS_Y_SIN_ASIGNAR;
   const candidatosPorId = candidatos.reduce(
     (acumulado, candidato) => ({ ...acumulado, [candidato.id]: candidato }),
     {},
@@ -39,9 +43,14 @@ export function filtrarSolicitudes(solicitudes = [], criterios = {}, candidatos 
     if (estado && solicitud.estado !== estado) return false;
     if (familiaCargo && solicitud.familiaCargo !== familiaCargo) return false;
     if (responsable === SIN_RESPONSABLE && solicitud.profesionalResponsable) return false;
-    if (responsable && responsable !== SIN_RESPONSABLE && solicitud.profesionalResponsable !== responsable) {
+    if (
+      responsable === MIAS_Y_SIN_ASIGNAR &&
+      solicitud.profesionalResponsable &&
+      solicitud.profesionalResponsable !== miNombre
+    ) {
       return false;
     }
+    if (responsable && !filtroEspecial && solicitud.profesionalResponsable !== responsable) return false;
     if (desde && solicitud.fechaSolicitud < desde) return false;
     if (hasta && solicitud.fechaSolicitud > hasta) return false;
     return coincideTexto(solicitud, texto, candidatosPorId);
