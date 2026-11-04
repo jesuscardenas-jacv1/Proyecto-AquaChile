@@ -1370,15 +1370,15 @@ h1, h2, h3, h4, h5, h6,
 /* Contenido principal con fondo claro (blanco cálido). La barra lateral y el pie
    se mantienen oscuros para enmarcar la pantalla. Redefine los tokens solo aquí. */
 .app-principal {
-  --austral-fondo: #f4f2ef;
+  --austral-fondo: #edeae5;
   --austral-superficie: #e9e5df;
   --austral-tarjeta: #ffffff;
   --austral-elevada: #f7f5f2;
   --austral-activa: #ece8e3;
-  --austral-borde: #d9d4cd;
+  --austral-borde: #cfc8bf;
   --austral-borde-activo: #b8b1a8;
   --austral-texto: #16252f;
-  --austral-texto-suave: #5c6b76;
+  --austral-texto-suave: #4e5c67;
   --austral-titulo: #0e1a22;
   --austral-enlace: #2c4a5e;
   --austral-hover-texto: #0e1a22;
@@ -1393,7 +1393,7 @@ h1, h2, h3, h4, h5, h6,
   --bs-emphasis-color: var(--austral-titulo);
   --bs-heading-color: var(--austral-titulo);
   --bs-secondary-color: var(--austral-texto-suave);
-  --bs-secondary-rgb: 92, 107, 118;
+  --bs-secondary-rgb: 78, 92, 103;
   --bs-secondary-bg: #ffffff;
   --bs-tertiary-bg: var(--austral-superficie);
   --bs-tertiary-bg-rgb: 233, 229, 223;
@@ -1432,9 +1432,17 @@ h1, h2, h3, h4, h5, h6,
   color: var(--austral-texto);
 }
 
+/* Bootstrap define --bs-card-bg en la propia .card (con el color del fondo), así que hay que
+   fijarlo aquí: tarjetas blancas con borde y sombra suave, para que se separen de la página. */
+.app-principal .card {
+  --bs-card-bg: #ffffff;
+  box-shadow: 0 1px 2px rgba(22, 37, 47, 0.08), 0 4px 12px rgba(22, 37, 47, 0.06) !important;
+}
+
 .app-principal .card-header,
 .app-principal .card-footer {
-  background-color: var(--austral-elevada);
+  background-color: #ffffff;
+  border-color: #e4dfd8;
 }
 
 .app-principal .btn-outline-primary,
@@ -1442,6 +1450,12 @@ h1, h2, h3, h4, h5, h6,
 .app-principal .btn-outline-light {
   background-color: #ffffff;
   --bs-btn-color: var(--austral-texto);
+}
+
+/* Igual que .card: Bootstrap define --bs-table-bg en la propia .table. */
+.app-principal .table {
+  --bs-table-bg: #ffffff;
+  --bs-table-hover-bg: #efebe6;
 }
 
 .app-principal .table-light {
