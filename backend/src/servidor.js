@@ -10,6 +10,7 @@ const rutaDocumentos = require('./rutas/documentos');
 const rutaPostulaciones = require('./rutas/postulaciones');
 const rutaOfertas = require('./rutas/ofertas');
 const rutaAdmin = require('./rutas/admin');
+const rutaNotificaciones = require('./rutas/notificaciones');
 
 const app = express();
 const PUERTO = process.env.PORT || 3001;
@@ -44,6 +45,7 @@ app.use('/api/candidatos', rutaCandidatos);
 app.use('/api/solicitudes/:id/documentos', rutaDocumentos);
 app.use('/api/postulaciones', rutaPostulaciones);
 app.use('/api/ofertas', rutaOfertas);
+app.use('/api/notificaciones', rutaNotificaciones);
 app.use('/api/admin', rutaAdmin);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);

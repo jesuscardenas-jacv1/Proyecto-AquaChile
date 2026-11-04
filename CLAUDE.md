@@ -84,6 +84,7 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   formato de respuesta en `backend/src/bd/formatos.js`. La semilla es la misma del frontend (`src/datos/semillaBase.js`).
 - **Responsable de la solicitud = la psicóloga** (`profesionalResponsable`, catálogo `EVALUADORES`); quien la pide es el
   `reclutador`. La evaluadora ve por defecto en Solicitudes las asignadas a ella y las aún sin asignar.
+- **Notificaciones:** campana del menú (`CampanaNotificaciones`, tabla `notificaciones`): postulación nueva → analistas; solicitud nueva → psicóloga responsable o, sin asignar, todas; asignación → la psicóloga asignada. Solo con servidor.
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
   descriptor, informe PDF (con competencias) y pauta de entrevista (confidencial: solo la ve la psicóloga). Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.

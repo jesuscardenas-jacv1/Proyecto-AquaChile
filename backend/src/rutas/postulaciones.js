@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearPostulacion } = require('../bd/formatos');
+const { notificarRol } = require('../bd/notificaciones');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const {
   ErrorAlmacenamiento,
@@ -90,6 +91,12 @@ router.post('/', limitePostular, (req, res) => {
       )
       .run(oferta.id, candidatoId, new Date().toISOString().slice(0, 10), texto(datos.ciudad), texto(datos.cvNombre));
     db.exec('COMMIT;');
+
+    notificarRol('analista', {
+      tipo: 'postulacion',
+      mensaje: `Nueva postulación: ${texto(datos.nombre)} a ${oferta.titulo}`,
+      enlace: '/postulaciones',
+    });
 
     res.status(201).json({ ok: true, mensaje: 'Postulación recibida.', postulacion: { id: Number(lastInsertRowid) } });
   } catch (excepcion) {

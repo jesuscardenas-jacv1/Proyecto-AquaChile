@@ -452,4 +452,73 @@ describe('API integrada (Hito 2)', () => {
     });
     assert.equal(conNueva.status, 200);
   });
+
+  it('avisa a analistas y psicólogas, y cada usuario ve y marca solo sus notificaciones', async () => {
+    const pedirComo = async (id, rol, ruta, metodo = 'GET') => {
+      const respuesta = await fetch(`${base}${ruta}`, {
+        method: metodo,
+        headers: { Authorization: `Bearer ${jwt.sign({ id, nombre: 'Prueba', rol }, JWT_SECRETO)}` },
+      });
+      return { status: respuesta.status, datos: await respuesta.json() };
+    };
+    const ANALISTA = 1;
+    const PSICOLOGA = 2;
+    assert.equal((await pedir('/notificaciones')).status, 401);
+    await pedirComo(ANALISTA, 'analista', '/notificaciones/leidas', 'POST');
+    await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones/leidas', 'POST');
+
+    // Postulación pública → analistas, no psicólogas.
+    const postulacion = await pedir('/postulaciones', {
+      metodo: 'POST',
+      cuerpo: {
+        ofertaId: 1,
+        nombre: 'Rocío Aguilar Mena',
+        correo: 'rocio.aguilar@correo.cl',
+        telefono: '+56933334444',
+        ciudad: 'Osorno',
+        origen: 'Externo',
+        consentimiento: true,
+      },
+    });
+    assert.equal(postulacion.status, 201);
+    const delAnalista = await pedirComo(ANALISTA, 'analista', '/notificaciones');
+    assert.equal(delAnalista.datos.noLeidas, 1);
+    assert.match(delAnalista.datos.notificaciones[0].mensaje, /Nueva postulación: Rocío Aguilar Mena/);
+    assert.equal(delAnalista.datos.notificaciones[0].enlace, '/postulaciones');
+    assert.equal((await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones')).datos.noLeidas, 0);
+
+    // Solicitud sin responsable → psicólogas.
+    const solicitud = await pedir('/solicitudes', {
+      rol: 'analista',
+      metodo: 'POST',
+      cuerpo: { candidatoId: 1, cargo: 'Cargo de aviso', familiaCargo: 'Técnico A' },
+    });
+    const id = solicitud.datos.solicitud.id;
+    const dePsicologa = await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones');
+    assert.equal(dePsicologa.datos.noLeidas, 1);
+    assert.match(dePsicologa.datos.notificaciones[0].mensaje, new RegExp(`Nueva solicitud #${id} .* Cargo de aviso`));
+    assert.equal(dePsicologa.datos.notificaciones[0].enlace, `/solicitudes/${id}`);
+
+    // Otro usuario no puede marcarla; su dueña sí.
+    const idAviso = dePsicologa.datos.notificaciones[0].id;
+    assert.equal((await pedirComo(ANALISTA, 'analista', `/notificaciones/${idAviso}/leida`, 'PATCH')).status, 404);
+    assert.equal((await pedirComo(PSICOLOGA, 'evaluador', `/notificaciones/${idAviso}/leida`, 'PATCH')).status, 200);
+    assert.equal((await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones')).datos.noLeidas, 0);
+
+    // Asignación → la psicóloga asignada; repetir la misma no vuelve a avisar.
+    const asignar = () =>
+      pedir(`/solicitudes/${id}/estado`, {
+        rol: 'analista',
+        metodo: 'PATCH',
+        cuerpo: { profesionalResponsable: 'Ignacia Valdés Ortiz' },
+      });
+    await asignar();
+    await asignar();
+    const asignadas = await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones');
+    assert.equal(asignadas.datos.noLeidas, 1);
+    assert.match(asignadas.datos.notificaciones[0].mensaje, /Te asignaron la solicitud/);
+
+    await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones/leidas', 'POST');
+    assert.equal((await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones')).datos.noLeidas, 0);
+  });
 });

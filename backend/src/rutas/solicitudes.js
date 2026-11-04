@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearCandidato, formatearEvaluacion, formatearSolicitud } = require('../bd/formatos');
+const { notificarPsicologa, notificarRol, resumenSolicitud } = require('../bd/notificaciones');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
 
@@ -192,6 +193,15 @@ router.post('/', autenticar, requerirRol('analista'), async (req, res, next) => 
     const id = Number(resultado.lastInsertRowid);
     const { carpeta, avisoCarpeta } = await crearCarpetaSolicitud(id);
 
+    // Con responsable, el aviso es para ella; sin responsable, para todas las psicólogas.
+    const aviso = {
+      tipo: 'solicitud',
+      mensaje: `Nueva solicitud ${resumenSolicitud(obtener(id))}`,
+      enlace: `/solicitudes/${id}`,
+    };
+    if (texto(profesionalResponsable)) notificarPsicologa(texto(profesionalResponsable), aviso);
+    else notificarRol('evaluador', aviso);
+
     res.status(201).json({
       ok: true,
       mensaje: 'Solicitud creada exitosamente.',
@@ -234,6 +244,14 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
      SET estado = ?, profesional_responsable = ?, actualizado_en = datetime('now')
      WHERE id = ?`,
   ).run(estado ?? actual.estado, responsable, id);
+
+  if (responsable && responsable !== actual.profesional_responsable) {
+    notificarPsicologa(responsable, {
+      tipo: 'asignacion',
+      mensaje: `Te asignaron la solicitud ${resumenSolicitud(obtener(id))}`,
+      enlace: `/solicitudes/${id}`,
+    });
+  }
 
   res.json({ ok: true, mensaje: 'Solicitud actualizada.', solicitud: formatearSolicitud(obtener(id)) });
 });

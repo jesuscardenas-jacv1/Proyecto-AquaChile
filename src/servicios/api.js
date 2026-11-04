@@ -115,6 +115,13 @@ export function cerrarSesionApi() {
   guardarToken(null);
 }
 
+/** Notificaciones del usuario con sesión. */
+export const apiNotificaciones = {
+  listar: () => solicitar('/notificaciones'),
+  marcarLeida: (id) => solicitar(`/notificaciones/${id}/leida`, { metodo: 'PATCH' }),
+  marcarTodas: () => solicitar('/notificaciones/leidas', { metodo: 'POST' }),
+};
+
 /** Perfil del usuario con sesión: su foto y su contraseña. */
 export const apiPerfil = {
   guardarFoto: async (foto) => (await solicitar('/auth/perfil/foto', { metodo: 'PUT', cuerpo: { foto } })).foto,
