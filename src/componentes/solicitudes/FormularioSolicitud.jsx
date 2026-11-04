@@ -76,7 +76,7 @@ function GrupoOpciones({
   );
 }
 
-/** Campo para adjuntar un archivo; en el MVP solo se registra el nombre del archivo. */
+/** Campo para adjuntar un archivo: el nombre va en la solicitud y el archivo, a su carpeta. */
 function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error }) {
   return (
     <div>
@@ -152,6 +152,8 @@ export default function FormularioSolicitud({
   }));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
+  // Los archivos elegidos: la página los sube a la carpeta al crear la solicitud.
+  const [adjuntos, setAdjuntos] = useState({});
 
   const candidatoRegistrado = candidatos.find(
     (candidato) => String(candidato.id) === String(formulario.candidatoId),
@@ -222,7 +224,13 @@ export default function FormularioSolicitud({
       evento.target.value = '';
       return;
     }
+    setAdjuntos((actual) => ({ ...actual, [campo]: archivo }));
     actualizar({ [campo]: archivo.name });
+  };
+
+  const quitarAdjunto = (campo) => {
+    setAdjuntos(({ [campo]: _quitado, ...resto }) => resto);
+    actualizar({ [campo]: '' });
   };
 
   const manejarEnvio = (evento) => {
@@ -245,6 +253,10 @@ export default function FormularioSolicitud({
       tipoEvaluacion: datos.origen === 'Interno' ? 'interna' : 'externa',
       descriptorCargo: descriptorAutomatico || descriptorAdjunto,
       observaciones: datos.observaciones.trim(),
+      archivos: {
+        ...(adjuntos.cv ? { cv: adjuntos.cv } : {}),
+        ...(!descriptorAutomatico && adjuntos.descriptorAdjunto ? { descriptor: adjuntos.descriptorAdjunto } : {}),
+      },
     });
   };
 
@@ -546,7 +558,7 @@ export default function FormularioSolicitud({
                   etiqueta="Adjuntar CV"
                   archivo={formulario.cv}
                   alSeleccionar={seleccionarArchivo('cv')}
-                  alQuitar={() => actualizar({ cv: '' })}
+                  alQuitar={() => quitarAdjunto('cv')}
                   error={errorDe('cv')}
                 />
               )}
@@ -568,7 +580,7 @@ export default function FormularioSolicitud({
                   etiqueta="Adjuntar descriptor de cargo"
                   archivo={formulario.descriptorAdjunto}
                   alSeleccionar={seleccionarArchivo('descriptorAdjunto')}
-                  alQuitar={() => actualizar({ descriptorAdjunto: '' })}
+                  alQuitar={() => quitarAdjunto('descriptorAdjunto')}
                   error={errorDe('descriptorAdjunto')}
                 />
               )}

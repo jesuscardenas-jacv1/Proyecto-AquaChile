@@ -1,20 +1,23 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import NuevaSolicitud from './NuevaSolicitud';
 import Solicitudes from './Solicitudes';
 import { ProveedorDatos, useDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
+import { apiDocumentos } from '../servicios/apiDocumentos';
 import { datosDePrueba, datosVacios } from '../pruebas/utilidades';
 
 const DetalleFalso = () => {
   const { id } = useParams();
   const { obtenerSolicitud, obtenerCandidato } = useDatos();
   const candidato = obtenerCandidato(obtenerSolicitud(id)?.candidatoId);
+  const { state } = useLocation();
   return (
     <>
       <h1>Detalle de solicitud #{id}</h1>
+      <p>{state?.mensaje}</p>
       <p>Candidato: {candidato?.nombre}</p>
     </>
   );
@@ -89,6 +92,41 @@ describe('NuevaSolicitud', () => {
 
     expect(screen.getByRole('heading', { name: /detalle de solicitud #4/i })).toBeInTheDocument();
     expect(screen.getByText('Candidato: María González')).toBeInTheDocument();
+  });
+
+  describe('adjuntos del formulario', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    const completarConCv = async (usuario) => {
+      await completarSolicitud(usuario, 'María González');
+      await elegir(usuario, /origen/i, 'Interno');
+      await usuario.upload(screen.getByLabelText('Adjuntar CV'), new File(['cv'], 'cv-maria.pdf', { type: 'application/pdf' }));
+      await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+    };
+
+    it('sube a la carpeta el archivo elegido, no solo su nombre', async () => {
+      vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+      const subir = vi.spyOn(apiDocumentos, 'subir').mockResolvedValue({ ok: true });
+      const usuario = userEvent.setup();
+      renderNueva(datosDePrueba, administrador);
+      await completarConCv(usuario);
+
+      expect(await screen.findByText(/solicitud enviada/i)).toBeInTheDocument();
+      expect(subir).toHaveBeenCalledTimes(1);
+      const [, { categoria, archivo, nombreCandidato }] = subir.mock.calls[0];
+      expect(categoria).toBe('cv');
+      expect(archivo.name).toBe('cv-maria.pdf');
+      expect(nombreCandidato).toBe('María González');
+    });
+
+    it('si la subida falla la solicitud queda creada y lo avisa', async () => {
+      vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+      vi.spyOn(apiDocumentos, 'subir').mockRejectedValue(new Error('Sin conexión'));
+      const usuario = userEvent.setup();
+      renderNueva(datosDePrueba, administrador);
+      await completarConCv(usuario);
+      expect(await screen.findByText(/vuelve a subirlo en documentos/i)).toBeInTheDocument();
+    });
   });
 
   it('registra al candidato nuevo junto con la solicitud', async () => {

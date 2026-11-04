@@ -453,6 +453,29 @@ describe('API integrada (Hito 2)', () => {
     assert.equal(conNueva.status, 200);
   });
 
+  it('un documento que sube el analista lo ven y abren la psicóloga y la jefatura', async () => {
+    const contenido = Buffer.from('%PDF-1.4 CV subido por la analista');
+    const subida = await fetch(`${base}/solicitudes/103/documentos?categoria=cv&nombre=cv-prueba.pdf`, {
+      method: 'POST',
+      headers: { Authorization: cabeceras('analista').Authorization, 'Content-Type': 'application/pdf' },
+      body: contenido,
+    });
+    assert.equal(subida.status, 201);
+
+    for (const rol of ['evaluador', 'jefatura']) {
+      const { datos } = await pedir('/solicitudes/103/documentos', { rol });
+      const archivo = datos.archivos.find((item) => item.categoria === 'cv');
+      assert.equal(archivo.nombre, 'CV - cv-prueba.pdf');
+      assert.equal(archivo.puedeEliminar, false);
+      const abierto = await fetch(`${base}/solicitudes/103/documentos/${encodeURIComponent(archivo.id)}/contenido`, {
+        headers: { Authorization: cabeceras(rol).Authorization },
+      });
+      assert.equal(abierto.status, 200);
+      assert.equal(abierto.headers.get('content-type'), 'application/pdf');
+      assert.deepEqual(Buffer.from(await abierto.arrayBuffer()), contenido);
+    }
+  });
+
   it('avisa a analistas y psicólogas, y cada usuario ve y marca solo sus notificaciones', async () => {
     const pedirComo = async (id, rol, ruta, metodo = 'GET') => {
       const respuesta = await fetch(`${base}${ruta}`, {

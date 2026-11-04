@@ -43,7 +43,7 @@ export default function NuevaSolicitud() {
       }
     : {};
 
-  const guardar = async ({ nombreCandidato, correo, telefono, ...datos }) => {
+  const guardar = async ({ nombreCandidato, correo, telefono, archivos = {}, ...datos }) => {
     const candidatoId =
       datos.candidatoId ||
       (
@@ -65,6 +65,21 @@ export default function NuevaSolicitud() {
       ? 'Solicitud enviada correctamente. Queda pendiente de agendar la entrevista.'
       : 'Solicitud enviada y candidato/a registrado/a correctamente.';
 
+    // Los adjuntos del formulario se guardan en la carpeta de la solicitud.
+    let tipoMensaje = 'success';
+    const adjuntos = Object.entries(archivos);
+    if (adjuntos.length > 0 && apiDocumentos.conectado()) {
+      const resultados = await Promise.allSettled(
+        adjuntos.map(([categoria, archivo]) =>
+          apiDocumentos.subir(solicitud.id, { categoria, archivo, nombreCandidato }),
+        ),
+      );
+      if (resultados.some((resultado) => resultado.status === 'rejected')) {
+        tipoMensaje = 'warning';
+        mensaje += ' No se pudo guardar algún documento adjunto: vuelve a subirlo en Documentos.';
+      }
+    }
+
     if (postulacionPendiente) {
       await actualizarPostulacion(postulacionPendiente.id, { estado: 'En evaluación', solicitudId: solicitud.id });
       mensaje = 'El postulante pasó a evaluación y la solicitud quedó pendiente de agendar.';
@@ -78,7 +93,7 @@ export default function NuevaSolicitud() {
       }
     }
 
-    navegar(`/solicitudes/${solicitud.id}`, { state: { mensaje, tipo: 'success' } });
+    navegar(`/solicitudes/${solicitud.id}`, { state: { mensaje, tipo: tipoMensaje } });
   };
 
   return (
