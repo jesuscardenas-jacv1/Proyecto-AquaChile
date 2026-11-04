@@ -138,6 +138,7 @@ router.delete('/usuarios/:id', ...soloAdmin, (req, res) => {
   }
 
   db.prepare('DELETE FROM fotos_usuario WHERE usuario_id = ?').run(id);
+  db.prepare('DELETE FROM notificaciones WHERE usuario_id = ?').run(id);
   db.prepare('DELETE FROM usuarios WHERE id = ?').run(id);
   res.json({ ok: true, mensaje: 'Usuario eliminado.' });
 });

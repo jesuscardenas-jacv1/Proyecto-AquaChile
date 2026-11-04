@@ -4,6 +4,7 @@ import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
 import { ROLES } from '../../datos/usuarios';
 import { obtenerToken } from '../../servicios/api';
+import CampanaNotificaciones from './CampanaNotificaciones';
 import AvatarUsuario from '../perfil/AvatarUsuario';
 import VentanaPerfil from '../perfil/VentanaPerfil';
 
@@ -69,16 +70,19 @@ export default function Navbar() {
           <small className="barra-modulo">Gestión Psicolaboral</small>
         </NavLink>
 
-        <button
-          className="btn btn-outline-light border-0 barra-toggler d-lg-none"
-          type="button"
-          aria-label="Alternar navegación"
-          aria-expanded={abierto}
-          aria-controls="menu-principal"
-          onClick={() => setAbierto((valor) => !valor)}
-        >
-          <i className={`bi ${abierto ? 'bi-x-lg' : 'bi-list'} fs-5`} aria-hidden="true" />
-        </button>
+        <div className="d-flex align-items-center gap-1">
+          {usuarioActual ? <CampanaNotificaciones /> : null}
+          <button
+            className="btn btn-outline-light border-0 barra-toggler d-lg-none"
+            type="button"
+            aria-label="Alternar navegación"
+            aria-expanded={abierto}
+            aria-controls="menu-principal"
+            onClick={() => setAbierto((valor) => !valor)}
+          >
+            <i className={`bi ${abierto ? 'bi-x-lg' : 'bi-list'} fs-5`} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <div id="menu-principal" className={`collapse d-lg-block ${abierto ? 'show' : ''}`.trim()}>

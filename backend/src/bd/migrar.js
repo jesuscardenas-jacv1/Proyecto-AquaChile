@@ -186,6 +186,20 @@ function migrar() {
       actualizado_en TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Avisos por usuario; como las fotos, sin FK porque la tabla usuarios puede recrearse.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      tipo       TEXT    NOT NULL,
+      mensaje    TEXT    NOT NULL,
+      enlace     TEXT    NOT NULL DEFAULT '',
+      leida      INTEGER NOT NULL DEFAULT 0,
+      creado_en  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones (usuario_id, leida);
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

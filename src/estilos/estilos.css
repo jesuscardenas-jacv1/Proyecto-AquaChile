@@ -992,6 +992,36 @@ h1, h2, h3, h4, h5, h6,
   color: var(--austral-texto);
 }
 
+.barra-campana {
+  color: var(--austral-texto);
+  flex: 0 0 auto;
+}
+
+.barra-campana-contador {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  font-size: 0.625rem;
+  padding: 0.2em 0.45em;
+}
+
+.notificacion-item {
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--austral-borde);
+  background: transparent;
+  color: inherit;
+}
+
+.notificacion-item:hover,
+.notificacion-item:focus-visible {
+  background-color: var(--austral-elevada);
+}
+
+.notificacion-nueva {
+  border-left: 3px solid var(--bs-primary);
+}
+
 .barra-titulo {
   color: var(--austral-texto-suave);
   font-size: 11px;
@@ -1152,8 +1182,22 @@ h1, h2, h3, h4, h5, h6,
   }
 
   /* Contraída: el logo completo no cabe, se muestra solo su ícono (la parte derecha). */
+  /* La etiqueta del módulo va bajo el logo: deja espacio a la campana de notificaciones. */
+  .barra-cabecera > a {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.25rem !important;
+    min-width: 0;
+  }
+
   .barra-colapsada .barra-cabecera {
+    flex-direction: column;
+    gap: 0.5rem;
     justify-content: center !important;
+  }
+
+  .barra-colapsada .barra-cabecera > a {
+    align-items: center !important;
   }
 
   .barra-colapsada .barra-modulo {
