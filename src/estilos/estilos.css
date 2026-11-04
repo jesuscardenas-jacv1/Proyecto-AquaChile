@@ -1367,9 +1367,10 @@ h1, h2, h3, h4, h5, h6,
   border-radius: 3px;
 }
 
-/* Contenido principal con fondo claro (blanco cálido). La barra lateral y el pie
-   se mantienen oscuros para enmarcar la pantalla. Redefine los tokens solo aquí. */
-.app-principal {
+/* Contenido principal y ventanas emergentes con fondo claro (blanco cálido). La barra
+   lateral y el pie se mantienen oscuros para enmarcar la pantalla. Redefine los tokens solo aquí. */
+.app-principal,
+.modal {
   --austral-fondo: #edeae5;
   --austral-superficie: #e9e5df;
   --austral-tarjeta: #ffffff;
@@ -1428,8 +1429,78 @@ h1, h2, h3, h4, h5, h6,
   --bs-pagination-disabled-color: #9aa4ac;
   --bs-breadcrumb-item-active-color: var(--austral-texto-suave);
 
-  background-color: var(--austral-fondo);
   color: var(--austral-texto);
+}
+
+.app-principal {
+  background-color: var(--austral-fondo);
+}
+
+/* Ventanas emergentes: blancas con cabecera de marca (como el informe) y la página difuminada detrás. */
+.modal {
+  --bs-modal-bg: #ffffff;
+  --bs-modal-color: var(--austral-texto);
+  --bs-modal-border-color: transparent;
+  --bs-modal-header-border-color: transparent;
+  --bs-modal-footer-border-color: var(--austral-borde);
+  --bs-modal-border-radius: 10px;
+  --bs-modal-inner-border-radius: 10px;
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+.modal-backdrop {
+  --bs-backdrop-bg: #08151d;
+  --bs-backdrop-opacity: 0.5;
+}
+
+.modal .modal-content {
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(14, 26, 34, 0.3) !important;
+}
+
+.modal .modal-header {
+  background-color: var(--austral-pizarra);
+  color: #ffffff;
+}
+
+.modal .modal-header h2 {
+  color: #ffffff;
+}
+
+.modal .modal-header .text-secondary {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.modal .modal-header .btn-close {
+  filter: invert(1) grayscale(1) brightness(2);
+  opacity: 0.9;
+}
+
+.modal .modal-header .btn-outline-primary {
+  --bs-btn-color: #ffffff;
+  --bs-btn-border-color: rgba(255, 255, 255, 0.6);
+  --bs-btn-hover-color: var(--austral-titulo);
+  --bs-btn-hover-bg: #ffffff;
+  --bs-btn-hover-border-color: #ffffff;
+  background-color: transparent;
+}
+
+.modal .modal-header .btn-outline-primary:hover {
+  background-color: #ffffff;
+}
+
+.modal .modal-footer {
+  background-color: var(--austral-elevada);
+}
+
+.modal .list-group {
+  --bs-list-group-bg: #ffffff;
+  --bs-list-group-color: var(--austral-texto);
+  --bs-list-group-border-color: var(--austral-borde);
+  --bs-list-group-action-color: var(--austral-texto);
+  --bs-list-group-action-hover-bg: var(--austral-elevada);
+  --bs-list-group-action-hover-color: var(--austral-texto);
 }
 
 /* Bootstrap define --bs-card-bg en la propia .card (con el color del fondo), así que hay que
@@ -1447,7 +1518,9 @@ h1, h2, h3, h4, h5, h6,
 
 .app-principal .btn-outline-primary,
 .app-principal .btn-outline-secondary,
-.app-principal .btn-outline-light {
+.app-principal .btn-outline-light,
+.modal .btn-outline-primary,
+.modal .btn-outline-secondary {
   background-color: #ffffff;
   --bs-btn-color: var(--austral-texto);
 }
