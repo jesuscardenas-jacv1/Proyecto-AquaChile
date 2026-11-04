@@ -3,10 +3,17 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { tiempoTranscurrido } from '../../dominio/formateo';
 import { apiNotificaciones, obtenerToken } from '../../servicios/api';
+import { suscribirTiempoReal } from '../../servicios/tiempoReal';
 
 const SELECTOR_ENFOCABLES =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-const ICONOS = { postulacion: 'bi-person-lines-fill', solicitud: 'bi-clipboard-plus', asignacion: 'bi-person-check' };
+const ICONOS = {
+  postulacion: 'bi-person-lines-fill',
+  candidato: 'bi-person-plus',
+  solicitud: 'bi-clipboard-plus',
+  asignacion: 'bi-person-check',
+};
+const SEGUNDOS_AVISO = 6000;
 
 /** Ventana con las notificaciones; se cierra con Cerrar, Escape o un clic fuera. */
 function VentanaNotificaciones({ notificaciones, noLeidas, alAbrir, alMarcarTodas, alCerrar }) {
@@ -131,6 +138,7 @@ export default function CampanaNotificaciones({ api = apiNotificaciones, interva
   const navegar = useNavigate();
   const [abierta, setAbierta] = useState(false);
   const [datos, setDatos] = useState({ noLeidas: 0, notificaciones: [] });
+  const [avisoNuevo, setAvisoNuevo] = useState(null);
   const conServidor = Boolean(obtenerToken());
 
   const cargar = useCallback(async () => {
@@ -146,6 +154,26 @@ export default function CampanaNotificaciones({ api = apiNotificaciones, interva
   useEffect(() => {
     cargar();
   }, [cargar, pathname]);
+
+  // Aviso en tiempo real: se suma a la campana y se muestra un momento en pantalla.
+  useEffect(
+    () =>
+      suscribirTiempoReal('notificacion', (aviso) => {
+        setDatos((actual) => ({
+          noLeidas: actual.noLeidas + 1,
+          notificaciones: [aviso, ...actual.notificaciones.filter((n) => n.id !== aviso.id)].slice(0, 30),
+        }));
+        setAvisoNuevo(aviso);
+        cargar();
+      }),
+    [cargar],
+  );
+
+  useEffect(() => {
+    if (!avisoNuevo) return undefined;
+    const temporizador = setTimeout(() => setAvisoNuevo(null), SEGUNDOS_AVISO);
+    return () => clearTimeout(temporizador);
+  }, [avisoNuevo]);
 
   useEffect(() => {
     const siVisible = () => {
@@ -188,6 +216,25 @@ export default function CampanaNotificaciones({ api = apiNotificaciones, interva
 
   return (
     <>
+      {avisoNuevo ? (
+        <div className="aviso-tiempo-real" role="status" aria-live="polite">
+          <i className={`bi ${ICONOS[avisoNuevo.tipo] ?? 'bi-bell'}`} aria-hidden="true" />
+          <span className="flex-grow-1">{avisoNuevo.mensaje}</span>
+          {avisoNuevo.enlace ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-acento"
+              onClick={() => {
+                navegar(avisoNuevo.enlace);
+                setAvisoNuevo(null);
+              }}
+            >
+              Ver
+            </button>
+          ) : null}
+          <button type="button" className="btn-close btn-close-white" aria-label="Cerrar aviso" onClick={() => setAvisoNuevo(null)} />
+        </div>
+      ) : null}
       <button
         type="button"
         className="btn btn-outline-light border-0 barra-campana position-relative"

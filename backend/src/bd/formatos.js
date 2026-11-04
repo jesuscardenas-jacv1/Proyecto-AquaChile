@@ -26,6 +26,7 @@ function formatearSolicitud(s) {
     fechaSolicitud: s.fecha_solicitud,
     estado: s.estado,
     etapa: s.etapa ?? '',
+    etapaCambiadaEn: s.etapa_cambiada_en ?? '',
     reclutador: s.reclutador ?? '',
     profesionalResponsable: s.profesional_responsable,
     observaciones: s.observaciones,

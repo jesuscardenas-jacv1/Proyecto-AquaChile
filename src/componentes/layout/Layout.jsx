@@ -5,6 +5,7 @@ import Navbar from './Navbar';
 import PiePagina from './PiePagina';
 import EstadoServidor from '../comunes/EstadoServidor';
 import ScrollAlInicio from './ScrollAlInicio';
+import { moduloDeRuta } from '../../dominio/modulos';
 
 /** Estructura general: barra lateral, contenido principal y pie de página. */
 export default function Layout() {
@@ -17,7 +18,7 @@ export default function Layout() {
   }, [pathname, refrescar]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-modulo={moduloDeRuta(pathname)}>
       <ScrollAlInicio />
       <Navbar />
       <div className="app-contenido">

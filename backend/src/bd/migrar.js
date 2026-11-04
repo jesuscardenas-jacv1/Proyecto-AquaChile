@@ -167,6 +167,8 @@ function migrar() {
   agregarColumna('solicitudes', 'fecha_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'hora_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'modalidad_entrevista', "TEXT NOT NULL DEFAULT ''");
+  // Cuándo cambió por última vez de etapa en el Planner (la entrevista realizada más reciente va primero).
+  agregarColumna('solicitudes', 'etapa_cambiada_en', "TEXT NOT NULL DEFAULT ''");
   // Evaluación por competencias (lista JSON: competencia, nivel, fortalezas, oportunidades).
   agregarColumna('evaluaciones', 'competencias', "TEXT NOT NULL DEFAULT '[]'");
   // Cierre sin evaluación (el candidato no se presentó, desistió, etc.).

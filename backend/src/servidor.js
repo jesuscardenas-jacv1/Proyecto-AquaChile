@@ -11,6 +11,8 @@ const rutaPostulaciones = require('./rutas/postulaciones');
 const rutaOfertas = require('./rutas/ofertas');
 const rutaAdmin = require('./rutas/admin');
 const rutaNotificaciones = require('./rutas/notificaciones');
+const rutaEventos = require('./rutas/eventos');
+const { emitir } = require('./tiempoReal');
 
 const app = express();
 const PUERTO = process.env.PORT || 3001;
@@ -27,6 +29,19 @@ const origenes = (process.env.CORS_ORIGENES || '')
   .filter(Boolean);
 app.use(cors(origenes.length ? { origin: origenes } : undefined));
 app.use(express.json());
+
+// Tras cada cambio exitoso, las pantallas abiertas vuelven a traer sus datos al instante.
+// Se excluyen las lecturas de avisos y de sesión, que no cambian la información del proceso.
+const RUTAS_SIN_AVISO = ['/api/notificaciones', '/api/auth'];
+app.use('/api', (req, res, next) => {
+  const escribe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+  if (escribe && !RUTAS_SIN_AVISO.some((ruta) => req.originalUrl.startsWith(ruta))) {
+    res.on('finish', () => {
+      if (res.statusCode < 400) emitir('datos', { ruta: req.originalUrl });
+    });
+  }
+  next();
+});
 
 // 2. Ruta de comprobación de salud (Healthcheck)
 app.get('/api/salud', (req, res) => {
@@ -46,6 +61,7 @@ app.use('/api/solicitudes/:id/documentos', rutaDocumentos);
 app.use('/api/postulaciones', rutaPostulaciones);
 app.use('/api/ofertas', rutaOfertas);
 app.use('/api/notificaciones', rutaNotificaciones);
+app.use('/api/eventos', rutaEventos);
 app.use('/api/admin', rutaAdmin);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);

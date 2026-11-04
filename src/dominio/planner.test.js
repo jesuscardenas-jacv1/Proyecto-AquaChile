@@ -96,6 +96,16 @@ describe('agruparPorEtapa', () => {
     expect(grupos.informe.map((s) => s.id)).toEqual([6, 7]);
   });
 
+  it('en realizadas, la entrevista finalizada más recientemente va primero', () => {
+    const conRealizadas = [
+      { id: 10, estado: 'En proceso', etapa: 'realizada', fechaEntrevista: '2026-10-20', horaEntrevista: '09:00', etapaCambiadaEn: '2026-10-21 10:00:00' },
+      { id: 11, estado: 'En proceso', etapa: 'realizada', fechaEntrevista: '2026-10-22', horaEntrevista: '09:00', etapaCambiadaEn: '2026-10-22 16:30:00' },
+      { id: 12, estado: 'En proceso', etapa: 'realizada', fechaEntrevista: '2026-10-19', horaEntrevista: '09:00', etapaCambiadaEn: '2026-10-19 11:00:00' },
+    ];
+    const grupos = agruparPorEtapa(conRealizadas, []);
+    expect(grupos.realizada.map((s) => s.id)).toEqual([11, 10, 12]);
+  });
+
   it('devuelve columnas vacías sin datos', () => {
     expect(agruparPorEtapa()).toEqual({ recibida: [], agendada: [], realizada: [], informe: [], cerrada: [] });
   });

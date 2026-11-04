@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { COLECCIONES, cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
+import { detenerTiempoReal, iniciarTiempoReal, suscribirTiempoReal } from '../servicios/tiempoReal';
 import { ESTADOS_EVALUACION } from './constantes';
 import { useAuth } from './AuthContext';
 import { estadoSolicitudDesdeEvaluacion } from '../dominio/indicadores';
@@ -145,6 +146,25 @@ export function ProveedorDatos({
       refrescoEnCurso.current = false;
     }
   }, [modo, idUsuario, rol, api, cerrarSesion]);
+
+  // Cambios al instante: cuando el servidor avisa que hubo un cambio, se vuelven a traer los datos.
+  useEffect(() => {
+    if (modo !== 'api' || !idUsuario) return undefined;
+    iniciarTiempoReal();
+    let espera = null;
+    const quitar = suscribirTiempoReal('datos', () => {
+      clearTimeout(espera);
+      espera = setTimeout(refrescar, 250);
+    });
+    return () => {
+      quitar();
+      clearTimeout(espera);
+    };
+  }, [modo, idUsuario, refrescar]);
+
+  useEffect(() => {
+    if (!idUsuario) detenerTiempoReal();
+  }, [idUsuario]);
 
   // Refresco cada cierto tiempo (con la pestaña visible) y al volver a la pestaña o ventana.
   useEffect(() => {
@@ -359,7 +379,9 @@ export function ProveedorDatos({
                 ...(agenda.horaEntrevista ? { horaEntrevista: agenda.horaEntrevista } : {}),
                 ...(agenda.modalidadEntrevista ? { modalidadEntrevista: agenda.modalidadEntrevista } : {}),
               };
-        return { ...solicitud, ...datosAgenda, etapa, estado: estadoDeEtapa(etapa) };
+        const ahora = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        const cambioEtapa = solicitud.etapa !== etapa ? { etapaCambiadaEn: ahora } : {};
+        return { ...solicitud, ...datosAgenda, ...cambioEtapa, etapa, estado: estadoDeEtapa(etapa) };
       });
     },
     [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
