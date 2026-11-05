@@ -1560,7 +1560,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* Con el aviso de conexión arriba, la banda parte debajo para no taparlo. */
-.portal-contenido > :not(:first-child) .portal-hero::before {
+.portal-contenido > :not(:empty) + * .portal-hero::before {
   top: 0;
 }
 
