@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import Planner from './Planner';
 import { ProveedorDatos } from '../datos/DatosContext';
@@ -25,6 +25,15 @@ const renderPlanner = (usuario = EVALUADORA) =>
       </ProveedorAuth>
     </MemoryRouter>,
   );
+
+// Hoy es 5 de noviembre de 2026: las fechas de la agenda empiezan desde ese día.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 10, 5, 12, 0, 0));
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 const elegirOpcion = (usuario, lista, texto) =>
   usuario.click(within(lista).getByRole('option', { name: texto }));
@@ -54,7 +63,8 @@ describe('Planner', () => {
     expect(within(ventana).getByText('Debe indicar la hora de la entrevista.')).toBeInTheDocument();
 
     await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Año' }), '2026');
-    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Mes' }), 'Octubre');
+    const meses = within(ventana).getByRole('listbox', { name: 'Mes' });
+    await usuario.click(within(meses).getAllByRole('option', { name: 'Diciembre' })[0]);
     await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Día' }), '20');
     await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Hora' }), '10');
     await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Minuto' }), '30');
@@ -64,7 +74,7 @@ describe('Planner', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     const agendada = columna('Entrevista Agendada');
     expect(within(agendada).getByText('María González')).toBeInTheDocument();
-    expect(within(agendada).getByText(/entrevista coordinada para 20\/10 a las 10:30/i)).toBeInTheDocument();
+    expect(within(agendada).getByText(/entrevista coordinada para 20\/12 a las 10:30/i)).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(/entrevista agendada: maría gonzález/i);
   });
 
