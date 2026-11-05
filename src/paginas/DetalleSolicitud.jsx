@@ -4,6 +4,8 @@ import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { formatearFecha } from '../dominio/formateo';
 import { etapaDeSolicitud } from '../dominio/planner';
+import { resolverDescriptor } from '../datos/catalogos';
+import { normalizar } from '../dominio/texto';
 import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
@@ -25,6 +27,8 @@ export default function DetalleSolicitud() {
     editarSolicitud,
     asignarProfesional,
     registrarEvaluacion,
+    cargos,
+    registrarCargo,
   } = useDatos();
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [avisoInforme, setAvisoInforme] = useState(null);
@@ -93,12 +97,57 @@ export default function DetalleSolicitud() {
     }
   };
 
-  const guardarEdicion = async (cambios) => {
-    const actualizada = await editarSolicitud(solicitud.id, cambios);
-    if (actualizada) {
-      setEditando(false);
-      setAvisoEdicion('Datos de la solicitud actualizados.');
+  /**
+   * Deja en la carpeta el descriptor del cargo nuevo. El backend quita el anterior y copia el
+   * guardado; el analista además sube el del catálogo o el adjuntado, como al crear la solicitud.
+   */
+  const actualizarDescriptor = async (cambios, archivoDescriptor) => {
+    const nombreCandidato = candidato?.nombre;
+    const descriptor = resolverDescriptor({ cargo: cambios.cargo, cargosGuardados: cargos });
+    if (archivoDescriptor && !apiDocumentos.conectado()) {
+      registrarCargo({
+        nombre: cambios.cargo,
+        familiaCargo: cambios.familiaCargo,
+        descriptorNombre: archivoDescriptor.name,
+      });
     }
+    if (!apiDocumentos.conectado()) return;
+
+    await apiDocumentos.sincronizarDescriptor(solicitud.id, nombreCandidato);
+    if (!esAnalista) return;
+    if (descriptor.origen === 'catalogo') {
+      const archivo = await apiDocumentos.archivoDescriptorCatalogo(descriptor.nombre);
+      await apiDocumentos.subir(solicitud.id, { categoria: 'descriptor', archivo, nombreCandidato });
+    } else if (archivoDescriptor) {
+      await apiDocumentos.subir(solicitud.id, { categoria: 'descriptor', archivo: archivoDescriptor, nombreCandidato });
+      registrarCargo(
+        await apiDocumentos.subirDescriptorCargo({
+          cargo: cambios.cargo,
+          familiaCargo: cambios.familiaCargo,
+          archivo: archivoDescriptor,
+        }),
+      );
+    }
+  };
+
+  const guardarEdicion = async (cambios, archivoDescriptor) => {
+    const cambioCargo = normalizar(cambios.cargo) !== normalizar(solicitud.cargo ?? '');
+    const actualizada = await editarSolicitud(solicitud.id, cambios);
+    if (!actualizada) return;
+    setEditando(false);
+    let aviso = { tipo: 'success', texto: 'Datos de la solicitud actualizados.' };
+    if (cambioCargo) {
+      try {
+        await actualizarDescriptor(cambios, archivoDescriptor);
+      } catch {
+        aviso = {
+          tipo: 'warning',
+          texto: 'Datos actualizados, pero no se pudo actualizar el descriptor en la carpeta: revísalo en Documentos.',
+        };
+      }
+      setVersionDocumentos((version) => version + 1);
+    }
+    setAvisoEdicion(aviso);
   };
 
   const datosSolicitud = [
@@ -223,14 +272,16 @@ export default function DetalleSolicitud() {
         </div>
         <div className="card-body">
           {avisoEdicion ? (
-            <Mensaje tipo="success" alCerrar={() => setAvisoEdicion(null)}>
-              {avisoEdicion}
+            <Mensaje tipo={avisoEdicion.tipo} alCerrar={() => setAvisoEdicion(null)}>
+              {avisoEdicion.texto}
             </Mensaje>
           ) : null}
           {editando ? (
             <FormularioEdicionSolicitud
               solicitud={solicitud}
               origenCandidato={candidato?.origen}
+              cargosGuardados={cargos}
+              puedeSubirDescriptor={esAnalista}
               alGuardar={guardarEdicion}
               alCancelar={() => setEditando(false)}
             />

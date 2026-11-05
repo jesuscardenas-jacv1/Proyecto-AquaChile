@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
-const { autenticar, puedeVerNotasClinicas } = require('../middlewares/auth');
+const { autenticar, puedeVerNotasClinicas, requerirRol } = require('../middlewares/auth');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const {
   CATEGORIAS,
@@ -10,6 +10,7 @@ const {
   claveCarpetaPostulacion,
   claveCarpetaOferta,
   claveCarpetaCargo,
+  claveDeCargo,
   categoriaDeArchivo,
   nombreArchivo,
   nombreCarpeta,
@@ -250,6 +251,51 @@ router.post(
     const copiado = await almacenamiento.subirArchivo(destino, descriptor.nombre, contenido);
 
     res.status(201).json({ ok: true, carpeta: destino, archivo: copiado });
+  }),
+);
+
+/**
+ * POST /api/solicitudes/:id/documentos/sincronizar-descriptor
+ * Cuerpo JSON: { nombreCandidato }. Tras cambiar el cargo de la solicitud, deja en su carpeta
+ * el descriptor del cargo nuevo: copia el guardado, si existe, y quita los anteriores. También
+ * lo usa la psicóloga, que puede corregir el cargo aunque no gestione estos archivos.
+ */
+router.post(
+  '/sincronizar-descriptor',
+  autenticar,
+  requerirRol('analista', 'evaluador'),
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    const solicitud = db.prepare('SELECT cargo FROM solicitudes WHERE id = ?').get(id);
+    if (!solicitud) throw new ErrorAlmacenamiento(`Solicitud #${id} no encontrada.`, 404);
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const cargo = db
+      .prepare("SELECT id FROM cargos WHERE clave = ? AND descriptor_nombre <> ''")
+      .get(claveDeCargo(solicitud.cargo));
+    const origen = cargo ? await almacenamiento.obtenerCarpeta(claveCarpetaCargo(cargo.id), null) : null;
+    const descriptor = origen
+      ? (await almacenamiento.listarArchivos(origen)).find((archivo) => categoriaDeArchivo(archivo.nombre) === 'descriptor')
+      : null;
+
+    const nombre = nombreCandidato(req, id, req.body?.nombreCandidato);
+    const destino = await almacenamiento.obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), {
+      crear: Boolean(descriptor),
+    });
+    if (!destino) return res.json({ ok: true, archivo: null, eliminados: 0 });
+
+    let archivo = null;
+    if (descriptor) {
+      const { contenido } = await almacenamiento.descargarArchivo(origen, descriptor.id);
+      archivo = await almacenamiento.subirArchivo(destino, descriptor.nombre, contenido);
+    }
+    // Primero la copia nueva y después el retiro: si la copia falla, la carpeta no queda vacía.
+    const anteriores = (await almacenamiento.listarArchivos(destino)).filter(
+      (item) => item.categoria === 'descriptor' && item.id !== archivo?.id,
+    );
+    await Promise.all(anteriores.map((item) => almacenamiento.eliminarArchivo(destino, item.id)));
+
+    return res.json({ ok: true, carpeta: destino, archivo, eliminados: anteriores.length });
   }),
 );
 

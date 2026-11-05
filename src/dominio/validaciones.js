@@ -142,7 +142,7 @@ export function validarFormularioSolicitud(formulario = {}, candidatos = [], { d
  * Valida la edición de los datos de una solicitud ya creada (cargo, familia, ubicación,
  * CECO, referencias, reclutador, fecha y aspectos a indagar).
  */
-export function validarEdicionSolicitud(formulario = {}) {
+export function validarEdicionSolicitud(formulario = {}, { descriptorRequerido = false } = {}) {
   const errores = {};
   const ceco = limpiar(formulario.ceco);
   const fechaSolicitud = limpiar(formulario.fechaSolicitud);
@@ -151,6 +151,9 @@ export function validarEdicionSolicitud(formulario = {}) {
   if (!limpiar(formulario.cargo)) errores.cargo = 'El cargo es obligatorio.';
   if (!limpiar(formulario.familiaCargo)) errores.familiaCargo = 'Debe seleccionar una familia de cargo.';
   if (!limpiar(formulario.ubicacion)) errores.ubicacion = 'La ubicación del cargo es obligatoria.';
+  if (descriptorRequerido && !limpiar(formulario.descriptorAdjunto)) {
+    errores.descriptorAdjunto = 'Este cargo no tiene descriptor: adjúntalo para continuar.';
+  }
 
   // Al editar, el CECO puede quedar vacío (solicitudes antiguas no lo tienen), pero si se
   // escribe debe tener el formato correcto.

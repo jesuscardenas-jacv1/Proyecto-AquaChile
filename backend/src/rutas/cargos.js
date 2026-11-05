@@ -8,6 +8,7 @@ const {
   TAMANO_MAXIMO_BYTES,
   categoriaDeArchivo,
   claveCarpetaCargo,
+  claveDeCargo,
   nombreArchivo,
   nombreCarpetaCargo,
   validarArchivo,
@@ -24,15 +25,8 @@ const leerArchivo = express.raw({ type: () => true, limit: TAMANO_MAXIMO_BYTES +
 const manejar = (fn) => (req, res, next) => fn(req, res).catch(next);
 const texto = (valor) => (typeof valor === 'string' ? valor.trim().replace(/\s+/g, ' ') : '');
 
-/** "Técnico  Eléctrico" y "tecnico electrico" son el mismo cargo. */
-const claveDeCargo = (nombre) =>
-  texto(nombre)
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-
 /** GET /api/cargos — cargos con descriptor guardado. */
-router.get('/', autenticar, requerirRol('analista', 'jefatura'), (req, res) => {
+router.get('/', autenticar, requerirRol('analista', 'evaluador', 'jefatura'), (req, res) => {
   const cargos = db
     .prepare("SELECT * FROM cargos WHERE descriptor_nombre <> '' ORDER BY nombre")
     .all()

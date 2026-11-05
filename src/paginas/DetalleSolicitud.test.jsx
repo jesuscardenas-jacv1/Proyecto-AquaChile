@@ -231,6 +231,53 @@ describe('DetalleSolicitud', () => {
       expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
     });
 
+    describe('descriptor al cambiar el cargo', () => {
+      const cambiarCargoAnalistaSistemas = async (usuario) => {
+        await usuario.click(screen.getByRole('button', { name: 'Editar' }));
+        await usuario.selectOptions(screen.getByLabelText(/reclutador/i), 'Carolina Muñoz');
+        await usuario.clear(screen.getByLabelText(/nombre del cargo/i));
+        await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Analista de Sistemas');
+        await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Oficina Central');
+        await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170010311');
+        await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+      };
+
+      const prepararDocumentos = () => {
+        vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+        vi.spyOn(apiDocumentos, 'listar').mockResolvedValue({ proveedor: 'local', carpeta: null, permisos: [], archivos: [] });
+        return {
+          sincronizar: vi.spyOn(apiDocumentos, 'sincronizarDescriptor').mockResolvedValue({ ok: true }),
+          subir: vi.spyOn(apiDocumentos, 'subir').mockResolvedValue({ ok: true }),
+          archivoCatalogo: vi
+            .spyOn(apiDocumentos, 'archivoDescriptorCatalogo')
+            .mockResolvedValue(new File(['dc'], 'DC_Analista_de_Sistemas.pdf', { type: 'application/pdf' })),
+        };
+      };
+
+      it('actualiza la carpeta y sube el descriptor del catálogo', async () => {
+        const { sincronizar, subir, archivoCatalogo } = prepararDocumentos();
+        const usuario = userEvent.setup();
+        renderDetalle('2', conEntrevistaRealizada());
+        await cambiarCargoAnalistaSistemas(usuario);
+
+        expect(await screen.findByText('Datos de la solicitud actualizados.')).toBeInTheDocument();
+        expect(sincronizar).toHaveBeenCalledWith(2, 'Juan Pérez');
+        expect(archivoCatalogo).toHaveBeenCalledWith('DC_Analista_de_Sistemas.pdf');
+        expect(subir).toHaveBeenCalledWith(2, expect.objectContaining({ categoria: 'descriptor', nombreCandidato: 'Juan Pérez' }));
+      });
+
+      it('si falla la carpeta, guarda los datos y lo avisa', async () => {
+        const { sincronizar } = prepararDocumentos();
+        sincronizar.mockRejectedValue(new Error('Drive no responde'));
+        const usuario = userEvent.setup();
+        renderDetalle('2', conEntrevistaRealizada());
+        await cambiarCargoAnalistaSistemas(usuario);
+
+        expect(await screen.findByText(/no se pudo actualizar el descriptor en la carpeta/i)).toBeInTheDocument();
+        expect(screen.getByText(/analista de sistemas · /i)).toBeInTheDocument();
+      });
+    });
+
     it('la jefatura (solo lectura) no puede editar', () => {
       render(
         <MemoryRouter initialEntries={['/solicitudes/2']}>

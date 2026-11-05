@@ -131,6 +131,8 @@ export const apiPerfil = {
 };
 
 const ROLES_CON_POSTULACIONES = ['admin', 'analista', 'jefatura'];
+// La psicóloga también puede corregir el cargo de una solicitud y necesita saber su descriptor.
+const ROLES_CON_CARGOS = [...ROLES_CON_POSTULACIONES, 'evaluador'];
 
 /** Operaciones de datos sobre la API, con la misma forma que usa DatosContext. */
 export const apiDatos = {
@@ -149,7 +151,7 @@ export const apiDatos = {
       // Quien gestiona ofertas también ve borradores y cerradas; el portal filtra las abiertas.
       ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/ofertas/gestion') : solicitar('/ofertas', { publico: true }),
       ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/postulaciones') : { postulaciones: [] },
-      ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/cargos') : { cargos: [] },
+      ROLES_CON_CARGOS.includes(rol) ? solicitar('/cargos') : { cargos: [] },
     ]);
     return {
       candidatos: candidatos.candidatos,

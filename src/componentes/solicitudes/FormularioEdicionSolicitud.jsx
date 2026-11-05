@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import { CECOS, FAMILIAS_CARGO, OPCIONES_SI_NO, RECLUTADORES } from '../../datos/constantes';
-import { CARGOS, UBICACIONES, buscarCargo, unidadDeUbicacion } from '../../datos/catalogos';
+import { ARCHIVOS_PERMITIDOS, CECOS, FAMILIAS_CARGO, OPCIONES_SI_NO, RECLUTADORES } from '../../datos/constantes';
+import {
+  UBICACIONES,
+  datosDeCargo,
+  nombresDeCargos,
+  resolverDescriptor,
+  unidadDeUbicacion,
+} from '../../datos/catalogos';
+import { normalizar } from '../../dominio/texto';
 import { hayErrores, validarEdicionSolicitud } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
 
@@ -24,10 +31,20 @@ const clase = (base, error) => `${base} ${error ? 'is-invalid' : ''}`.trim();
 /**
  * Edición de los datos de una solicitud ya creada. Lo usan el analista y la psicóloga
  * para corregir errores o cuando el candidato cambia de cargo. El cargo del catálogo
- * completa la familia y la ubicación completa la unidad, igual que al crearla.
+ * completa la familia y la ubicación completa la unidad, igual que al crearla. Si cambia
+ * el cargo también cambia el descriptor: el nuevo se resuelve solo y, si el cargo no tiene
+ * uno, el analista debe adjuntarlo (la psicóloga no gestiona descriptores: queda pendiente).
  */
-export default function FormularioEdicionSolicitud({ solicitud, origenCandidato, alGuardar, alCancelar }) {
+export default function FormularioEdicionSolicitud({
+  solicitud,
+  origenCandidato,
+  cargosGuardados = [],
+  puedeSubirDescriptor = false,
+  alGuardar,
+  alCancelar,
+}) {
   const [formulario, setFormulario] = useState(() => desdeSolicitud(solicitud));
+  const [archivoDescriptor, setArchivoDescriptor] = useState(null);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
   const esExterno = origenCandidato === 'Externo';
@@ -45,13 +62,35 @@ export default function FormularioEdicionSolicitud({ solicitud, origenCandidato,
 
   const cambiarCargo = (evento) => {
     const cargo = evento.target.value;
-    const encontrado = buscarCargo(cargo);
-    actualizar(encontrado ? { cargo, familiaCargo: encontrado.familiaCargo } : { cargo });
+    const encontrado = datosDeCargo(cargo, cargosGuardados);
+    actualizar(encontrado?.familiaCargo ? { cargo, familiaCargo: encontrado.familiaCargo } : { cargo });
+  };
+
+  const cambioCargo = normalizar(formulario.cargo.trim()) !== normalizar(solicitud.cargo ?? '');
+  const descriptorNuevo = cambioCargo ? resolverDescriptor({ cargo: formulario.cargo, cargosGuardados }).nombre : '';
+  const faltaDescriptor = cambioCargo && Boolean(formulario.cargo.trim()) && !descriptorNuevo;
+
+  const elegirDescriptor = (evento) => {
+    const archivo = evento.target.files?.[0] ?? null;
+    if (archivo && archivo.size > ARCHIVOS_PERMITIDOS.tamanoMaximoMb * 1024 * 1024) {
+      evento.target.value = '';
+      setArchivoDescriptor(null);
+      setErrores((actual) => ({
+        ...actual,
+        descriptorAdjunto: `El archivo supera el límite de ${ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB.`,
+      }));
+      return;
+    }
+    setArchivoDescriptor(archivo);
+    setErrores(({ descriptorAdjunto: _quitado, ...resto }) => resto);
   };
 
   const manejarEnvio = async (evento) => {
     evento.preventDefault();
-    const nuevosErrores = validarEdicionSolicitud(formulario);
+    const nuevosErrores = validarEdicionSolicitud(
+      { ...formulario, descriptorAdjunto: archivoDescriptor?.name },
+      { descriptorRequerido: faltaDescriptor && puedeSubirDescriptor },
+    );
     setErrores(nuevosErrores);
     if (hayErrores(nuevosErrores)) return;
 
@@ -69,7 +108,8 @@ export default function FormularioEdicionSolicitud({ solicitud, origenCandidato,
         requiereReferencias: formulario.requiereReferencias === 'Sí',
         referido: esExterno && formulario.referido ? formulario.referido === 'Sí' : null,
         observaciones: formulario.observaciones.trim(),
-      });
+        ...(cambioCargo ? { descriptorCargo: descriptorNuevo || archivoDescriptor?.name || '' } : {}),
+      }, faltaDescriptor ? archivoDescriptor : null);
     } finally {
       setGuardando(false);
     }
@@ -135,11 +175,39 @@ export default function FormularioEdicionSolicitud({ solicitud, origenCandidato,
             onChange={cambiarCargo}
           />
           <datalist id="edicion-cargos">
-            {CARGOS.map((cargo) => (
-              <option key={cargo.nombre} value={cargo.nombre} />
+            {nombresDeCargos(cargosGuardados).map((nombre) => (
+              <option key={nombre} value={nombre} />
             ))}
           </datalist>
           {errores.cargo ? <div className="invalid-feedback">{errores.cargo}</div> : null}
+          {descriptorNuevo ? (
+            <div className="form-text">
+              <i className="bi bi-file-earmark-text me-1" aria-hidden="true" />
+              El descriptor pasará a ser {descriptorNuevo}.
+            </div>
+          ) : null}
+          {faltaDescriptor && !puedeSubirDescriptor ? (
+            <div className="form-text text-warning-emphasis">
+              <i className="bi bi-exclamation-triangle me-1" aria-hidden="true" />
+              Este cargo no tiene descriptor: quedará pendiente hasta que lo suba el analista de reclutamiento.
+            </div>
+          ) : null}
+          {faltaDescriptor && puedeSubirDescriptor ? (
+            <div className="mt-2">
+              <label className="form-label small" htmlFor="edicion-descriptor">
+                Adjuntar descriptor de cargo *
+              </label>
+              <input
+                id="edicion-descriptor"
+                type="file"
+                accept={ARCHIVOS_PERMITIDOS.extensiones}
+                className={clase('form-control form-control-sm', errores.descriptorAdjunto)}
+                onChange={elegirDescriptor}
+              />
+              {errores.descriptorAdjunto ? <div className="invalid-feedback">{errores.descriptorAdjunto}</div> : null}
+              <div className="form-text">Queda guardado para este cargo y no se volverá a pedir.</div>
+            </div>
+          ) : null}
         </div>
 
         <div className="col-12 col-md-6">

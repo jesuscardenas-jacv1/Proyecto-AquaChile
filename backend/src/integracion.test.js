@@ -549,6 +549,52 @@ describe('API integrada (Hito 2)', () => {
     assert.equal((await pedir('/ofertas/999999', { rol: 'analista', metodo: 'PUT', cuerpo: completa })).status, 404);
   });
 
+  it('al cambiar el cargo de la solicitud, su carpeta queda con el descriptor del cargo nuevo', async () => {
+    const subirCargo = (cargo, nombre) =>
+      fetch(`${base}/cargos/descriptor?${new URLSearchParams({ cargo, familiaCargo: 'Operario', nombre })}`, {
+        method: 'POST',
+        headers: { ...cabeceras('analista'), 'Content-Type': 'application/pdf' },
+        body: Buffer.from(`contenido de ${nombre}`),
+      });
+    await subirCargo('Cargo Viejo Sync', 'viejo.pdf');
+    await subirCargo('Cargo Nuevo Sync', 'nuevo.pdf');
+    const cargos = (await pedir('/cargos', { rol: 'evaluador' })).datos.cargos;
+    const viejo = cargos.find((c) => c.nombre === 'Cargo Viejo Sync');
+
+    const creada = await pedir('/solicitudes', {
+      rol: 'analista',
+      metodo: 'POST',
+      cuerpo: { candidatoId: 1, cargo: 'Cargo Viejo Sync', familiaCargo: 'Operario', descriptorCargo: 'viejo.pdf' },
+    });
+    const id = creada.datos.solicitud.id;
+    const ruta = `/solicitudes/${id}/documentos`;
+    await pedir(`${ruta}/desde-cargo`, { rol: 'analista', metodo: 'POST', cuerpo: { cargoId: viejo.id } });
+    const nombres = async () => (await pedir(ruta, { rol: 'evaluador' })).datos.archivos.map((a) => a.nombre);
+    assert.deepEqual(await nombres(), ['Descriptor - viejo.pdf']);
+
+    // La psicóloga corrige el cargo y la carpeta se actualiza, aunque ella no suba descriptores.
+    const editada = await pedir(`/solicitudes/${id}`, {
+      rol: 'evaluador',
+      metodo: 'PATCH',
+      cuerpo: { cargo: 'Cargo Nuevo Sync', descriptorCargo: 'nuevo.pdf' },
+    });
+    assert.equal(editada.datos.solicitud.descriptorCargo, 'nuevo.pdf');
+    assert.equal((await pedir(`${ruta}/sincronizar-descriptor`, { metodo: 'POST', cuerpo: {} })).status, 401);
+    assert.equal((await pedir(`${ruta}/sincronizar-descriptor`, { rol: 'jefatura', metodo: 'POST', cuerpo: {} })).status, 403);
+    const sincronizada = await pedir(`${ruta}/sincronizar-descriptor`, { rol: 'evaluador', metodo: 'POST', cuerpo: {} });
+    assert.equal(sincronizada.status, 200);
+    assert.equal(sincronizada.datos.eliminados, 1);
+    assert.deepEqual(await nombres(), ['Descriptor - nuevo.pdf']);
+
+    // Un cargo sin descriptor guardado solo retira el anterior.
+    await pedir(`/solicitudes/${id}`, { rol: 'analista', metodo: 'PATCH', cuerpo: { cargo: 'Cargo Sin Descriptor', descriptorCargo: '' } });
+    const sinDescriptor = await pedir(`${ruta}/sincronizar-descriptor`, { rol: 'analista', metodo: 'POST', cuerpo: {} });
+    assert.equal(sinDescriptor.datos.archivo, null);
+    assert.deepEqual(await nombres(), []);
+
+    assert.equal((await pedir('/solicitudes/99999/documentos/sincronizar-descriptor', { rol: 'analista', metodo: 'POST', cuerpo: {} })).status, 404);
+  });
+
   it('el descriptor se guarda por cargo y se reutiliza en sus solicitudes', async () => {
     const subir = (nombre, { cargo = 'Cargo Único Prueba', rol = 'analista' } = {}) =>
       fetch(
@@ -566,7 +612,7 @@ describe('API integrada (Hito 2)', () => {
     assert.equal((await subir('d.exe')).status, 400);
     assert.equal((await subir('d.pdf', { cargo: ' ' })).status, 400);
     assert.equal((await pedir('/cargos')).status, 401);
-    assert.equal((await pedir('/cargos', { rol: 'evaluador' })).status, 403);
+    assert.equal((await pedir('/cargos', { rol: 'evaluador' })).status, 200);
 
     // Al reemplazarlo sigue siendo un solo cargo, aunque cambien tildes o mayúsculas.
     const primero = await (await subir('primero.pdf')).json();

@@ -217,6 +217,16 @@ export async function traerDescriptorDeCargo(solicitudId, cargoId, nombreCandida
   return respuesta.json();
 }
 
+/** Deja en la carpeta el descriptor del cargo actual de la solicitud y quita los anteriores. */
+export async function sincronizarDescriptor(solicitudId, nombreCandidato) {
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/sincronizar-descriptor`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify({ nombreCandidato }),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return respuesta.json();
+}
+
 /** Guarda el descriptor de un cargo, para todas sus ofertas y solicitudes. Devuelve el cargo. */
 export async function subirDescriptorCargo({ cargo, familiaCargo, archivo }) {
   const parametros = new URLSearchParams({ cargo, familiaCargo: familiaCargo ?? '', nombre: archivo.name });
@@ -291,6 +301,7 @@ export const apiDocumentos = {
   traerCvDePostulacion,
   traerDescriptorDeOferta,
   traerDescriptorDeCargo,
+  sincronizarDescriptor,
   subirDescriptorCargo,
   archivoDescriptorCatalogo,
   contenidoDescriptorOferta,
