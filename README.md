@@ -146,7 +146,7 @@ src/
 | `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
 | `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
 | `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
-| `/solicitudes/:id` | Ficha, panel de gestión y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
+| `/solicitudes/:id` | Ficha, seguimiento (solo lectura) y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
 | `/solicitudes/:id/informe` | Informe Psicolaboral Oficial imprimible (PDF) | Analista y Evaluador (con membrete oficial y firmas) |
 | `/administracion` | Usuarios de prueba, roles, catálogos y datos de demostración | Exclusivo Administrador |
 | `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
@@ -156,7 +156,7 @@ src/
 | Rol | Correo / Alias | Contraseña | Funciones |
 | --- | --- | --- | --- |
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
-| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Toma solicitudes, pasa a 'En proceso', registra notas clínicas y dictamen. |
+| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Avanza las solicitudes en su Planner, registra notas clínicas y dictamen. |
 | **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración (`/administracion`). |
 | **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen (sin notas clínicas). |
 
@@ -165,7 +165,7 @@ src/
 1. **Registro de candidato** → `/candidatos/nuevo` (formulario con validaciones).
 2. **Creación de solicitud** → `/solicitudes/nueva` (se selecciona el candidato y el cargo se completa
    automáticamente). La solicitud queda en estado `Pendiente`.
-3. **Gestión** → asignar profesional responsable y cambiar el estado a `En proceso`.
+3. **Gestión** → asignar profesional responsable; la psicóloga avanza la solicitud en su **Planner** (agendar → entrevista realizada).
 4. **Registro de evaluación** → fecha, resultado (Aprobado / Reprobado / No concluyente) y observaciones.
 5. **Actualización de estado** → al guardar una evaluación con resultado, la solicitud pasa automáticamente
    a `Finalizada` (regla implementada en `estadoSolicitudDesdeEvaluacion`).
@@ -189,7 +189,7 @@ componentes y manipulación del DOM, con mocks del contexto de datos y de `useNa
 | Formularios (candidato, solicitud, evaluación) | errores de validación, envío válido, precarga, recuperación de errores |
 | Listados (candidatos, solicitudes) | renderizado, búsqueda, filtros, estados vacíos, callbacks |
 | Dashboard | indicadores, solicitudes recientes, estado vacío (con `vi.mock` del contexto) |
-| Detalle de solicitud | cambio de estado, asignación de profesional, reglas de evaluación |
+| Detalle de solicitud | seguimiento sin cambio de estado, asignación de profesional, reglas de evaluación |
 | Navegación (App) | rutas entre vistas y 404 |
 | Dominio y datos | validaciones, filtros, métricas, localStorage, acciones del contexto |
 

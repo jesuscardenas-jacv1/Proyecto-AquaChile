@@ -8,7 +8,6 @@ const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
 
 const router = express.Router();
 
-const ESTADOS = ['Pendiente', 'En proceso', 'Finalizada'];
 /** Etapas del Planner y el estado oficial que corresponde a cada una (igual que el frontend). */
 const ESTADO_DE_ETAPA = {
   recibida: 'Pendiente',
@@ -216,7 +215,8 @@ router.post('/', autenticar, requerirRol('analista'), async (req, res, next) => 
 
 /**
  * PATCH /api/solicitudes/:id/estado
- * Cambia el estado y/o la psicóloga responsable ("" la deja sin asignar).
+ * Asigna la psicóloga responsable ("" la deja sin asignar). El estado no se cambia aquí:
+ * avanza solo con las etapas del Planner y al registrar la evaluación.
  */
 router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
   const id = Number(req.params.id);
@@ -226,24 +226,21 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   }
 
   const { estado } = req.body;
-  if (estado !== undefined && !ESTADOS.includes(estado)) {
-    return res.status(400).json({ error: `Estado inválido. Debe ser uno de: ${ESTADOS.join(', ')}.` });
-  }
-  if (actual.motivo_cierre && estado !== undefined && estado !== actual.estado) {
-    return res.status(409).json({ error: 'La solicitud se cerró sin evaluación: reábrala para cambiar su estado.' });
+  if (estado !== undefined && estado !== actual.estado) {
+    return res.status(409).json({ error: 'El estado de la solicitud se gestiona únicamente en el Planner.' });
   }
   const responsable =
     'profesionalResponsable' in req.body ? texto(req.body.profesionalResponsable) : actual.profesional_responsable;
-  // La psicóloga responsable la asigna el analista; la psicóloga solo cambia el estado.
+  // La psicóloga responsable la asigna el analista.
   if (req.usuario.rol === 'evaluador' && responsable !== actual.profesional_responsable) {
     return res.status(403).json({ error: 'La psicóloga responsable la asigna el analista de reclutamiento.' });
   }
 
   db.prepare(
     `UPDATE solicitudes
-     SET estado = ?, profesional_responsable = ?, actualizado_en = datetime('now')
+     SET profesional_responsable = ?, actualizado_en = datetime('now')
      WHERE id = ?`,
-  ).run(estado ?? actual.estado, responsable, id);
+  ).run(responsable, id);
 
   if (responsable && responsable !== actual.profesional_responsable) {
     notificarPsicologa(responsable, {

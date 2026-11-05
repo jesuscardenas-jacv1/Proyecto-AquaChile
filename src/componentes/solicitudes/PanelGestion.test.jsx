@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { renderConContexto, datosVacios } from '../../pruebas/utilidades';
@@ -11,95 +11,69 @@ const solicitud = {
   familiaCargo: 'Técnico B C',
   fechaSolicitud: '2026-09-01',
   estado: 'Pendiente',
+  etapa: 'recibida',
   reclutador: 'Carolina Muñoz',
   profesionalResponsable: '',
   observaciones: '',
 };
 
+const renderPanel = (props = {}) =>
+  renderConContexto(
+    <PanelGestion solicitud={solicitud} alAsignarProfesional={vi.fn()} {...props} />,
+    { datosIniciales: datosVacios },
+  );
+
 describe('PanelGestion', () => {
-  it('muestra el estado y la psicóloga responsable de la solicitud', () => {
-    renderConContexto(
-      <PanelGestion
-        solicitud={solicitud}
-        alAsignarProfesional={vi.fn()}
-        alCambiarEstado={vi.fn()}
-      />,
-      { datosIniciales: datosVacios },
-    );
-
-    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Pendiente');
-    expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('');
+  it('muestra el estado y la etapa sin permitir cambiarlos', () => {
+    renderPanel();
+    expect(screen.getByText('Pendiente')).toBeInTheDocument();
+    expect(screen.getByText('Evaluación Recibida')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /estado/i })).toBeNull();
   });
 
-  it('sin permiso para asignar muestra la psicóloga como texto', () => {
-    renderConContexto(
-      <PanelGestion
-        solicitud={{ ...solicitud, profesionalResponsable: 'Ignacia Valdés Ortiz' }}
-        alAsignarProfesional={vi.fn()}
-        alCambiarEstado={vi.fn()}
-        puedeAsignar={false}
-      />,
-      { datosIniciales: datosVacios },
-    );
-    expect(screen.queryByRole('combobox', { name: /psicóloga responsable/i })).toBeNull();
-    expect(screen.getByText('Ignacia Valdés Ortiz')).toBeInTheDocument();
-    expect(screen.getByLabelText(/^estado$/i)).toBeEnabled();
+  it('muestra la entrevista cuando la etapa es agendada', () => {
+    renderPanel({
+      solicitud: {
+        ...solicitud,
+        estado: 'En proceso',
+        etapa: 'agendada',
+        fechaEntrevista: '2026-09-09',
+        horaEntrevista: '12:30',
+      },
+    });
+    expect(screen.getByText(/entrevista agendada · entrevista coordinada para 9\/09 a las 12:30/i)).toBeInTheDocument();
   });
 
-  it('notifica el cambio de estado y de profesional', async () => {
+  it('indica cuando la solicitud se cerró sin informe', () => {
+    renderPanel({ solicitud: { ...solicitud, estado: 'Finalizada', cierre: { motivo: 'Desistió del proceso' } } });
+    expect(screen.getByText('Cerrada sin informe')).toBeInTheDocument();
+  });
+
+  it('notifica la asignación de la psicóloga responsable', async () => {
     const usuario = userEvent.setup();
     const alAsignarProfesional = vi.fn();
-    const alCambiarEstado = vi.fn();
-
-    renderConContexto(
-      <PanelGestion
-        solicitud={solicitud}
-        alAsignarProfesional={alAsignarProfesional}
-        alCambiarEstado={alCambiarEstado}
-      />,
-      { datosIniciales: datosVacios },
-    );
-
-    await usuario.selectOptions(screen.getByLabelText(/^estado$/i), 'En proceso');
-    expect(alCambiarEstado).toHaveBeenCalledWith('En proceso');
+    renderPanel({ alAsignarProfesional });
 
     await usuario.selectOptions(screen.getByLabelText(/psicóloga responsable/i), 'Ignacia Valdés Ortiz');
     expect(alAsignarProfesional).toHaveBeenCalledWith('Ignacia Valdés Ortiz');
   });
 
-  it('refleja el estado actual de la solicitud cuando cambia desde fuera', () => {
-    const { rerender } = render(
-      <PanelGestion
-        solicitud={solicitud}
-        alAsignarProfesional={vi.fn()}
-        alCambiarEstado={vi.fn()}
-      />,
-    );
-
-    rerender(
-      <PanelGestion
-        solicitud={{ ...solicitud, estado: 'Finalizada', profesionalResponsable: 'Paula Henríquez Lagos' }}
-        alAsignarProfesional={vi.fn()}
-        alCambiarEstado={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
-    expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Paula Henríquez Lagos');
+  it('sin permiso para asignar muestra la psicóloga como texto', () => {
+    renderPanel({
+      solicitud: { ...solicitud, profesionalResponsable: 'Ignacia Valdés Ortiz' },
+      puedeAsignar: false,
+    });
+    expect(screen.queryByRole('combobox', { name: /psicóloga responsable/i })).toBeNull();
+    expect(screen.getByText('Ignacia Valdés Ortiz')).toBeInTheDocument();
   });
 
-  it('ofrece los tres estados del flujo de trabajo', () => {
-    renderConContexto(
-      <PanelGestion
-        solicitud={solicitud}
-        alAsignarProfesional={vi.fn()}
-        alCambiarEstado={vi.fn()}
-      />,
-      { datosIniciales: datosVacios },
-    );
+  it('lleva al Planner solo a quien gestiona la solicitud', () => {
+    const { unmount } = renderPanel({ puedeGestionar: true });
+    expect(screen.getByRole('link', { name: /gestionar en el planner/i })).toHaveAttribute('href', '/planner');
+    unmount();
 
-    expect(screen.getByRole('option', { name: 'Pendiente' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'En proceso' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Finalizada' })).toBeInTheDocument();
+    renderPanel();
+    expect(screen.queryByRole('link', { name: /gestionar en el planner/i })).toBeNull();
+    expect(screen.getByText(/lo gestiona la psicóloga en su planner/i)).toBeInTheDocument();
   });
 });

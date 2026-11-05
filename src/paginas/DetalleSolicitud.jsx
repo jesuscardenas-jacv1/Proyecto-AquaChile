@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
-import { ESTADOS_QUE_PERMITEN_EVALUAR } from '../datos/constantes';
 import { formatearFecha } from '../dominio/formateo';
+import { etapaDeSolicitud } from '../dominio/planner';
 import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
@@ -12,7 +12,7 @@ import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
 import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
 
-/** Detalle de solicitud: datos del candidato, gestión de estado y evaluación. */
+/** Detalle de solicitud: datos del candidato, seguimiento y evaluación. El avance se gestiona en el Planner. */
 export default function DetalleSolicitud() {
   const { id } = useParams();
   const navegar = useNavigate();
@@ -22,11 +22,9 @@ export default function DetalleSolicitud() {
     obtenerSolicitud,
     obtenerCandidato,
     obtenerEvaluacionDeSolicitud,
-    actualizarSolicitud,
     editarSolicitud,
     asignarProfesional,
     registrarEvaluacion,
-    reabrirSolicitud,
   } = useDatos();
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [avisoInforme, setAvisoInforme] = useState(null);
@@ -57,8 +55,8 @@ export default function DetalleSolicitud() {
 
   const candidato = obtenerCandidato(solicitud.candidatoId);
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
-  // Una solicitud cerrada sin evaluación no se evalúa hasta reabrirla.
-  const puedeEvaluar = !solicitud.cierre && ESTADOS_QUE_PERMITEN_EVALUAR.includes(solicitud.estado);
+  // Se evalúa con la entrevista ya realizada (el Planner trae hasta aquí); después, se puede corregir el informe.
+  const puedeEvaluar = ['realizada', 'informe'].includes(etapaDeSolicitud(solicitud));
   /**
    * Registra la evaluación y guarda el informe oficial (PDF) en la carpeta de la solicitud.
    * Si el servicio de documentos no responde, la evaluación queda registrada igual.
@@ -147,16 +145,7 @@ export default function DetalleSolicitud() {
           {formatearFecha(solicitud.cierre.fecha)}
           {solicitud.cierre.responsable ? ` · ${solicitud.cierre.responsable}` : ''}
           {solicitud.cierre.comentario ? <span className="d-block">{solicitud.cierre.comentario}</span> : null}
-          {(esAnalista || esEvaluador) && !soloLectura ? (
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-dark mt-2 d-block"
-              onClick={() => reabrirSolicitud(solicitud.id)}
-            >
-              <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />
-              Reabrir solicitud
-            </button>
-          ) : null}
+          {esEvaluador ? <span className="d-block mt-2 small">Se puede reabrir desde el Planner.</span> : null}
         </Mensaje>
       ) : null}
 
@@ -208,9 +197,9 @@ export default function DetalleSolicitud() {
           <PanelGestion
             solicitud={solicitud}
             alAsignarProfesional={(profesional) => asignarProfesional(solicitud.id, profesional)}
-            alCambiarEstado={(estado) => actualizarSolicitud(solicitud.id, { estado })}
             soloLectura={soloLectura}
             puedeAsignar={esAnalista}
+            puedeGestionar={esEvaluador}
           />
         </div>
       </div>
@@ -304,8 +293,8 @@ export default function DetalleSolicitud() {
 
               {!puedeEvaluar && !solicitud.cierre ? (
                 <Mensaje tipo="info">
-                  Para registrar o actualizar una evaluación, la solicitud debe estar en estado{' '}
-                  <strong>En proceso</strong>. Cámbiala desde el panel de gestión.
+                  Para registrar la evaluación, primero marca la entrevista como realizada en el{' '}
+                  <Link to="/planner">Planner</Link>.
                 </Mensaje>
               ) : null}
 

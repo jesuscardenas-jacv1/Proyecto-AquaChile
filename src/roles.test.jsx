@@ -1,5 +1,4 @@
 import { render, renderHook, act, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
@@ -62,11 +61,11 @@ describe('Jefatura en modo solo lectura', () => {
   it('consulta el detalle sin poder cambiar estado ni responsable, y ve solo el dictamen', () => {
     renderComo('jefatura', '/solicitudes/1');
 
-    expect(screen.getByLabelText('Estado')).toBeDisabled();
+    expect(screen.queryByRole('combobox', { name: 'Estado' })).toBeNull();
     // La psicóloga responsable solo se muestra: la asigna el analista.
     expect(screen.queryByRole('combobox', { name: 'Psicóloga responsable' })).toBeNull();
     expect(screen.getByText(/la asigna el analista/i)).toBeInTheDocument();
-    expect(screen.getByText(/solo puede consultar/i)).toBeInTheDocument();
+    expect(screen.getByText(/lo gestiona la psicóloga en su planner/i)).toBeInTheDocument();
 
     expect(screen.getByText('Dictamen de la evaluación:')).toBeInTheDocument();
     expect(screen.queryByText('Perfil estable y buen trabajo en equipo.')).toBeNull();
@@ -87,17 +86,17 @@ describe('Jefatura en modo solo lectura', () => {
 });
 
 describe('Psicóloga (evaluador)', () => {
-  it('cambia el estado, pero la psicóloga responsable la asigna el analista', () => {
+  it('gestiona el avance en el Planner, y la psicóloga responsable la asigna el analista', () => {
     renderComo('evaluador', '/solicitudes/1');
-    expect(screen.getByLabelText('Estado')).toBeEnabled();
+    expect(screen.queryByRole('combobox', { name: 'Estado' })).toBeNull();
+    expect(screen.getByRole('link', { name: /gestionar en el planner/i })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Psicóloga responsable' })).toBeNull();
     expect(screen.getByText(/la asigna el analista/i)).toBeInTheDocument();
   });
 });
 
 describe('Solicitud cerrada sin evaluación', () => {
-  it('el detalle muestra el motivo, bloquea el estado y permite reabrirla', async () => {
-    const usuario = userEvent.setup();
+  it('el detalle muestra el motivo y remite al Planner para reabrirla', () => {
     const datos = structuredClone(datosDePrueba);
     const solicitud = datos.solicitudes.find((item) => item.id === 2);
     Object.assign(solicitud, {
@@ -108,12 +107,10 @@ describe('Solicitud cerrada sin evaluación', () => {
     renderComo('evaluador', '/solicitudes/2', datos);
 
     expect(screen.getByText('Cerrada sin evaluación: No se presentó a la entrevista')).toBeInTheDocument();
-    expect(screen.getByLabelText('Estado')).toBeDisabled();
+    expect(screen.getByText('Cerrada sin informe')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
-
-    await usuario.click(screen.getByRole('button', { name: 'Reabrir solicitud' }));
-    expect(screen.queryByText(/cerrada sin evaluación/i)).toBeNull();
-    expect(screen.getByLabelText('Estado')).toHaveValue('En proceso');
+    expect(screen.queryByRole('button', { name: /reabrir/i })).toBeNull();
+    expect(screen.getByText(/se puede reabrir desde el planner/i)).toBeInTheDocument();
   });
 });
 

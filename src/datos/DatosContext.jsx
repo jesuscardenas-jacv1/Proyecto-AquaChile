@@ -335,17 +335,6 @@ export function ProveedorDatos({
     [guardarEn],
   );
 
-  /** Actualiza el estado de una solicitud (lo único que la interfaz cambia directamente). */
-  const actualizarSolicitud = useCallback(
-    async (id, cambios) => {
-      if (conApi) {
-        return ejecutar(async () => guardarEn('solicitudes', await api.actualizarSolicitud(id, cambios)));
-      }
-      return cambiarSolicitudLocal(id, (solicitud) => ({ ...solicitud, ...cambios }));
-    },
-    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
-  );
-
   /** Corrige los datos de una solicitud ya creada (analista o psicóloga). */
   const editarSolicitud = useCallback(
     async (id, cambios) => {
@@ -668,7 +657,6 @@ export function ProveedorDatos({
       eliminarCandidato,
       obtenerCandidato,
       agregarSolicitud,
-      actualizarSolicitud,
       editarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
@@ -694,7 +682,6 @@ export function ProveedorDatos({
       eliminarCandidato,
       obtenerCandidato,
       agregarSolicitud,
-      actualizarSolicitud,
       editarSolicitud,
       obtenerSolicitud,
       asignarProfesional,
