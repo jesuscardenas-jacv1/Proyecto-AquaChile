@@ -50,8 +50,7 @@ describe('FormularioEdicionSolicitud', () => {
     await usuario.type(screen.getByLabelText(/nombre del cargo/i), otroCargo.nombre);
     expect(screen.getByLabelText(/familia del cargo/i)).toHaveValue(otroCargo.familiaCargo);
 
-    await usuario.clear(screen.getByLabelText(/^ceco/i));
-    await usuario.type(screen.getByLabelText(/^ceco/i), 'b123456789');
+    await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170021102');
     await usuario.selectOptions(screen.getByLabelText(/referido/i), 'Sí');
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
@@ -59,7 +58,7 @@ describe('FormularioEdicionSolicitud', () => {
       expect.objectContaining({
         cargo: otroCargo.nombre,
         familiaCargo: otroCargo.familiaCargo,
-        ceco: 'B123456789',
+        ceco: 'A170021102',
         requiereReferencias: false,
         referido: true,
         ubicacion: 'Planta Calbuco',
@@ -67,14 +66,17 @@ describe('FormularioEdicionSolicitud', () => {
     );
   });
 
+  it('conserva un CECO antiguo que no está en la lista', () => {
+    renderFormulario({ solicitud: { ...solicitud, ceco: 'B123456789' } });
+    expect(screen.getByLabelText(/^ceco/i)).toHaveValue('B123456789');
+  });
+
   it('valida campos obligatorios y el formato del CECO', async () => {
     const usuario = userEvent.setup();
     const alGuardar = vi.fn();
-    renderFormulario({ alGuardar });
+    renderFormulario({ alGuardar, solicitud: { ...solicitud, ceco: '123' } });
 
     await usuario.clear(screen.getByLabelText(/nombre del cargo/i));
-    await usuario.clear(screen.getByLabelText(/^ceco/i));
-    await usuario.type(screen.getByLabelText(/^ceco/i), '123');
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(screen.getByText('El cargo es obligatorio.')).toBeInTheDocument();

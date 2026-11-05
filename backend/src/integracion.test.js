@@ -535,6 +535,38 @@ describe('API integrada (Hito 2)', () => {
     assert.equal(reabierta.datos.oferta.fechaPublicacion, publicada.datos.oferta.fechaPublicacion);
     assert.equal((await pedir(`/ofertas/${id}`)).status, 200);
 
+    // Descriptor interno: el analista lo sube, el portal no lo ve y se copia a la solicitud.
+    const subirDescriptor = (nombre, rol = 'analista') =>
+      fetch(`${base}/ofertas/${id}/descriptor?nombre=${nombre}`, {
+        method: 'POST',
+        headers: { ...cabeceras(rol), 'Content-Type': 'application/pdf' },
+        body: Buffer.from(`contenido de ${nombre}`),
+      });
+    assert.equal((await subirDescriptor('d.pdf', 'jefatura')).status, 403);
+    assert.equal((await subirDescriptor('d.exe')).status, 400);
+    assert.equal((await subirDescriptor('primero.pdf')).status, 201);
+    const subido = await subirDescriptor('segundo.pdf');
+    assert.equal((await subido.json()).oferta.descriptorNombre, 'segundo.pdf');
+    assert.equal((await pedir(`/ofertas/${id}`)).datos.oferta.descriptorNombre, undefined);
+    assert.ok((await pedir('/ofertas')).datos.ofertas.every((o) => !('descriptorNombre' in o)));
+    assert.equal((await pedir(`/ofertas/${id}/descriptor`, { rol: 'evaluador' })).status, 403);
+    const descarga = await fetch(`${base}/ofertas/${id}/descriptor`, { headers: cabeceras('analista') });
+    assert.equal(await descarga.text(), 'contenido de segundo.pdf');
+
+    const creada = await pedir('/solicitudes', {
+      rol: 'analista',
+      metodo: 'POST',
+      cuerpo: { candidatoId: 1, cargo: 'Operario', familiaCargo: 'Operario', descriptorCargo: 'segundo.pdf' },
+    });
+    const ruta = `/solicitudes/${creada.datos.solicitud.id}/documentos`;
+    assert.equal(
+      (await pedir(`${ruta}/desde-oferta`, { rol: 'evaluador', metodo: 'POST', cuerpo: { ofertaId: id } })).status,
+      403,
+    );
+    assert.equal((await pedir(`${ruta}/desde-oferta`, { rol: 'analista', metodo: 'POST', cuerpo: { ofertaId: id } })).status, 201);
+    const documentos = await pedir(ruta, { rol: 'evaluador' });
+    assert.ok(JSON.stringify(documentos.datos).includes('Descriptor - segundo.pdf'));
+
     // El administrador también gestiona; una oferta inexistente responde 404.
     assert.equal((await pedir('/ofertas/gestion', { rol: 'admin' })).status, 200);
     assert.equal((await pedir('/ofertas/999999', { rol: 'analista', metodo: 'PUT', cuerpo: completa })).status, 404);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FAMILIAS_CARGO, OPCIONES_SI_NO, RECLUTADORES } from '../../datos/constantes';
+import { CECOS, FAMILIAS_CARGO, OPCIONES_SI_NO, RECLUTADORES } from '../../datos/constantes';
 import { CARGOS, UBICACIONES, buscarCargo, unidadDeUbicacion } from '../../datos/catalogos';
 import { hayErrores, validarEdicionSolicitud } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
@@ -188,15 +188,24 @@ export default function FormularioEdicionSolicitud({ solicitud, origenCandidato,
           <label className="form-label" htmlFor="edicion-ceco">
             CECO
           </label>
-          <input
+          <select
             id="edicion-ceco"
             name="ceco"
-            type="text"
-            placeholder="A170010311"
-            className={clase('form-control', errores.ceco)}
+            className={clase('form-select', errores.ceco)}
             value={formulario.ceco}
             onChange={cambiarCampo}
-          />
+          >
+            <option value="">Sin CECO</option>
+            {/* Una solicitud antigua puede tener un CECO que no está en la lista: se conserva. */}
+            {solicitud.ceco && !CECOS.some(({ codigo }) => codigo === solicitud.ceco) ? (
+              <option value={solicitud.ceco}>{solicitud.ceco}</option>
+            ) : null}
+            {CECOS.map(({ codigo, nombre }) => (
+              <option key={codigo} value={codigo}>
+                {codigo} · {nombre}
+              </option>
+            ))}
+          </select>
           {errores.ceco ? <div className="invalid-feedback">{errores.ceco}</div> : null}
         </div>
 

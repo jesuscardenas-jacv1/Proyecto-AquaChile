@@ -544,6 +544,14 @@ export function ProveedorDatos({
     [conApi, api, ejecutar, guardarEn],
   );
 
+  /** Deja registrado en pantalla el descriptor recién guardado de una oferta. */
+  const registrarDescriptorOferta = useCallback((id, descriptorNombre) => {
+    setDatos((actual) => ({
+      ...actual,
+      ofertas: actual.ofertas.map((oferta) => (oferta.id === Number(id) ? { ...oferta, descriptorNombre } : oferta)),
+    }));
+  }, []);
+
   const obtenerPostulacion = useCallback(
     (id) => datos.postulaciones.find((postulacion) => postulacion.id === Number(id)) ?? null,
     [datos.postulaciones],
@@ -644,6 +652,7 @@ export function ProveedorDatos({
       agregarOferta,
       editarOferta,
       cambiarEstadoOferta,
+      registrarDescriptorOferta,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,
@@ -691,6 +700,7 @@ export function ProveedorDatos({
       agregarOferta,
       editarOferta,
       cambiarEstadoOferta,
+      registrarDescriptorOferta,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,

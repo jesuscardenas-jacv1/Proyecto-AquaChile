@@ -1,15 +1,29 @@
 const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
-const { formatearOferta } = require('../bd/formatos');
+const { formatearOferta, formatearOfertaGestion } = require('../bd/formatos');
+const { obtenerAlmacenamiento } = require('../almacenamiento');
+const {
+  ErrorAlmacenamiento,
+  TAMANO_MAXIMO_BYTES,
+  categoriaDeArchivo,
+  claveCarpetaOferta,
+  nombreArchivo,
+  nombreCarpetaOferta,
+  validarArchivo,
+} = require('../almacenamiento/comun');
 
 /**
  * Ofertas del portal "Trabaja con nosotros".
  * - Lectura pública (sin sesión): solo las ofertas publicadas y abiertas.
  * - Con sesión: el analista crea, edita, publica y cierra; la jefatura solo consulta.
  * Una oferta es un borrador (no publicada), o está abierta o cerrada una vez publicada.
+ * Su descriptor de cargo es interno: se guarda en una carpeta O0001 y el portal no lo ve.
  */
 const router = express.Router();
+
+const leerArchivo = express.raw({ type: () => true, limit: TAMANO_MAXIMO_BYTES + 1024 });
+const manejar = (fn) => (req, res, next) => fn(req, res).catch(next);
 
 const CAMPOS_PARA_PUBLICAR = {
   area: 'Selecciona el área.',
@@ -66,7 +80,7 @@ router.get('/gestion', autenticar, requerirRol('analista', 'jefatura'), (req, re
   const ofertas = db
     .prepare('SELECT * FROM ofertas ORDER BY publicada ASC, fecha_publicacion DESC, id DESC')
     .all()
-    .map(formatearOferta);
+    .map(formatearOfertaGestion);
   res.json({ ok: true, total: ofertas.length, ofertas });
 });
 
@@ -111,7 +125,7 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
       campos.jornada,
       publicar ? 1 : 0,
     );
-  res.status(201).json({ ok: true, oferta: formatearOferta(obtener(Number(lastInsertRowid))) });
+  res.status(201).json({ ok: true, oferta: formatearOfertaGestion(obtener(Number(lastInsertRowid))) });
 });
 
 /**
@@ -148,7 +162,7 @@ router.put('/:id', autenticar, requerirRol('analista'), (req, res) => {
     actual.fecha_publicacion || (publicar ? hoy() : ''),
     id,
   );
-  res.json({ ok: true, oferta: formatearOferta(obtener(id)) });
+  res.json({ ok: true, oferta: formatearOfertaGestion(obtener(id)) });
 });
 
 /**
@@ -178,7 +192,69 @@ router.patch('/:id/estado', autenticar, requerirRol('analista'), (req, res) => {
     actual.fecha_publicacion || hoy(),
     id,
   );
-  res.json({ ok: true, oferta: formatearOferta(obtener(id)) });
+  res.json({ ok: true, oferta: formatearOfertaGestion(obtener(id)) });
 });
+
+/**
+ * POST /api/ofertas/:id/descriptor?nombre=descriptor.pdf
+ * Cuerpo: el archivo en binario. Reemplaza el descriptor interno de la oferta.
+ */
+router.post(
+  '/:id/descriptor',
+  autenticar,
+  requerirRol('analista'),
+  leerArchivo,
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    const oferta = obtener(id);
+    if (!oferta) throw new ErrorAlmacenamiento(`Oferta #${req.params.id} no encontrada.`, 404);
+
+    const contenido = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    validarArchivo({ categoria: 'descriptor', nombre: req.query.nombre, tamano: contenido.length });
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const carpeta = await almacenamiento.obtenerCarpeta(
+      claveCarpetaOferta(id),
+      nombreCarpetaOferta(id, oferta.titulo),
+      { crear: true },
+    );
+    const guardado = await almacenamiento.subirArchivo(carpeta, nombreArchivo('descriptor', req.query.nombre), contenido);
+
+    // Solo queda el último: al pasar a evaluación se copia el descriptor vigente.
+    const anteriores = (await almacenamiento.listarArchivos(carpeta)).filter(
+      (archivo) => categoriaDeArchivo(archivo.nombre) === 'descriptor' && archivo.id !== guardado.id,
+    );
+    await Promise.all(anteriores.map((archivo) => almacenamiento.eliminarArchivo(carpeta, archivo.id)));
+
+    db.prepare('UPDATE ofertas SET descriptor_nombre = ? WHERE id = ?').run(req.query.nombre, id);
+    res.status(201).json({ ok: true, oferta: formatearOfertaGestion(obtener(id)) });
+  }),
+);
+
+/** GET /api/ofertas/:id/descriptor — descarga el descriptor interno de la oferta. */
+router.get(
+  '/:id/descriptor',
+  autenticar,
+  requerirRol('analista'),
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!obtener(id)) throw new ErrorAlmacenamiento(`Oferta #${req.params.id} no encontrada.`, 404);
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const carpeta = await almacenamiento.obtenerCarpeta(claveCarpetaOferta(id), null);
+    const archivo = carpeta
+      ? (await almacenamiento.listarArchivos(carpeta)).find((item) => categoriaDeArchivo(item.nombre) === 'descriptor')
+      : null;
+    if (!archivo) throw new ErrorAlmacenamiento('La oferta no tiene un descriptor guardado.', 404);
+
+    const { nombre, tipo, contenido } = await almacenamiento.descargarArchivo(carpeta, archivo.id);
+    res.set({
+      'Content-Type': tipo,
+      'Content-Length': contenido.length,
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`,
+    });
+    res.send(contenido);
+  }),
+);
 
 module.exports = router;

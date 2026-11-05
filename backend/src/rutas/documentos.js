@@ -8,6 +8,7 @@ const {
   ErrorAlmacenamiento,
   claveCarpeta,
   claveCarpetaPostulacion,
+  claveCarpetaOferta,
   categoriaDeArchivo,
   nombreArchivo,
   nombreCarpeta,
@@ -214,6 +215,40 @@ router.post(
     }
 
     res.status(201).json({ ok: true, carpeta: destino, archivos: copiados });
+  }),
+);
+
+/**
+ * POST /api/solicitudes/:id/documentos/desde-oferta
+ * Cuerpo JSON: { ofertaId, nombreCandidato }. Copia el descriptor interno de la oferta a la
+ * carpeta de la solicitud (al pasar un postulante a evaluación). Solo analista.
+ */
+router.post(
+  '/desde-oferta',
+  autenticar,
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    if (!puedeGestionar(req.usuario, 'descriptor')) {
+      throw new ErrorAlmacenamiento('Solo el analista puede pasar postulaciones a evaluación.', 403);
+    }
+    const ofertaId = Number(req.body?.ofertaId);
+    if (!Number.isInteger(ofertaId) || ofertaId <= 0) {
+      throw new ErrorAlmacenamiento('Id de oferta inválido.', 400);
+    }
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const origen = await almacenamiento.obtenerCarpeta(claveCarpetaOferta(ofertaId), null);
+    const descriptor = origen
+      ? (await almacenamiento.listarArchivos(origen)).find((archivo) => categoriaDeArchivo(archivo.nombre) === 'descriptor')
+      : null;
+    if (!descriptor) throw new ErrorAlmacenamiento('La oferta no tiene un descriptor guardado.', 404);
+
+    const nombre = nombreCandidato(req, id, req.body?.nombreCandidato);
+    const destino = await almacenamiento.obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), { crear: true });
+    const { contenido } = await almacenamiento.descargarArchivo(origen, descriptor.id);
+    const copiado = await almacenamiento.subirArchivo(destino, descriptor.nombre, contenido);
+
+    res.status(201).json({ ok: true, carpeta: destino, archivo: copiado });
   }),
 );
 

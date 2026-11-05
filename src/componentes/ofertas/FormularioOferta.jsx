@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FAMILIAS_CARGO } from '../../datos/constantes';
+import { ARCHIVOS_PERMITIDOS, FAMILIAS_CARGO } from '../../datos/constantes';
+import { CARGOS, buscarCargo } from '../../datos/catalogos';
 import { AREAS_OFERTA } from '../../datos/demoPostulaciones';
 import { JORNADAS_OFERTA, requisitosDesdeTexto, validarOferta } from '../../dominio/ofertas';
 import { hayErrores } from '../../dominio/validaciones';
@@ -14,14 +15,16 @@ const VACIA = {
   jornada: JORNADAS_OFERTA[0],
   descripcion: '',
   requisitos: [],
+  descriptorNombre: '',
 };
 
 /**
  * Formulario de una oferta de empleo. Un borrador se puede guardar solo con el título y
  * publicar cuando esté completo; una oferta ya publicada debe seguir completa, porque
- * sus cambios se ven de inmediato en el portal.
+ * sus cambios se ven de inmediato en el portal. El descriptor de cargo es interno: viene del
+ * catálogo según el cargo o se sube aquí, y es obligatorio para publicar.
  */
-export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancelar }) {
+export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancelar, alDescargarDescriptor }) {
   const esBorrador = (inicial.estado ?? 'Borrador') === 'Borrador';
   const [campos, setCampos] = useState({
     ...VACIA,
@@ -30,6 +33,9 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
   });
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+  const [descriptor, setDescriptor] = useState(null);
+  const descriptorCatalogo = buscarCargo(campos.cargo)?.descriptorCargo ?? '';
+  const descriptorDisponible = inicial.descriptorNombre || descriptorCatalogo;
 
   const cambiar = (evento) => {
     const { name, value } = evento.target;
@@ -37,13 +43,42 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
     setErrores((actual) => ({ ...actual, [name]: undefined }));
   };
 
+  const cambiarCargo = (evento) => {
+    const cargo = evento.target.value;
+    const encontrado = buscarCargo(cargo);
+    setCampos((actual) => ({ ...actual, cargo, ...(encontrado ? { familiaCargo: encontrado.familiaCargo } : {}) }));
+    setErrores((actual) => ({
+      ...actual,
+      cargo: undefined,
+      ...(encontrado ? { familiaCargo: undefined, descriptor: undefined } : {}),
+    }));
+  };
+
+  const seleccionarDescriptor = (evento) => {
+    const archivo = evento.target.files?.[0] ?? null;
+    if (archivo && archivo.size > ARCHIVOS_PERMITIDOS.tamanoMaximoMb * 1024 * 1024) {
+      evento.target.value = '';
+      setDescriptor(null);
+      setErrores((actual) => ({
+        ...actual,
+        descriptor: `El archivo supera el límite de ${ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB.`,
+      }));
+      return;
+    }
+    setDescriptor(archivo);
+    setErrores((actual) => ({ ...actual, descriptor: undefined }));
+  };
+
   const guardar = async ({ publicar }) => {
     const nuevosErrores = validarOferta(campos, { completa: publicar || !esBorrador });
+    if (publicar && !descriptor && !descriptorDisponible) {
+      nuevosErrores.descriptor = 'Sube el descriptor de cargo para publicar la oferta.';
+    }
     setErrores(nuevosErrores);
     if (hayErrores(nuevosErrores)) return;
     setGuardando(true);
     try {
-      await alGuardar({ ...campos, requisitos: requisitosDesdeTexto(campos.requisitos) }, { publicar });
+      await alGuardar({ ...campos, requisitos: requisitosDesdeTexto(campos.requisitos) }, { publicar, descriptor });
     } finally {
       setGuardando(false);
     }
@@ -107,7 +142,26 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
         {selector('area', 'Área *', AREAS_OFERTA)}
         {selector('familiaCargo', 'Familia de cargo *', FAMILIAS_CARGO)}
         {selector('jornada', 'Jornada *', JORNADAS_OFERTA)}
-        {texto('cargo', 'Cargo *', 'col-12 col-md-4')}
+        <div className="col-12 col-md-4">
+          <label className="form-label" htmlFor="oferta-cargo">
+            Cargo *
+          </label>
+          <input
+            id="oferta-cargo"
+            name="cargo"
+            list="oferta-cargos"
+            autoComplete="off"
+            className={clases('form-control', 'cargo')}
+            value={campos.cargo}
+            onChange={cambiarCargo}
+          />
+          <datalist id="oferta-cargos">
+            {CARGOS.map((cargo) => (
+              <option key={cargo.nombre} value={cargo.nombre} />
+            ))}
+          </datalist>
+          {error('cargo')}
+        </div>
         {texto('ubicacion', 'Ubicación *', 'col-12 col-md-4', 'Ej: Planta Calbuco')}
         {texto('region', 'Región *', 'col-12 col-md-4', 'Ej: Los Lagos')}
         <div className="col-12">
@@ -136,6 +190,40 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
             value={campos.requisitos}
             onChange={cambiar}
           />
+        </div>
+        <div className="col-12">
+          <label className="form-label" htmlFor="oferta-descriptor">
+            Descriptor de cargo{descriptorCatalogo || inicial.descriptorNombre ? '' : ' *'}{' '}
+            <small className="text-secondary fw-normal">(uso interno, no se publica)</small>
+          </label>
+          {descriptorDisponible ? (
+            <div className="d-flex flex-wrap align-items-center gap-2 small mb-2">
+              <i className="bi bi-file-earmark-text text-secondary" aria-hidden="true" />
+              <span className="text-break">{inicial.descriptorNombre || descriptorCatalogo}</span>
+              <span className="text-secondary">
+                {inicial.descriptorNombre ? '· subido en esta oferta' : '· asociado al cargo'}
+              </span>
+              {inicial.descriptorNombre && alDescargarDescriptor ? (
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={alDescargarDescriptor}>
+                  <i className="bi bi-download me-1" aria-hidden="true" />
+                  Descargar
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <input
+            id="oferta-descriptor"
+            type="file"
+            className={clases('form-control', 'descriptor')}
+            accept={ARCHIVOS_PERMITIDOS.extensiones}
+            onChange={seleccionarDescriptor}
+          />
+          {error('descriptor')}
+          <div className="form-text">
+            {descriptorDisponible ? 'Sube un archivo solo si quieres reemplazarlo. ' : ''}1 archivo de hasta{' '}
+            {ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB ({ARCHIVOS_PERMITIDOS.descripcion}). Se usará al pasar postulantes
+            a evaluación.
+          </div>
         </div>
         {esBorrador ? (
           <p className="small text-secondary mb-0">

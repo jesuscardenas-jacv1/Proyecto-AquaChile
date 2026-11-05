@@ -94,6 +94,11 @@ function formatearOferta(o) {
   };
 }
 
+/** Oferta para quien la gestiona: agrega el descriptor interno, que el portal nunca recibe. */
+function formatearOfertaGestion(o) {
+  return { ...formatearOferta(o), descriptorNombre: o.descriptor_nombre ?? '' };
+}
+
 function formatearPostulacion(p) {
   return {
     id: p.id,
@@ -112,5 +117,6 @@ module.exports = {
   formatearSolicitud,
   formatearEvaluacion,
   formatearOferta,
+  formatearOfertaGestion,
   formatearPostulacion,
 };

@@ -88,7 +88,16 @@ export default function NuevaSolicitud() {
           await apiDocumentos.traerCvDePostulacion(solicitud.id, postulacionPendiente.id, nombreCandidato);
           mensaje += ' Su CV se copió a la carpeta de la solicitud.';
         } catch {
+          tipoMensaje = 'warning';
           mensaje += ' No se pudo copiar el CV de la postulación; súbelo desde Documentos.';
+        }
+        if (oferta?.descriptorNombre && datos.descriptorCargo === oferta.descriptorNombre) {
+          try {
+            await apiDocumentos.traerDescriptorDeOferta(solicitud.id, oferta.id, nombreCandidato);
+          } catch {
+            tipoMensaje = 'warning';
+            mensaje += ' No se pudo copiar el descriptor de la oferta; súbelo desde Documentos.';
+          }
         }
       }
     }
@@ -119,6 +128,7 @@ export default function NuevaSolicitud() {
             valoresIniciales={valoresIniciales}
             reclutadorFijo={reclutadorFijo}
             postulante={postulante}
+            descriptorOferta={oferta?.descriptorNombre ?? ''}
             alGuardar={guardar}
             alCancelar={() => navegar(postulacionPendiente ? '/postulaciones' : '/solicitudes')}
           />

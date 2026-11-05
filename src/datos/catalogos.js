@@ -33,5 +33,12 @@ const buscarEn = (catalogo, nombre) =>
 /** Datos asociados a un cargo del catálogo (familia y descriptor), o null si no existe. */
 export const buscarCargo = (nombre) => buscarEn(CARGOS, nombre);
 
+/**
+ * Descriptor disponible para una oferta: el que se subió al publicarla o, si no tiene,
+ * el asociado a su cargo en el catálogo.
+ */
+export const descriptorDeOferta = (oferta) =>
+  oferta?.descriptorNombre || buscarCargo(oferta?.cargo)?.descriptorCargo || '';
+
 /** Unidad a la que pertenece una ubicación del catálogo, o cadena vacía si no existe. */
 export const unidadDeUbicacion = (nombre) => buscarEn(UBICACIONES, nombre)?.unidad ?? '';
