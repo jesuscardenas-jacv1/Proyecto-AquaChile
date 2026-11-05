@@ -28,7 +28,7 @@ const construirEstadoInicial = (evaluacion) => ({
 /**
  * Formulario para registrar o actualizar la evaluación psicolaboral.
  */
-export default function FormularioEvaluacion({ evaluacion = null, alGuardar }) {
+export default function FormularioEvaluacion({ evaluacion = null, alGuardar, guardando = false }) {
   const [formulario, setFormulario] = useState(() => construirEstadoInicial(evaluacion));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
@@ -155,8 +155,8 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar }) {
         </div>
       </div>
       <div className="card-footer bg-white d-flex justify-content-end">
-        <button type="submit" className="btn btn-success">
-          {evaluacion ? 'Actualizar evaluación' : 'Registrar evaluación'}
+        <button type="submit" className="btn btn-success" disabled={guardando}>
+          {guardando ? 'Guardando…' : evaluacion ? 'Actualizar evaluación' : 'Registrar evaluación'}
         </button>
       </div>
     </form>

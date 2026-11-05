@@ -1,12 +1,23 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import DetalleSolicitud from './DetalleSolicitud';
 import { datosDePrueba } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+
+/** Destino tras guardar la evaluación: muestra el aviso que viaja en el estado de navegación. */
+function DestinoPlanner() {
+  const mensaje = useLocation().state?.mensaje;
+  return (
+    <>
+      <h1>Planner de prueba</h1>
+      {mensaje ? <p>{mensaje}</p> : null}
+    </>
+  );
+}
 
 const renderDetalle = (id = '3') =>
   render(
@@ -15,6 +26,7 @@ const renderDetalle = (id = '3') =>
         <Routes>
           <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
           <Route path="/solicitudes" element={<h1>Listado de solicitudes</h1>} />
+          <Route path="/planner" element={<DestinoPlanner />} />
         </Routes>
       </ProveedorDatos>
     </MemoryRouter>,
@@ -70,7 +82,9 @@ describe('DetalleSolicitud', () => {
     await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
   });
 
-  it('muestra la solicitud como Finalizada tras registrar la evaluación', async () => {
+  it('al registrar la evaluación vuelve al Planner con un aviso de que quedó finalizada', async () => {
+    vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+    vi.spyOn(apiDocumentos, 'generarInforme').mockResolvedValue({ ok: true });
     const usuario = userEvent.setup();
     renderDetalle('2');
 
@@ -81,8 +95,10 @@ describe('DetalleSolicitud', () => {
     );
     await usuario.click(screen.getByRole('button', { name: /registrar evaluación/i }));
 
-    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
-    expect(screen.queryByRole('button', { name: /guardar cambios/i })).toBeNull();
+    expect(await screen.findByRole('heading', { name: /planner de prueba/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/evaluación registrada: juan pérez\. la solicitud quedó finalizada/i),
+    ).toBeInTheDocument();
   });
 
   it('permite volver al listado de solicitudes', async () => {
@@ -137,15 +153,13 @@ describe('DetalleSolicitud', () => {
 
       await registrarRecomendado(usuario);
 
-      expect(
-        await screen.findByText(/el informe psicolaboral se guardó en la carpeta/i),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /planner de prueba/i })).toBeInTheDocument();
       const [solicitudId, datos] = generarInforme.mock.calls[0];
       expect(solicitudId).toBe(2);
       expect(datos.candidato.nombre).toBe('Juan Pérez');
       expect(datos.solicitud.cargo).toBe('Analista de Datos');
       expect(datos.evaluacion.resultado).toBe('Recomendado');
-      expect(listar).toHaveBeenCalledTimes(2);
+      expect(listar).toHaveBeenCalledTimes(1);
     });
 
     it('registra la evaluación aunque el servicio de documentos no esté conectado', async () => {
@@ -155,8 +169,7 @@ describe('DetalleSolicitud', () => {
 
       await registrarRecomendado(usuario);
 
-      expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
-      expect(screen.getByText(/el informe no se guardó en la carpeta/i)).toBeInTheDocument();
+      expect(await screen.findByText(/el informe no se guardó en la carpeta/i)).toBeInTheDocument();
       expect(generarInforme).not.toHaveBeenCalled();
     });
 
@@ -178,7 +191,6 @@ describe('DetalleSolicitud', () => {
       expect(
         await screen.findByText(/no se pudo guardar el informe en la carpeta: error de microsoft graph/i),
       ).toBeInTheDocument();
-      expect(screen.getByLabelText(/^estado$/i)).toHaveValue('Finalizada');
     });
   });
   describe('editar datos de la solicitud', () => {
