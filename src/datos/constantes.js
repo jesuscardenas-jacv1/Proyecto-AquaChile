@@ -98,7 +98,6 @@ export const MOTIVOS_CIERRE = [
 ];
 
 /** Estados de solicitud que permiten registrar o actualizar una evaluación. */
-export const ESTADOS_QUE_PERMITEN_EVALUAR = ['En proceso', 'Finalizada'];
 
 /**
  * Evaluación por competencias del informe psicolaboral (mismo catálogo que

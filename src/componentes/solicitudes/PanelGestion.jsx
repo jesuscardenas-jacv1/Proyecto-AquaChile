@@ -1,45 +1,41 @@
-import { ESTADOS_SOLICITUD, EVALUADORES } from '../../datos/constantes';
+import { Link } from 'react-router-dom';
+import { EVALUADORES } from '../../datos/constantes';
+import { etapaDeSolicitud, obtenerEtapa, textoEntrevista } from '../../dominio/planner';
+import EtiquetaEstado from '../comunes/EtiquetaEstado';
+
+/** Texto de la etapa actual; la entrevista solo se menciona mientras está por realizarse. */
+function textoEtapa(solicitud) {
+  const etapa = etapaDeSolicitud(solicitud);
+  if (etapa === 'cerrada') return 'Cerrada sin informe';
+  const titulo = obtenerEtapa(etapa).titulo;
+  return etapa === 'agendada' ? `${titulo} · ${textoEntrevista(solicitud)}` : titulo;
+}
 
 /**
- * Panel para asignar la psicóloga responsable y cambiar el estado de la solicitud.
- * Los valores se leen siempre de la solicitud y cada cambio se guarda al momento,
- * así el panel refleja los cambios automáticos (p. ej. al registrar una evaluación).
- * Con `soloLectura` (perfil jefatura) muestra los valores sin permitir cambios.
- * La psicóloga responsable la asigna el analista: sin `puedeAsignar` (perfil psicóloga)
- * se muestra como texto.
+ * Seguimiento de la solicitud: muestra su estado y su etapa, sin permitir cambiarlos.
+ * El avance se gestiona únicamente en el Planner de la psicóloga, para que estado y etapa
+ * no se contradigan. Aquí solo se asigna la psicóloga responsable (perfil analista);
+ * sin `puedeAsignar` se muestra como texto.
  */
 export default function PanelGestion({
   solicitud,
   alAsignarProfesional,
-  alCambiarEstado,
   soloLectura = false,
   puedeAsignar = true,
+  puedeGestionar = false,
 }) {
   return (
     <section className="card border-0 shadow-sm">
       <div className="card-header bg-white">
-        <h2 className="h6 mb-0">Gestión de la solicitud</h2>
+        <h2 className="h6 mb-0">Seguimiento de la solicitud</h2>
       </div>
       <div className="card-body">
         <div className="row g-3">
           <div className="col-12 col-md-6">
-            <label className="form-label" htmlFor="estado-solicitud">
-              Estado
-            </label>
-            <select
-              id="estado-solicitud"
-              className="form-select"
-              value={solicitud.estado}
-              // Cerrada sin evaluación: el estado solo cambia al reabrirla.
-              disabled={soloLectura || Boolean(solicitud.cierre)}
-              onChange={(evento) => alCambiarEstado(evento.target.value)}
-            >
-              {ESTADOS_SOLICITUD.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+            <span className="form-label d-block">Estado</span>
+            <EtiquetaEstado valor={solicitud.estado} />
+            <span className="form-label d-block mt-3">Etapa en el Planner</span>
+            <p className="mb-0">{textoEtapa(solicitud)}</p>
           </div>
 
           <div className="col-12 col-md-6">
@@ -72,11 +68,14 @@ export default function PanelGestion({
             )}
           </div>
         </div>
-        <p className="form-text mb-0 mt-3">
-          {soloLectura
-            ? 'Su perfil solo puede consultar el estado y el responsable.'
-            : 'Los cambios se guardan automáticamente.'}
-        </p>
+        {puedeGestionar ? (
+          <Link to="/planner" className="btn btn-sm btn-outline-primary mt-3">
+            <i className="bi bi-calendar3 me-1" aria-hidden="true" />
+            Gestionar en el Planner
+          </Link>
+        ) : (
+          <p className="form-text mb-0 mt-3">El avance de la solicitud lo gestiona la psicóloga en su Planner.</p>
+        )}
       </div>
     </section>
   );

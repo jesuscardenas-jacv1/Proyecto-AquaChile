@@ -156,21 +156,29 @@ describe('API integrada (Hito 2)', () => {
     assert.equal((await pedir('/postulaciones/9999/cv', { rol: 'analista' })).status, 404);
   });
 
-  it('la psicóloga cambia el estado pero no reasigna la psicóloga responsable', async () => {
+  it('el estado solo avanza en el Planner y la psicóloga no reasigna la responsable', async () => {
     const reasignar = await pedir('/solicitudes/101/estado', {
       rol: 'evaluador',
       metodo: 'PATCH',
       cuerpo: { profesionalResponsable: 'Tomás Riquelme Soto' },
     });
     assert.equal(reasignar.status, 403);
-    const estado = await pedir('/solicitudes/101/estado', {
+    for (const rol of ['evaluador', 'analista']) {
+      for (const estado of ['En proceso', 'Finalizada']) {
+        const cambio = await pedir('/solicitudes/101/estado', { rol, metodo: 'PATCH', cuerpo: { estado } });
+        assert.equal(cambio.status, 409);
+      }
+    }
+    const sinCambios = await pedir('/solicitudes/101', { rol: 'analista' });
+    assert.equal(sinCambios.datos.solicitud.estado, 'Pendiente');
+
+    // Tampoco se evalúa hasta que la entrevista esté realizada.
+    const evaluarAntes = await pedir('/evaluaciones', {
       rol: 'evaluador',
-      metodo: 'PATCH',
-      cuerpo: { estado: 'En proceso' },
+      metodo: 'POST',
+      cuerpo: { solicitudId: 101, resultado: 'Recomendado', observaciones: 'Prueba', fechaEvaluacion: '2026-12-01' },
     });
-    assert.equal(estado.status, 200);
-    assert.equal(estado.datos.solicitud.estado, 'En proceso');
-    await pedir('/solicitudes/101/estado', { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Pendiente' } });
+    assert.equal(evaluarAntes.status, 409);
   });
 
   it('cierra una solicitud sin evaluación con motivo y la reabre en su etapa', async () => {
@@ -318,6 +326,7 @@ describe('API integrada (Hito 2)', () => {
       cuerpo: { candidatoId: 1, cargo: 'Monitor Producción', familiaCargo: 'Técnico B C', reclutador: 'Carolina Muñoz' },
     });
     const solicitudId = nueva.datos.solicitud.id;
+    await pedir(`/solicitudes/${solicitudId}/etapa`, { rol: 'evaluador', metodo: 'PATCH', cuerpo: { etapa: 'realizada' } });
     const competencias = [
       { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: 'Coordina con su turno.', oportunidades: '' },
     ];

@@ -87,6 +87,8 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
 - **Carpeta en el portal:** `PanelDocumentos` muestra la carpeta; al pincharla lista los archivos y `VentanaDocumento` los abre sin salir (PDF, imagen, audio, video y Word `.docx`; el resto se descarga). Los adjuntos del formulario de solicitud se suben a la carpeta al crearla.
 - **Notificaciones:** campana del menú (`CampanaNotificaciones`, tabla `notificaciones`): postulación nueva → analistas; candidato nuevo → los demás analistas; solicitud nueva → psicóloga responsable o, sin asignar, todas; asignación → la psicóloga asignada. Solo con servidor.
 - **Tiempo real:** `GET /api/eventos` (Server-Sent Events, `backend/src/tiempoReal.js`). Llega `notificacion` (aviso al instante en pantalla y en la campana) y `datos` (tras cualquier cambio exitoso, las pantallas vuelven a traer sus listas). Cliente en `src/servicios/tiempoReal.js`. Es en memoria: válido para una sola instancia del backend.
+- **El avance se gestiona solo en el Planner:** estado y etapa cambian con sus acciones (agendar, realizada, cerrar, reabrir) y al
+  registrar la evaluación. El detalle de solicitud solo los muestra, y `PATCH /solicitudes/:id/estado` ya no cambia el estado.
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
   descriptor, informe PDF (con competencias) y pauta de entrevista (confidencial: solo la ve la psicóloga). Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.

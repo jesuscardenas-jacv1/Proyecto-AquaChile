@@ -19,10 +19,20 @@ function DestinoPlanner() {
   );
 }
 
-const renderDetalle = (id = '3') =>
+/** Datos de prueba con cambios en la solicitud indicada. */
+const datosCon = (id, cambios) => {
+  const datos = structuredClone(datosDePrueba);
+  datos.solicitudes = datos.solicitudes.map((s) => (s.id === id ? { ...s, ...cambios } : s));
+  return datos;
+};
+
+// La solicitud 2 está En proceso; se evalúa con la entrevista ya realizada.
+const conEntrevistaRealizada = () => datosCon(2, { etapa: 'realizada' });
+
+const renderDetalle = (id = '3', datos = structuredClone(datosDePrueba)) =>
   render(
     <MemoryRouter initialEntries={[`/solicitudes/${id}`]}>
-      <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+      <ProveedorDatos datosIniciales={datos}>
         <Routes>
           <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
           <Route path="/solicitudes" element={<h1>Listado de solicitudes</h1>} />
@@ -59,24 +69,33 @@ describe('DetalleSolicitud', () => {
     expect(screen.getByLabelText(/psicóloga responsable/i)).toHaveValue('Tomás Riquelme Soto');
   });
 
-  it('cambia el estado de la solicitud a En proceso', async () => {
-    const usuario = userEvent.setup();
+  it('no permite cambiar el estado: se gestiona en el Planner', () => {
     renderDetalle('3');
-
-    await usuario.selectOptions(screen.getByLabelText(/^estado$/i), 'En proceso');
-
-    expect(screen.getByLabelText(/^estado$/i)).toHaveValue('En proceso');
+    expect(screen.queryByRole('combobox', { name: /^estado$/i })).toBeNull();
+    expect(screen.getByRole('link', { name: /gestionar en el planner/i })).toHaveAttribute('href', '/planner');
   });
 
-  it('no permite evaluar una solicitud en estado Pendiente', () => {
+  it('no ofrece reabrir una solicitud cerrada: se reabre en el Planner', () => {
+    renderDetalle('3', datosCon(3, { estado: 'Finalizada', cierre: { motivo: 'Desistió del proceso', fecha: '2026-10-01' } }));
+    expect(screen.queryByRole('button', { name: /reabrir/i })).toBeNull();
+    expect(screen.getByText(/se puede reabrir desde el planner/i)).toBeInTheDocument();
+  });
+
+  it('no permite evaluar una solicitud Pendiente', () => {
     renderDetalle('3');
-    expect(screen.getByText(/debe estar en estado/i)).toBeInTheDocument();
+    expect(screen.getByText(/marca la entrevista como realizada/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
   });
 
-  it('muestra el formulario de evaluación cuando la solicitud está en proceso', async () => {
+  it('no permite evaluar mientras la entrevista solo está agendada', () => {
+    renderDetalle('2', datosCon(2, { etapa: 'agendada' }));
+    expect(screen.getByText(/marca la entrevista como realizada/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /registrar evaluación/i })).toBeNull();
+  });
+
+  it('muestra el formulario de evaluación con la entrevista realizada', async () => {
     const usuario = userEvent.setup();
-    renderDetalle('2');
+    renderDetalle('2', conEntrevistaRealizada());
 
     expect(screen.getByRole('button', { name: /registrar evaluación/i })).toBeInTheDocument();
     await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
@@ -86,7 +105,7 @@ describe('DetalleSolicitud', () => {
     vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
     vi.spyOn(apiDocumentos, 'generarInforme').mockResolvedValue({ ok: true });
     const usuario = userEvent.setup();
-    renderDetalle('2');
+    renderDetalle('2', conEntrevistaRealizada());
 
     await usuario.click(screen.getByRole('radio', { name: 'Recomendado' }));
     await usuario.type(
@@ -148,7 +167,7 @@ describe('DetalleSolicitud', () => {
         .mockResolvedValue({ proveedor: 'local', carpeta: null, archivos: [], permisos: ['informe'] });
       const generarInforme = vi.spyOn(apiDocumentos, 'generarInforme').mockResolvedValue({ ok: true });
       const usuario = userEvent.setup();
-      renderDetalle('2');
+      renderDetalle('2', conEntrevistaRealizada());
       await screen.findByText(/sin documentos todavía/i);
 
       await registrarRecomendado(usuario);
@@ -165,7 +184,7 @@ describe('DetalleSolicitud', () => {
     it('registra la evaluación aunque el servicio de documentos no esté conectado', async () => {
       const generarInforme = vi.spyOn(apiDocumentos, 'generarInforme');
       const usuario = userEvent.setup();
-      renderDetalle('2');
+      renderDetalle('2', conEntrevistaRealizada());
 
       await registrarRecomendado(usuario);
 
@@ -183,7 +202,7 @@ describe('DetalleSolicitud', () => {
       });
       vi.spyOn(apiDocumentos, 'generarInforme').mockRejectedValue(new Error('Error de Microsoft Graph (503)'));
       const usuario = userEvent.setup();
-      renderDetalle('2');
+      renderDetalle('2', conEntrevistaRealizada());
       await screen.findByText(/sin documentos todavía/i);
 
       await registrarRecomendado(usuario);
@@ -196,7 +215,7 @@ describe('DetalleSolicitud', () => {
   describe('editar datos de la solicitud', () => {
     it('corrige el cargo y los datos se ven actualizados', async () => {
       const usuario = userEvent.setup();
-      renderDetalle('2');
+      renderDetalle('2', conEntrevistaRealizada());
 
       await usuario.click(screen.getByRole('button', { name: 'Editar' }));
       await usuario.selectOptions(screen.getByLabelText(/reclutador/i), 'Carolina Muñoz');

@@ -59,7 +59,7 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     });
   }
 
-  // Verificar que la solicitud exista y esté 'En proceso'
+  // Verificar que la solicitud exista y que su entrevista ya se haya realizado
   const solicitud = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(solicitudId);
   if (!solicitud) {
     return res.status(404).json({ error: `La solicitud #${solicitudId} no existe.` });
@@ -68,6 +68,13 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
   if (solicitud.motivo_cierre) {
     return res.status(409).json({
       error: `La solicitud #${solicitudId} se cerró sin evaluación (${solicitud.motivo_cierre}). Reábrala para evaluar.`,
+    });
+  }
+
+  const entrevistaRealizada = solicitud.estado === 'En proceso' && solicitud.etapa === 'realizada';
+  if (!entrevistaRealizada && solicitud.estado !== 'Finalizada') {
+    return res.status(409).json({
+      error: `Primero marque la entrevista de la solicitud #${solicitudId} como realizada en el Planner.`,
     });
   }
 
