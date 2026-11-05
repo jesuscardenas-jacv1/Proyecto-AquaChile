@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { MESES, componerFecha, componerHora, descomponerFecha, descomponerHora, textoFecha } from '../../dominio/fechaHora';
+import {
+  MESES,
+  componerFecha,
+  componerHora,
+  descomponerFecha,
+  descomponerHora,
+  diasDelMes,
+  textoFecha,
+} from '../../dominio/fechaHora';
 import { hoyIso } from '../../dominio/planner';
 
 /** Alto de cada opción y cantidad de opciones visibles a la vez (debe ser impar). */
@@ -145,21 +153,39 @@ function RuedaColumna({ etiqueta, opciones, valor, alCambiar, pendiente = false,
 
 const rango = (desde, hasta) => Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i);
 
+/** Años que se ofrecen además del actual (la agenda no admite años pasados). */
+const ANIOS_ADELANTE = 5;
+
 /**
- * Selector de fecha con tres ruedas: día, mes y año. Si todavía no hay fecha elegida,
- * las ruedas muestran la fecha de hoy y el resumen indica que falta elegirla.
+ * Selector de fecha con tres ruedas: día, mes y año. Solo ofrece fechas de hoy en adelante:
+ * el mes empieza en el actual y sigue con los siguientes (noviembre, diciembre, enero…),
+ * el año empieza en el actual y el día, en el de hoy si el mes es el actual.
+ * Si todavía no hay fecha elegida, las ruedas muestran la fecha de hoy y el resumen indica que falta elegirla.
  */
-export function SelectorFecha({ valor, onChange, anioMinimo, anioMaximo, refInicial, etiqueta = 'Fecha de la entrevista' }) {
-  const hoy = descomponerFecha(hoyIso());
-  const actual = descomponerFecha(valor) ?? hoy;
-  const anioInicial = Math.min(anioMinimo ?? hoy.anio - 1, actual.anio);
-  const anioFinal = Math.max(anioMaximo ?? hoy.anio + 1, actual.anio);
+export function SelectorFecha({ valor, onChange, refInicial, etiqueta = 'Fecha de la entrevista' }) {
+  const minimo = hoyIso();
+  const hoy = descomponerFecha(minimo);
+  // Una fecha anterior a hoy no vale: se trata como si no hubiera fecha elegida.
+  const vigente = valor && valor >= minimo ? valor : '';
+  const actual = descomponerFecha(vigente) ?? hoy;
+  const indiceDeMes = (anio, mes) => anio * 12 + (mes - 1);
+  const indiceActual = indiceDeMes(actual.anio, actual.mes);
+  const indiceHoy = indiceDeMes(hoy.anio, hoy.mes);
+  const indiceFinal = indiceDeMes(hoy.anio + ANIOS_ADELANTE, 12);
 
-  const dias = rango(1, new Date(actual.anio, actual.mes, 0).getDate()).map((n) => ({ valor: n, texto: String(n) }));
-  const meses = MESES.map((nombre, indice) => ({ valor: indice + 1, texto: nombre }));
-  const anios = rango(anioInicial, anioFinal).map((n) => ({ valor: n, texto: String(n) }));
+  // Cualquier cambio pasa por aquí: nunca deja una fecha anterior a hoy.
+  const cambiar = (cambio) => {
+    const nueva = componerFecha({ ...actual, ...cambio });
+    onChange(nueva < minimo ? minimo : nueva);
+  };
 
-  const cambiar = (cambio) => onChange(componerFecha({ ...actual, ...cambio }));
+  const diaMinimo = actual.anio === hoy.anio && actual.mes === hoy.mes ? hoy.dia : 1;
+  const dias = rango(diaMinimo, diasDelMes(actual.anio, actual.mes)).map((n) => ({ valor: n, texto: String(n) }));
+  const meses = rango(indiceHoy, indiceFinal).map((indice) => ({
+    valor: indice,
+    texto: MESES[indice % 12],
+  }));
+  const anios = rango(hoy.anio, hoy.anio + ANIOS_ADELANTE).map((n) => ({ valor: n, texto: String(n) }));
 
   return (
     <div role="group" aria-label={etiqueta}>
@@ -168,26 +194,26 @@ export function SelectorFecha({ valor, onChange, anioMinimo, anioMaximo, refInic
           etiqueta="Día"
           opciones={dias}
           valor={actual.dia}
-          pendiente={!valor}
+          pendiente={!vigente}
           refInicial={refInicial}
           alCambiar={(dia) => cambiar({ dia })}
         />
         <RuedaColumna
           etiqueta="Mes"
           opciones={meses}
-          valor={actual.mes}
-          pendiente={!valor}
-          alCambiar={(mes) => cambiar({ mes })}
+          valor={indiceActual}
+          pendiente={!vigente}
+          alCambiar={(indice) => cambiar({ anio: Math.floor(indice / 12), mes: (indice % 12) + 1 })}
         />
         <RuedaColumna
           etiqueta="Año"
           opciones={anios}
           valor={actual.anio}
-          pendiente={!valor}
-          alCambiar={(anio) => cambiar({ anio })}
+          pendiente={!vigente}
+          alCambiar={(anio) => cambiar({ anio, mes: anio === hoy.anio && actual.mes < hoy.mes ? hoy.mes : actual.mes })}
         />
       </div>
-      <p className="selector-resumen small mb-0 mt-2">{valor ? textoFecha(valor) : 'Elija día, mes y año'}</p>
+      <p className="selector-resumen small mb-0 mt-2">{vigente ? textoFecha(vigente) : 'Elija día, mes y año'}</p>
     </div>
   );
 }
