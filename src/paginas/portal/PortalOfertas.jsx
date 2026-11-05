@@ -15,49 +15,51 @@ export default function PortalOfertas() {
 
   return (
     <div className="d-flex flex-column gap-4">
-      <header className="text-center py-3">
-        <h1 className="h3 mb-2">Ven a ser parte de nuestra comunidad</h1>
-        <p className="text-secondary mb-0 mx-auto" style={{ maxWidth: '40rem' }}>
-          Revisa nuestras ofertas laborales y postula con tus datos y currículum. Si tu perfil se ajusta,
-          un analista del equipo de Reclutamiento y Selección te contactará.
-        </p>
-      </header>
+      <div className="portal-hero d-flex flex-column gap-4">
+        <header className="text-center py-3">
+          <h1 className="h3 mb-2">Ven a ser parte de nuestra comunidad</h1>
+          <p className="text-secondary mb-0 mx-auto" style={{ maxWidth: '40rem' }}>
+            Revisa nuestras ofertas laborales y postula con tus datos y currículum. Si tu perfil se ajusta,
+            un analista del equipo de Reclutamiento y Selección te contactará.
+          </p>
+        </header>
 
-      <section className="card border-0 shadow-sm" aria-label="Buscar ofertas">
-        <div className="card-body row g-2">
-          <div className="col-12 col-md-7">
-            <label className="visually-hidden" htmlFor="buscar-oferta">
-              Buscar ofertas
-            </label>
-            <input
-              id="buscar-oferta"
-              type="search"
-              className="form-control"
-              placeholder="Buscar por cargo, ubicación o región"
-              value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
-            />
+        <section className="card border-0 shadow-sm" aria-label="Buscar ofertas">
+          <div className="card-body row g-2">
+            <div className="col-12 col-md-7">
+              <label className="visually-hidden" htmlFor="buscar-oferta">
+                Buscar ofertas
+              </label>
+              <input
+                id="buscar-oferta"
+                type="search"
+                className="form-control"
+                placeholder="Buscar por cargo, ubicación o región"
+                value={busqueda}
+                onChange={(evento) => setBusqueda(evento.target.value)}
+              />
+            </div>
+            <div className="col-12 col-md-5">
+              <label className="visually-hidden" htmlFor="area-oferta">
+                Área
+              </label>
+              <select
+                id="area-oferta"
+                className="form-select"
+                value={area}
+                onChange={(evento) => setArea(evento.target.value)}
+              >
+                <option value="">Todas las áreas</option>
+                {AREAS_OFERTA.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="col-12 col-md-5">
-            <label className="visually-hidden" htmlFor="area-oferta">
-              Área
-            </label>
-            <select
-              id="area-oferta"
-              className="form-select"
-              value={area}
-              onChange={(evento) => setArea(evento.target.value)}
-            >
-              <option value="">Todas las áreas</option>
-              {AREAS_OFERTA.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <p className="small text-secondary mb-0" aria-live="polite">
         {visibles.length} oferta{visibles.length === 1 ? '' : 's'} disponible{visibles.length === 1 ? '' : 's'}

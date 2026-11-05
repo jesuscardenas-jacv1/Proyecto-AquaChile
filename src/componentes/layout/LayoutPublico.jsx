@@ -7,7 +7,7 @@ import ScrollAlInicio from './ScrollAlInicio';
 /** Estructura del portal público "Trabaja con nosotros" (sin sesión). */
 export default function LayoutPublico() {
   return (
-    <div className="d-flex flex-column min-vh-100 bg-body-tertiary">
+    <div className="portal-publico d-flex flex-column min-vh-100">
       <ScrollAlInicio />
       <header className="navbar navbar-dark bg-primary shadow-sm">
         <div className="container">
@@ -21,7 +21,7 @@ export default function LayoutPublico() {
           </Link>
         </div>
       </header>
-      <main className="container py-4 flex-grow-1">
+      <main className="portal-contenido container py-4 flex-grow-1">
         <EstadoServidor />
         <Outlet />
       </main>
