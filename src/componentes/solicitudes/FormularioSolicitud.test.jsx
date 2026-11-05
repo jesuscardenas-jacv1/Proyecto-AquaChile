@@ -181,7 +181,7 @@ describe('FormularioSolicitud', () => {
     renderFormulario({
       postulante: { nombre: 'Ana Pérez', origen: 'Externo' },
       valoresIniciales: { cargo: 'Cargo de oferta', cv: 'cv-ana.pdf' },
-      descriptorOferta: 'descriptor.pdf',
+      oferta: { cargo: 'Cargo de oferta', descriptorNombre: 'descriptor.pdf' },
       documentosOrigen: { cv, descriptor },
     });
 
@@ -219,6 +219,20 @@ describe('FormularioSolicitud', () => {
     expect(await screen.findByRole('dialog', { name: /mi-cv\.pdf/ })).toBeInTheDocument();
   });
 
+  it('un cargo con descriptor guardado no lo pide, sin importar tildes ni mayúsculas', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario({
+      cargosGuardados: [{ id: 3, nombre: 'Buzo Único', familiaCargo: 'Técnico A', descriptorNombre: 'buzo.pdf' }],
+    });
+
+    expect(screen.getByLabelText(/adjuntar descriptor/i)).toBeInTheDocument();
+    await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'buzo unico');
+
+    expect(screen.getByText('buzo.pdf')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/adjuntar descriptor/i)).toBeNull();
+    expect(screen.getByLabelText(/familia del cargo/i)).toHaveValue('Técnico A');
+  });
+
   it('el CECO se elige de una lista', () => {
     renderFormulario();
     expect(screen.getByRole('combobox', { name: /^ceco/i })).toBeInTheDocument();
@@ -229,7 +243,7 @@ describe('FormularioSolicitud', () => {
     const usuario = userEvent.setup();
     renderFormulario({
       valoresIniciales: { cargo: 'Cargo sin catálogo' },
-      descriptorOferta: 'descriptor-oferta.pdf',
+      oferta: { cargo: 'Cargo sin catálogo', descriptorNombre: 'descriptor-oferta.pdf' },
     });
 
     expect(screen.getByText('descriptor-oferta.pdf')).toBeInTheDocument();

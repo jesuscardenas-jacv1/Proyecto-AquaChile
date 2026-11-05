@@ -535,41 +535,62 @@ describe('API integrada (Hito 2)', () => {
     assert.equal(reabierta.datos.oferta.fechaPublicacion, publicada.datos.oferta.fechaPublicacion);
     assert.equal((await pedir(`/ofertas/${id}`)).status, 200);
 
-    // Descriptor interno: el analista lo sube, el portal no lo ve y se copia a la solicitud.
-    const subirDescriptor = (nombre, rol = 'analista') =>
-      fetch(`${base}/ofertas/${id}/descriptor?nombre=${nombre}`, {
-        method: 'POST',
-        headers: { ...cabeceras(rol), 'Content-Type': 'application/pdf' },
-        body: Buffer.from(`contenido de ${nombre}`),
-      });
-    assert.equal((await subirDescriptor('d.pdf', 'jefatura')).status, 403);
-    assert.equal((await subirDescriptor('d.exe')).status, 400);
-    assert.equal((await subirDescriptor('primero.pdf')).status, 201);
-    const subido = await subirDescriptor('segundo.pdf');
-    assert.equal((await subido.json()).oferta.descriptorNombre, 'segundo.pdf');
-    assert.equal((await pedir(`/ofertas/${id}`)).datos.oferta.descriptorNombre, undefined);
-    assert.ok((await pedir('/ofertas')).datos.ofertas.every((o) => !('descriptorNombre' in o)));
-    assert.equal((await pedir(`/ofertas/${id}/descriptor`, { rol: 'evaluador' })).status, 403);
-    const descarga = await fetch(`${base}/ofertas/${id}/descriptor`, { headers: cabeceras('analista') });
-    assert.equal(await descarga.text(), 'contenido de segundo.pdf');
-
-    const creada = await pedir('/solicitudes', {
-      rol: 'analista',
-      metodo: 'POST',
-      cuerpo: { candidatoId: 1, cargo: 'Operario', familiaCargo: 'Operario', descriptorCargo: 'segundo.pdf' },
-    });
-    const ruta = `/solicitudes/${creada.datos.solicitud.id}/documentos`;
-    assert.equal(
-      (await pedir(`${ruta}/desde-oferta`, { rol: 'evaluador', metodo: 'POST', cuerpo: { ofertaId: id } })).status,
-      403,
-    );
-    assert.equal((await pedir(`${ruta}/desde-oferta`, { rol: 'analista', metodo: 'POST', cuerpo: { ofertaId: id } })).status, 201);
-    const documentos = await pedir(ruta, { rol: 'evaluador' });
-    assert.ok(JSON.stringify(documentos.datos).includes('Descriptor - segundo.pdf'));
-
     // El administrador también gestiona; una oferta inexistente responde 404.
     assert.equal((await pedir('/ofertas/gestion', { rol: 'admin' })).status, 200);
     assert.equal((await pedir('/ofertas/999999', { rol: 'analista', metodo: 'PUT', cuerpo: completa })).status, 404);
+  });
+
+  it('el descriptor se guarda por cargo y se reutiliza en sus solicitudes', async () => {
+    const subir = (nombre, { cargo = 'Cargo Único Prueba', rol = 'analista' } = {}) =>
+      fetch(
+        `${base}/cargos/descriptor?${new URLSearchParams({ cargo, familiaCargo: 'Operario', nombre })}`,
+        {
+          method: 'POST',
+          headers: { ...cabeceras(rol), 'Content-Type': 'application/pdf' },
+          body: Buffer.from(`contenido de ${nombre}`),
+        },
+      );
+
+    // Permisos y validaciones.
+    assert.equal((await subir('d.pdf', { rol: 'jefatura' })).status, 403);
+    assert.equal((await subir('d.pdf', { rol: 'evaluador' })).status, 403);
+    assert.equal((await subir('d.exe')).status, 400);
+    assert.equal((await subir('d.pdf', { cargo: ' ' })).status, 400);
+    assert.equal((await pedir('/cargos')).status, 401);
+    assert.equal((await pedir('/cargos', { rol: 'evaluador' })).status, 403);
+
+    // Al reemplazarlo sigue siendo un solo cargo, aunque cambien tildes o mayúsculas.
+    const primero = await (await subir('primero.pdf')).json();
+    const segundo = await (await subir('segundo.pdf', { cargo: 'cargo unico  prueba' })).json();
+    assert.equal(segundo.cargo.id, primero.cargo.id);
+    assert.equal(segundo.cargo.nombre, 'Cargo Único Prueba');
+    assert.equal(segundo.cargo.familiaCargo, 'Operario');
+    assert.equal(segundo.cargo.descriptorNombre, 'segundo.pdf');
+    const lista = await pedir('/cargos', { rol: 'jefatura' });
+    assert.equal(lista.datos.cargos.filter((c) => c.id === primero.cargo.id).length, 1);
+
+    const id = primero.cargo.id;
+    assert.equal((await pedir(`/cargos/${id}/descriptor`, { rol: 'evaluador' })).status, 403);
+    const descarga = await fetch(`${base}/cargos/${id}/descriptor`, { headers: cabeceras('analista') });
+    assert.equal(await descarga.text(), 'contenido de segundo.pdf');
+
+    // Dos solicitudes del mismo cargo reciben su copia sin volver a subirlo.
+    for (const candidatoId of [1, 2]) {
+      const creada = await pedir('/solicitudes', {
+        rol: 'analista',
+        metodo: 'POST',
+        cuerpo: { candidatoId, cargo: 'Cargo Único Prueba', familiaCargo: 'Operario', descriptorCargo: 'segundo.pdf' },
+      });
+      const ruta = `/solicitudes/${creada.datos.solicitud.id}/documentos`;
+      assert.equal((await pedir(`${ruta}/desde-cargo`, { rol: 'evaluador', metodo: 'POST', cuerpo: { cargoId: id } })).status, 403);
+      assert.equal((await pedir(`${ruta}/desde-cargo`, { rol: 'analista', metodo: 'POST', cuerpo: { cargoId: id } })).status, 201);
+      const documentos = await pedir(ruta, { rol: 'evaluador' });
+      assert.ok(JSON.stringify(documentos.datos).includes('Descriptor - segundo.pdf'));
+    }
+
+    // El portal no recibe el descriptor, y una oferta sin archivo propio lo informa.
+    assert.ok((await pedir('/ofertas')).datos.ofertas.every((o) => !('descriptorNombre' in o)));
+    assert.equal((await pedir('/ofertas/1/descriptor', { rol: 'analista' })).status, 404);
   });
 
   it('avisa a analistas y psicólogas, y cada usuario ve y marca solo sus notificaciones', async () => {

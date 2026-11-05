@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { COLECCIONES, cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
 import { aplicarEdicionOferta, crearOferta, fechaDeHoy } from '../dominio/ofertas';
+import { buscarCargoGuardado } from './catalogos';
 import { detenerTiempoReal, iniciarTiempoReal, suscribirTiempoReal } from '../servicios/tiempoReal';
 import { ESTADOS_EVALUACION } from './constantes';
 import { useAuth } from './AuthContext';
@@ -544,13 +545,18 @@ export function ProveedorDatos({
     [conApi, api, ejecutar, guardarEn],
   );
 
-  /** Deja registrado en pantalla el descriptor recién guardado de una oferta. */
-  const registrarDescriptorOferta = useCallback((id, descriptorNombre) => {
-    setDatos((actual) => ({
-      ...actual,
-      ofertas: actual.ofertas.map((oferta) => (oferta.id === Number(id) ? { ...oferta, descriptorNombre } : oferta)),
-    }));
-  }, []);
+  /**
+   * Deja registrado el descriptor de un cargo: el que devolvió el servidor o, sin servidor,
+   * solo su nombre. Un mismo cargo (sin importar tildes o mayúsculas) no se duplica.
+   */
+  const registrarCargo = useCallback(
+    (cargo) => {
+      const { cargos } = datosRef.current;
+      const existente = buscarCargoGuardado(cargo.nombre, cargos);
+      return guardarEn('cargos', { ...existente, ...cargo, id: cargo.id ?? existente?.id ?? generarId(cargos) });
+    },
+    [guardarEn],
+  );
 
   const obtenerPostulacion = useCallback(
     (id) => datos.postulaciones.find((postulacion) => postulacion.id === Number(id)) ?? null,
@@ -639,6 +645,7 @@ export function ProveedorDatos({
       solicitudes: datos.solicitudes,
       evaluaciones: datos.evaluaciones,
       ofertas: datos.ofertas,
+      cargos: datos.cargos,
       postulaciones: datos.postulaciones,
       modo,
       servidorConfigurado: usarApi,
@@ -652,7 +659,7 @@ export function ProveedorDatos({
       agregarOferta,
       editarOferta,
       cambiarEstadoOferta,
-      registrarDescriptorOferta,
+      registrarCargo,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,
@@ -700,7 +707,7 @@ export function ProveedorDatos({
       agregarOferta,
       editarOferta,
       cambiarEstadoOferta,
-      registrarDescriptorOferta,
+      registrarCargo,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,

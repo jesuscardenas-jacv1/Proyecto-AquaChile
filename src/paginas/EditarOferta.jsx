@@ -9,7 +9,7 @@ import { apiDocumentos } from '../servicios/apiDocumentos';
 /** Edita una oferta; si es un borrador, también permite publicarla. */
 export default function EditarOferta() {
   const { id } = useParams();
-  const { obtenerOferta } = useDatos();
+  const { obtenerOferta, cargos } = useDatos();
   const guardarOferta = useGuardarOferta();
   const [errorDescarga, setErrorDescarga] = useState(null);
   const navegar = useNavigate();
@@ -61,6 +61,7 @@ export default function EditarOferta() {
             alGuardar={guardar}
             alCancelar={() => navegar('/ofertas')}
             alDescargarDescriptor={descargarDescriptor}
+            cargosGuardados={cargos}
           />
         </div>
       </div>

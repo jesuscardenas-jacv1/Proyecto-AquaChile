@@ -99,6 +99,10 @@ function formatearOfertaGestion(o) {
   return { ...formatearOferta(o), descriptorNombre: o.descriptor_nombre ?? '' };
 }
 
+function formatearCargo(c) {
+  return { id: c.id, nombre: c.nombre, familiaCargo: c.familia_cargo, descriptorNombre: c.descriptor_nombre };
+}
+
 function formatearPostulacion(p) {
   return {
     id: p.id,
@@ -118,5 +122,6 @@ module.exports = {
   formatearEvaluacion,
   formatearOferta,
   formatearOfertaGestion,
+  formatearCargo,
   formatearPostulacion,
 };

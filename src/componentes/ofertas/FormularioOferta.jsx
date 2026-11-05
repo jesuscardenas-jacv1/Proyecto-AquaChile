@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ARCHIVOS_PERMITIDOS, FAMILIAS_CARGO } from '../../datos/constantes';
-import { CARGOS, buscarCargo } from '../../datos/catalogos';
-import { documentoCatalogo } from '../../servicios/apiDocumentos';
+import { datosDeCargo, nombresDeCargos, resolverDescriptor } from '../../datos/catalogos';
+import { apiDocumentos, documentoCargo, documentoCatalogo } from '../../servicios/apiDocumentos';
 import VentanaDocumento from '../solicitudes/VentanaDocumento';
 import { AREAS_OFERTA } from '../../datos/demoPostulaciones';
 import { JORNADAS_OFERTA, requisitosDesdeTexto, validarOferta } from '../../dominio/ofertas';
@@ -23,10 +23,16 @@ const VACIA = {
 /**
  * Formulario de una oferta de empleo. Un borrador se puede guardar solo con el título y
  * publicar cuando esté completo; una oferta ya publicada debe seguir completa, porque
- * sus cambios se ven de inmediato en el portal. El descriptor de cargo es interno: viene del
- * catálogo según el cargo o se sube aquí, y es obligatorio para publicar.
+ * sus cambios se ven de inmediato en el portal. El descriptor es interno y se guarda por cargo:
+ * se sube una vez y lo reutilizan las demás ofertas de ese cargo. Es obligatorio para publicar.
  */
-export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancelar, alDescargarDescriptor }) {
+export default function FormularioOferta({
+  inicial = VACIA,
+  alGuardar,
+  alCancelar,
+  alDescargarDescriptor,
+  cargosGuardados = [],
+}) {
   const esBorrador = (inicial.estado ?? 'Borrador') === 'Borrador';
   const [campos, setCampos] = useState({
     ...VACIA,
@@ -37,8 +43,19 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
   const [guardando, setGuardando] = useState(false);
   const [descriptor, setDescriptor] = useState(null);
   const [documentoAbierto, setDocumentoAbierto] = useState(null);
-  const descriptorCatalogo = buscarCargo(campos.cargo)?.descriptorCargo ?? '';
-  const descriptorDisponible = inicial.descriptorNombre || descriptorCatalogo;
+  const resuelto = resolverDescriptor({ cargo: campos.cargo, cargosGuardados, oferta: inicial });
+  const descriptorDisponible = resuelto.nombre;
+  const visorDescriptor =
+    resuelto.origen === 'catalogo'
+      ? () => documentoCatalogo(resuelto.nombre)
+      : resuelto.origen === 'cargo' && apiDocumentos.conectado()
+        ? () => documentoCargo(resuelto.cargoGuardado)
+        : null;
+  const textoOrigen = {
+    cargo: '· guardado para este cargo',
+    oferta: '· subido en esta oferta',
+    catalogo: '· de demostración para este cargo',
+  }[resuelto.origen];
 
   const cambiar = (evento) => {
     const { name, value } = evento.target;
@@ -48,7 +65,7 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
 
   const cambiarCargo = (evento) => {
     const cargo = evento.target.value;
-    const encontrado = buscarCargo(cargo);
+    const encontrado = datosDeCargo(cargo, cargosGuardados);
     setCampos((actual) => ({ ...actual, cargo, ...(encontrado ? { familiaCargo: encontrado.familiaCargo } : {}) }));
     setErrores((actual) => ({
       ...actual,
@@ -76,6 +93,9 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
     const nuevosErrores = validarOferta(campos, { completa: publicar || !esBorrador });
     if (publicar && !descriptor && !descriptorDisponible) {
       nuevosErrores.descriptor = 'Sube el descriptor de cargo para publicar la oferta.';
+    }
+    if (descriptor && !campos.cargo.trim()) {
+      nuevosErrores.cargo = 'Indica el cargo para guardar su descriptor.';
     }
     setErrores(nuevosErrores);
     if (hayErrores(nuevosErrores)) return;
@@ -159,8 +179,8 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
             onChange={cambiarCargo}
           />
           <datalist id="oferta-cargos">
-            {CARGOS.map((cargo) => (
-              <option key={cargo.nombre} value={cargo.nombre} />
+            {nombresDeCargos(cargosGuardados).map((nombre) => (
+              <option key={nombre} value={nombre} />
             ))}
           </datalist>
           {error('cargo')}
@@ -196,32 +216,30 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
         </div>
         <div className="col-12">
           <label className="form-label" htmlFor="oferta-descriptor">
-            Descriptor de cargo{descriptorCatalogo || inicial.descriptorNombre ? '' : ' *'}{' '}
+            Descriptor de cargo{descriptorDisponible ? '' : ' *'}{' '}
             <small className="text-secondary fw-normal">(uso interno, no se publica)</small>
           </label>
           {descriptorDisponible ? (
             <div className="d-flex flex-wrap align-items-center gap-2 small mb-2">
               <i className="bi bi-file-earmark-text text-secondary" aria-hidden="true" />
-              <span className="text-break">{inicial.descriptorNombre || descriptorCatalogo}</span>
-              <span className="text-secondary">
-                {inicial.descriptorNombre ? '· subido en esta oferta' : '· asociado al cargo'}
-              </span>
-              {inicial.descriptorNombre && alDescargarDescriptor ? (
+              <span className="text-break">{resuelto.nombre}</span>
+              <span className="text-secondary">{textoOrigen}</span>
+              {resuelto.origen === 'oferta' && alDescargarDescriptor ? (
                 <button type="button" className="btn btn-sm btn-outline-primary" onClick={alDescargarDescriptor}>
                   <i className="bi bi-download me-1" aria-hidden="true" />
                   Descargar
                 </button>
               ) : null}
-              {!inicial.descriptorNombre ? (
+              {visorDescriptor ? (
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-primary py-0 px-2"
-                  aria-label={`Ver ${descriptorCatalogo}`}
+                  aria-label={`Ver ${resuelto.nombre}`}
                   title="Vista previa"
                   onClick={() =>
                     setDocumentoAbierto({
-                      archivo: { nombre: descriptorCatalogo },
-                      api: documentoCatalogo(descriptorCatalogo),
+                      archivo: { nombre: resuelto.nombre },
+                      api: visorDescriptor(),
                     })
                   }
                 >
@@ -239,9 +257,10 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
           />
           {error('descriptor')}
           <div className="form-text">
-            {descriptorDisponible ? 'Sube un archivo solo si quieres reemplazarlo. ' : ''}1 archivo de hasta{' '}
-            {ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB ({ARCHIVOS_PERMITIDOS.descripcion}). Se usará al pasar postulantes
-            a evaluación.
+            {descriptorDisponible
+              ? 'Sube un archivo solo si quieres reemplazarlo. '
+              : 'Se guarda para este cargo y no se volverá a pedir en sus próximas ofertas. '}
+            1 archivo de hasta {ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB ({ARCHIVOS_PERMITIDOS.descripcion}).
           </div>
         </div>
         {esBorrador ? (

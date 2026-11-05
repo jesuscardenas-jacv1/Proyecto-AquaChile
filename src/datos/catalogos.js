@@ -33,12 +33,39 @@ const buscarEn = (catalogo, nombre) =>
 /** Datos asociados a un cargo del catálogo (familia y descriptor), o null si no existe. */
 export const buscarCargo = (nombre) => buscarEn(CARGOS, nombre);
 
+/** Cargo con descriptor guardado en el sistema, o null. */
+export const buscarCargoGuardado = (nombre, cargosGuardados = []) =>
+  buscarEn(cargosGuardados, nombre);
+
 /**
- * Descriptor disponible para una oferta: el que se subió al publicarla o, si no tiene,
- * el asociado a su cargo en el catálogo.
+ * De dónde sale el descriptor de un cargo, en orden: el guardado para ese cargo, el que una
+ * oferta antigua subió por su cuenta o el PDF de demostración del catálogo.
+ * @returns {{ nombre: string, origen: 'cargo'|'oferta'|'catalogo'|'', cargoGuardado?: Object }}
  */
-export const descriptorDeOferta = (oferta) =>
-  oferta?.descriptorNombre || buscarCargo(oferta?.cargo)?.descriptorCargo || '';
+export function resolverDescriptor({ cargo, cargosGuardados = [], oferta = null } = {}) {
+  const cargoGuardado = buscarCargoGuardado(cargo, cargosGuardados);
+  if (cargoGuardado?.descriptorNombre) {
+    return { nombre: cargoGuardado.descriptorNombre, origen: 'cargo', cargoGuardado };
+  }
+  if (oferta?.descriptorNombre && normalizar(oferta.cargo ?? '') === normalizar(cargo?.trim() ?? '')) {
+    return { nombre: oferta.descriptorNombre, origen: 'oferta' };
+  }
+  const catalogo = buscarCargo(cargo)?.descriptorCargo;
+  return catalogo ? { nombre: catalogo, origen: 'catalogo' } : { nombre: '', origen: '' };
+}
+
+/** Datos conocidos de un cargo (familia), mirando primero los guardados en el sistema. */
+export const datosDeCargo = (nombre, cargosGuardados = []) =>
+  buscarCargoGuardado(nombre, cargosGuardados) ?? buscarCargo(nombre);
+
+/** Nombres para autocompletar: el catálogo y los cargos creados en el sistema. */
+export function nombresDeCargos(cargosGuardados = []) {
+  const nombres = new Map(CARGOS.map(({ nombre }) => [normalizar(nombre), nombre]));
+  cargosGuardados.forEach(({ nombre }) => {
+    if (!nombres.has(normalizar(nombre))) nombres.set(normalizar(nombre), nombre);
+  });
+  return [...nombres.values()].sort((a, b) => a.localeCompare(b, 'es'));
+}
 
 /** Indica si el nombre corresponde a un descriptor del catálogo (hay un PDF de demostración). */
 export const esDescriptorCatalogo = (nombre) =>
