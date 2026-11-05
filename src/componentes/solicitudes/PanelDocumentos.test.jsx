@@ -88,14 +88,36 @@ describe('PanelDocumentos', () => {
     expect(await screen.findByRole('button', { name: 'Carpeta S0007 - Ana Pérez: Sin documentos todavía' })).toBeInTheDocument();
   });
 
-  it('solo el administrador ve el enlace a la nube; los demás trabajan en el portal', async () => {
+  it.each(['evaluador', 'analista', 'admin'])('%s abre la carpeta desde la insignia del proveedor', async (rol) => {
     render(
-      <ProveedorAuth usuarioInicial={{ id: 2, nombre: 'Psicóloga', rol: 'evaluador' }}>
+      <ProveedorAuth usuarioInicial={{ id: 2, nombre: 'Usuario', rol }}>
         <PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />
       </ProveedorAuth>,
     );
-    await screen.findByText('S0007 - Ana Pérez');
-    expect(screen.queryByRole('link', { name: /abrir en/i })).toBeNull();
+    const enlace = await screen.findByRole('link', { name: 'Abrir la carpeta en OneDrive' });
+    expect(enlace).toHaveAttribute('href', 'https://onedrive.test/c1');
+    expect(enlace).toHaveAttribute('target', '_blank');
+  });
+
+  it('la jefatura ve el proveedor, pero sin enlace a la carpeta', async () => {
+    render(
+      <ProveedorAuth usuarioInicial={{ id: 4, nombre: 'Jefatura', rol: 'jefatura' }}>
+        <PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />
+      </ProveedorAuth>,
+    );
+    expect(await screen.findByText('OneDrive')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /abrir la carpeta/i })).toBeNull();
+  });
+
+  it('sin enlace en la nube la insignia no es un enlace', async () => {
+    render(
+      <PanelDocumentos
+        solicitud={solicitud}
+        api={crearApi({ ...datosConArchivos, proveedor: 'local', carpeta: { id: 'c1', nombre: 'S0007 - Ana Pérez', webUrl: null } })}
+      />,
+    );
+    expect(await screen.findByText('Almacenamiento local')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /abrir la carpeta/i })).toBeNull();
   });
 
   it('muestra la carpeta de OneDrive y los archivos agrupados por categoría', async () => {
@@ -104,7 +126,7 @@ describe('PanelDocumentos', () => {
     expect(await screen.findByText('S0007 - Ana Pérez')).toBeInTheDocument();
     await abrirCarpeta();
     expect(screen.getByText('OneDrive')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /abrir en onedrive/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Abrir la carpeta en OneDrive' })).toHaveAttribute(
       'href',
       'https://onedrive.test/c1',
     );
@@ -136,7 +158,7 @@ describe('PanelDocumentos', () => {
     render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosDrive)} />);
 
     expect(await screen.findByText('Google Drive')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /abrir en google drive/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Abrir la carpeta en Google Drive' })).toHaveAttribute(
       'href',
       'https://drive.google.com/drive/folders/c1',
     );

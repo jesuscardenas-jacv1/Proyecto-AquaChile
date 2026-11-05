@@ -33,8 +33,9 @@ function formatearTamano(bytes) {
 
 /**
  * Carpeta de documentos de la solicitud: CV, descriptor de cargo e informe psicolaboral.
- * Al pincharla lista los archivos y al pinchar uno se abre dentro del portal, sin ir a
- * Google Drive u OneDrive (el backend decide dónde viven). También sube, descarga y elimina.
+ * Al pincharla lista los archivos y al pinchar uno se abre dentro del portal (el backend
+ * decide dónde viven). También sube, descarga y elimina. La insignia del proveedor
+ * lleva a la carpeta en Google Drive u OneDrive.
  */
 export default function PanelDocumentos({
   solicitud,
@@ -48,7 +49,7 @@ export default function PanelDocumentos({
   const [abierta, setAbierta] = useState(false);
   const [documento, setDocumento] = useState(null);
   const [documentoReferencia, setDocumentoReferencia] = useState(null);
-  const { esAdmin } = useAuth();
+  const { soloLectura } = useAuth();
   const entradas = useRef({});
   // Nombres que la solicitud trae de su creación (el CV elegido y el descriptor del
   // catálogo de cargos): se muestran como referencia mientras no estén en la carpeta.
@@ -116,6 +117,8 @@ export default function PanelDocumentos({
 
   const { cargando, datos, error } = estado;
   const proveedor = PROVEEDORES[datos?.proveedor];
+  // La jefatura solo consulta en el portal; la carpeta en la nube es para quien trabaja el proceso.
+  const enlaceCarpeta = soloLectura ? null : datos?.carpeta?.webUrl;
   const archivos = datos?.archivos ?? [];
   const permisos = datos?.permisos ?? [];
   // Las categorías confidenciales solo aparecen para quien puede subirlas o ya tiene archivos en ellas.
@@ -142,23 +145,25 @@ export default function PanelDocumentos({
           </h2>
         </div>
         <div className="d-flex align-items-center gap-2">
-          {proveedor ? (
+          {/* La insignia abre la carpeta en la nube; Drive decide si la cuenta del usuario tiene acceso. */}
+          {proveedor && enlaceCarpeta ? (
+            <a
+              href={enlaceCarpeta}
+              target="_blank"
+              rel="noreferrer"
+              className="badge bg-light text-secondary border fw-medium text-decoration-none"
+              aria-label={`Abrir la carpeta en ${proveedor.etiqueta}`}
+              title={`Abrir la carpeta en ${proveedor.etiqueta}`}
+            >
+              <i className={`bi ${proveedor.icono} me-1`} aria-hidden="true" />
+              {proveedor.etiqueta}
+              <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />
+            </a>
+          ) : proveedor ? (
             <span className="badge bg-light text-secondary border fw-medium">
               <i className={`bi ${proveedor.icono} me-1`} aria-hidden="true" />
               {proveedor.etiqueta}
             </span>
-          ) : null}
-          {/* Enlace técnico: la carpeta en la nube es de la cuenta del sistema; el resto trabaja aquí. */}
-          {esAdmin && datos?.carpeta?.webUrl ? (
-            <a
-              href={datos.carpeta.webUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
-            >
-              <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
-              Abrir en {proveedor?.etiqueta ?? 'la nube'}
-            </a>
           ) : null}
         </div>
       </div>
