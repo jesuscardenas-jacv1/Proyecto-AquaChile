@@ -44,7 +44,7 @@ describe('VentanaPostulante', () => {
     expect(screen.getByText('Calbuco, Los Lagos')).toBeInTheDocument();
     expect(screen.getByText('Turnos rotativos')).toBeInTheDocument();
     expect(screen.getByText('cv-camila.pdf')).toBeInTheDocument();
-    expect(screen.getByText(/la descarga necesita el servidor/i)).toBeInTheDocument();
+    expect(screen.getByText(/ver o descargar el cv necesita el servidor/i)).toBeInTheDocument();
   });
 
   it('el analista decide desde la ventana y se cierra con Escape', async () => {
@@ -72,6 +72,25 @@ describe('VentanaPostulante', () => {
     await usuario.click(screen.getByRole('button', { name: 'Descargar CV' }));
     expect(api.descargarCvPostulacion).toHaveBeenCalledWith(postulacion);
     expect(await screen.findByRole('alert')).toHaveTextContent('El postulante no tiene un CV cargado.');
+  });
+
+  it('con servidor muestra el CV en el visor y al cerrarlo vuelve a la ficha', async () => {
+    const usuario = userEvent.setup();
+    const { createObjectURL, revokeObjectURL } = URL;
+    URL.createObjectURL = vi.fn(() => 'blob:cv');
+    URL.revokeObjectURL = vi.fn();
+    const api = { contenidoCvPostulacion: vi.fn().mockResolvedValue(new Blob(['pdf'])) };
+    const alCerrar = vi.fn();
+    abrir({ conServidor: true, api, alCerrar });
+
+    await usuario.click(screen.getByRole('button', { name: 'Ver CV' }));
+    expect(api.contenidoCvPostulacion).toHaveBeenCalledWith(postulacion);
+    expect(await screen.findByTitle(/cv-camila\.pdf/)).toBeInTheDocument();
+
+    await usuario.keyboard('{Escape}');
+    expect(alCerrar).not.toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: 'Ver CV' })).toBeInTheDocument();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
   });
 
   it('una postulación en evaluación enlaza a su solicitud', () => {
