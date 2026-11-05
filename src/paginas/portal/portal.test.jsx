@@ -79,14 +79,20 @@ describe('Portal "Trabaja con nosotros"', () => {
     expect(subirCv).toHaveBeenCalledWith(3, expect.any(File), 'Ana Pérez');
   });
 
-  it('confirma la postulación aunque el CV no llegue al servidor', async () => {
+  it('avisa si el CV no llegó al servidor y permite reintentar', async () => {
     const usuario = userEvent.setup();
-    renderPortal('/trabaja-con-nosotros/ofertas/1', vi.fn().mockResolvedValue(false));
+    const subirCv = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    renderPortal('/trabaja-con-nosotros/ofertas/1', subirCv);
 
     await completarFormulario(usuario);
     await usuario.click(screen.getByRole('button', { name: /enviar postulación/i }));
 
-    expect(await screen.findByText(/tu currículum quedó registrado/i)).toBeInTheDocument();
+    expect(await screen.findByText(/gracias por postular, ana/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/currículum no se pudo enviar/i);
+
+    await usuario.click(screen.getByRole('button', { name: /reintentar envío/i }));
+    expect(subirCv).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(/currículum no se pudo enviar/i)).toBeNull();
   });
 
   it('avisa si la oferta no existe', () => {

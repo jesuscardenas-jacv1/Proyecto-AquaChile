@@ -16,6 +16,7 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState(null);
+  const [reintentandoCv, setReintentandoCv] = useState(false);
 
   const oferta = obtenerOferta(id);
   const volver = (
@@ -57,12 +58,19 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
       }
       const { postulacion } = respuesta;
       const cvGuardado = await subirCv(postulacion.id, cv, datos.nombre);
-      setResultado({ nombre: datos.nombre, cvGuardado });
+      setResultado({ nombre: datos.nombre, cvGuardado, postulacionId: postulacion.id, cv });
     } catch (excepcion) {
       setError(excepcion.message);
     } finally {
       setEnviando(false);
     }
+  };
+
+  const reintentarCv = async () => {
+    setReintentandoCv(true);
+    const cvGuardado = await subirCv(resultado.postulacionId, resultado.cv, resultado.nombre);
+    setResultado((actual) => ({ ...actual, cvGuardado }));
+    setReintentandoCv(false);
   };
 
   return (
@@ -118,9 +126,20 @@ export default function PortalOferta({ subirCv = subirCvPostulacion }) {
                   un analista de Reclutamiento y Selección te contactará.
                 </p>
                 {!resultado.cvGuardado ? (
-                  <p className="small text-secondary mt-3 mb-0">
-                    Tu currículum quedó registrado; si lo necesitamos nuevamente te lo solicitaremos.
-                  </p>
+                  <div className="alert alert-warning text-start small mt-3 mb-0" role="alert">
+                    <p className="mb-2">
+                      Tu postulación quedó registrada, pero <strong>tu currículum no se pudo enviar</strong>.
+                      Inténtalo de nuevo para que el equipo pueda revisarlo.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={reintentarCv}
+                      disabled={reintentandoCv}
+                    >
+                      {reintentandoCv ? 'Enviando…' : 'Reintentar envío del currículum'}
+                    </button>
+                  </div>
                 ) : null}
                 <Link to="/trabaja-con-nosotros" className="btn btn-outline-primary btn-sm mt-4">
                   Ver más ofertas

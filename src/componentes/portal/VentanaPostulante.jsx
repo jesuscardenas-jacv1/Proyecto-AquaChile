@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { formatearFecha } from '../../dominio/formateo';
 import { apiDocumentos } from '../../servicios/apiDocumentos';
+import VentanaDocumento from '../solicitudes/VentanaDocumento';
 
 const SELECTOR_ENFOCABLES =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -37,6 +38,9 @@ export default function VentanaPostulante({
   const nombre = candidato?.nombre ?? 'Postulante eliminado';
   const [descargando, setDescargando] = useState(false);
   const [errorCv, setErrorCv] = useState(null);
+  const [viendoCv, setViendoCv] = useState(false);
+  const refViendoCv = useRef(false);
+  refViendoCv.current = viendoCv;
   const refDialogo = useRef(null);
   const refCerrarBoton = useRef(null);
   const refCerrar = useRef(alCerrar);
@@ -48,6 +52,8 @@ export default function VentanaPostulante({
     refCerrarBoton.current?.focus();
 
     const alPresionarTecla = (evento) => {
+      // Con el CV abierto, el teclado lo atiende el visor.
+      if (refViendoCv.current) return;
       if (evento.key === 'Escape') {
         refCerrar.current();
         return;
@@ -74,6 +80,20 @@ export default function VentanaPostulante({
     };
   }, []);
 
+  // El visor comparte la ventana modal: al cerrarlo, esta ventana sigue abierta.
+  useEffect(() => {
+    if (!viendoCv) document.body.classList.add('modal-open');
+  }, [viendoCv]);
+
+  const archivoCv = useMemo(() => ({ nombre: postulacion.cvNombre }), [postulacion.cvNombre]);
+  const apiVisorCv = useMemo(
+    () => ({
+      contenido: () => api.contenidoCvPostulacion(postulacion),
+      descargar: () => api.descargarCvPostulacion(postulacion),
+    }),
+    [api, postulacion],
+  );
+
   const descargarCv = async () => {
     setErrorCv(null);
     setDescargando(true);
@@ -85,6 +105,10 @@ export default function VentanaPostulante({
       setDescargando(false);
     }
   };
+
+  if (viendoCv) {
+    return <VentanaDocumento archivo={archivoCv} api={apiVisorCv} alCerrar={() => setViendoCv(false)} />;
+  }
 
   return createPortal(
     <>
@@ -168,17 +192,30 @@ export default function VentanaPostulante({
                       {postulacion.cvNombre}
                     </span>
                     {conServidor ? (
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={descargarCv}
-                        disabled={descargando}
-                      >
-                        <i className="bi bi-download me-1" aria-hidden="true" />
-                        {descargando ? 'Descargando…' : 'Descargar CV'}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => {
+                            setErrorCv(null);
+                            setViendoCv(true);
+                          }}
+                        >
+                          <i className="bi bi-eye me-1" aria-hidden="true" />
+                          Ver CV
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={descargarCv}
+                          disabled={descargando}
+                        >
+                          <i className="bi bi-download me-1" aria-hidden="true" />
+                          {descargando ? 'Descargando…' : 'Descargar CV'}
+                        </button>
+                      </>
                     ) : (
-                      <small className="text-secondary">La descarga necesita el servidor.</small>
+                      <small className="text-secondary">Ver o descargar el CV necesita el servidor.</small>
                     )}
                   </div>
                 ) : (

@@ -108,6 +108,12 @@ async function entregarDescarga(respuesta, nombre) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Contenido del CV del portal, para mostrarlo dentro de la bandeja de Postulaciones. */
+export async function contenidoCvPostulacion(postulacion) {
+  const respuesta = await llamar(`/postulaciones/${postulacion.id}/cv`);
+  return respuesta.blob();
+}
+
 /** Descarga el CV que el postulante subió desde el portal (bandeja de Postulaciones). */
 export async function descargarCvPostulacion(postulacion) {
   const respuesta = await llamar(`/postulaciones/${postulacion.id}/cv`);
@@ -199,5 +205,6 @@ export const apiDocumentos = {
   eliminar: eliminarDocumento,
   generarInforme,
   traerCvDePostulacion,
+  contenidoCvPostulacion,
   descargarCvPostulacion,
 };
