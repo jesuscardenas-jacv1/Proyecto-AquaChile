@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import logoAquaChile from '../../assets/logo-aquachile-blanco.png';
 import { useAuth } from '../../datos/AuthContext';
 import { ROLES } from '../../datos/usuarios';
@@ -56,6 +56,10 @@ export default function Navbar() {
   ];
 
   const clasesEnlace = ({ isActive }) => `barra-enlace ${isActive ? 'active' : ''}`.trim();
+  // "Solicitudes" es prefijo de "Nueva solicitud" (/solicitudes/nueva): no debe quedar activo a la vez.
+  const { pathname } = useLocation();
+  const clasesSolicitudes = ({ isActive }) =>
+    `barra-enlace ${isActive && !pathname.startsWith('/solicitudes/nueva') ? 'active' : ''}`.trim();
 
   const manejarCerrarSesion = () => {
     cerrarSesion();
@@ -93,7 +97,7 @@ export default function Navbar() {
               <NavLink
                 to={ruta}
                 end={exacto}
-                className={clasesEnlace}
+                className={ruta === '/solicitudes' ? clasesSolicitudes : clasesEnlace}
                 title={colapsada ? etiqueta : undefined}
                 onClick={() => setAbierto(false)}
               >
