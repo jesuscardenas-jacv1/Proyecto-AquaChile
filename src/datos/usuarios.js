@@ -15,7 +15,7 @@ export const ROLES = {
     etiqueta: 'Analista',
     nombre: 'Analista de Reclutamiento',
     descripcion: 'Registra candidatos y genera solicitudes de evaluación.',
-    permisos: ['Crear y editar candidatos', 'Crear solicitudes', 'Asignar responsable y estado', 'Subir CV y descriptor'],
+    permisos: ['Crear, editar y publicar ofertas de empleo', 'Crear y editar candidatos', 'Crear solicitudes', 'Asignar responsable y estado', 'Subir CV y descriptor'],
   },
   evaluador: {
     etiqueta: 'Evaluador',

@@ -59,7 +59,7 @@ router.post('/', limitePostular, (req, res) => {
   const error = validarPostulante(datos);
   if (error) return res.status(400).json({ error });
 
-  const oferta = db.prepare("SELECT * FROM ofertas WHERE id = ? AND estado = 'Abierta'").get(Number(datos.ofertaId));
+  const oferta = db.prepare("SELECT * FROM ofertas WHERE id = ? AND estado = 'Abierta' AND publicada = 1").get(Number(datos.ofertaId));
   if (!oferta) {
     return res.status(404).json({ error: 'La oferta no existe o ya cerró su proceso de postulación.' });
   }

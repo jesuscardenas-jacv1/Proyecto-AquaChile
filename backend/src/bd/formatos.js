@@ -90,7 +90,7 @@ function formatearOferta(o) {
     descripcion: o.descripcion,
     requisitos,
     jornada: o.jornada,
-    estado: o.estado,
+    estado: o.publicada === 0 ? 'Borrador' : o.estado,
   };
 }
 

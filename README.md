@@ -138,6 +138,7 @@ src/
 | `/login` | Inicio de sesión corporativo | No autenticado |
 | `/trabaja-con-nosotros` | Portal público con ofertas laborales por área | Público (sin sesión) |
 | `/trabaja-con-nosotros/ofertas/:id` | Detalle de la oferta y formulario de postulación con CV | Público (sin sesión) |
+| `/ofertas` | Crear, editar, publicar, cerrar y reabrir las ofertas del portal | Analista y Admin (Jefatura solo lectura) |
 | `/postulaciones` | Bandeja de postulaciones: pasar a evaluación o descartar | Analista y Admin (Jefatura solo lectura) |
 | `/` | Dashboard con indicadores y KPIs generales | Todos los roles |
 | `/candidatos` | Directorio de candidatos con búsqueda | Todos; el Evaluador solo ve a quienes pasaron a evaluación |

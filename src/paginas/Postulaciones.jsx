@@ -113,7 +113,7 @@ export default function Postulaciones() {
               onChange={(evento) => cambiar('ofertaId', evento.target.value)}
             >
               <option value="">Todas las ofertas</option>
-              {ofertas.map((oferta) => (
+              {ofertas.filter((oferta) => oferta.estado !== 'Borrador').map((oferta) => (
                 <option key={oferta.id} value={oferta.id}>
                   {oferta.titulo}
                 </option>
