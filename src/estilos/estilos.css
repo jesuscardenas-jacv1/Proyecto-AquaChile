@@ -1684,6 +1684,9 @@ h1, h2, h3, h4, h5, h6,
 .app-shell[data-modulo='dashboard'] {
   --modulo-color: #1f4e5f;
 }
+.app-shell[data-modulo='ofertas'] {
+  --modulo-color: #0f766e;
+}
 .app-shell[data-modulo='postulaciones'] {
   --modulo-color: #2b6cb0;
 }

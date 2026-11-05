@@ -5,6 +5,7 @@
 
 const MODULOS = [
   ['/planner', 'planner'],
+  ['/ofertas', 'ofertas'],
   ['/postulaciones', 'postulaciones'],
   ['/candidatos', 'candidatos'],
   ['/solicitudes', 'solicitudes'],

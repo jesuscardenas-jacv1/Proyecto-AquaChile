@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { COLECCIONES, cargarDatos, generarId, guardarDatos, obtenerSemilla } from './almacen';
+import { aplicarEdicionOferta, crearOferta, fechaDeHoy } from '../dominio/ofertas';
 import { detenerTiempoReal, iniciarTiempoReal, suscribirTiempoReal } from '../servicios/tiempoReal';
 import { ESTADOS_EVALUACION } from './constantes';
 import { useAuth } from './AuthContext';
@@ -499,6 +500,50 @@ export function ProveedorDatos({
     [datos.ofertas],
   );
 
+  /** Crea una oferta como borrador, o publicada si `publicar` es verdadero. */
+  const agregarOferta = useCallback(
+    async (datosOferta, { publicar = false } = {}) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('ofertas', await api.crearOferta(datosOferta, publicar)));
+      }
+      const nueva = crearOferta(generarId(datosRef.current.ofertas), datosOferta, { publicar, fecha: fechaDeHoy() });
+      return guardarEn('ofertas', nueva);
+    },
+    [conApi, api, ejecutar, guardarEn],
+  );
+
+  /** Edita una oferta; un borrador se publica a la vez si `publicar` es verdadero. */
+  const editarOferta = useCallback(
+    async (id, datosOferta, { publicar = false } = {}) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('ofertas', await api.editarOferta(id, datosOferta, publicar)));
+      }
+      const actual = datosRef.current.ofertas.find((oferta) => oferta.id === Number(id));
+      return actual
+        ? guardarEn('ofertas', aplicarEdicionOferta(actual, datosOferta, { publicar, fecha: fechaDeHoy() }))
+        : null;
+    },
+    [conApi, api, ejecutar, guardarEn],
+  );
+
+  /** Publica un borrador, cierra una oferta abierta o reabre una cerrada. */
+  const cambiarEstadoOferta = useCallback(
+    async (id, estado) => {
+      if (conApi) {
+        return ejecutar(async () => guardarEn('ofertas', await api.cambiarEstadoOferta(id, estado)));
+      }
+      const actual = datosRef.current.ofertas.find((oferta) => oferta.id === Number(id));
+      return actual
+        ? guardarEn('ofertas', {
+            ...actual,
+            estado,
+            fechaPublicacion: actual.fechaPublicacion || fechaDeHoy(),
+          })
+        : null;
+    },
+    [conApi, api, ejecutar, guardarEn],
+  );
+
   const obtenerPostulacion = useCallback(
     (id) => datos.postulaciones.find((postulacion) => postulacion.id === Number(id)) ?? null,
     [datos.postulaciones],
@@ -596,6 +641,9 @@ export function ProveedorDatos({
       recargar: cargar,
       refrescar,
       obtenerOferta,
+      agregarOferta,
+      editarOferta,
+      cambiarEstadoOferta,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,
@@ -640,6 +688,9 @@ export function ProveedorDatos({
       registrarEvaluacion,
       obtenerEvaluacionDeSolicitud,
       obtenerOferta,
+      agregarOferta,
+      editarOferta,
+      cambiarEstadoOferta,
       obtenerPostulacion,
       postular,
       actualizarPostulacion,

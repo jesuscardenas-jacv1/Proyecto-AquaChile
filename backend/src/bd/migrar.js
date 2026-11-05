@@ -176,6 +176,8 @@ function migrar() {
   agregarColumna('solicitudes', 'comentario_cierre', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'fecha_cierre', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'cerrada_por', "TEXT NOT NULL DEFAULT ''");
+  // Las ofertas existentes ya están publicadas; una nueva puede partir como borrador (0).
+  agregarColumna('ofertas', 'publicada', 'INTEGER NOT NULL DEFAULT 1');
 
   actualizarRolesUsuarios();
 

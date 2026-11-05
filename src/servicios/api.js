@@ -146,7 +146,8 @@ export const apiDatos = {
       solicitar('/candidatos'),
       solicitar('/solicitudes'),
       solicitar('/evaluaciones'),
-      solicitar('/ofertas', { publico: true }),
+      // Quien gestiona ofertas también ve borradores y cerradas; el portal filtra las abiertas.
+      ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/ofertas/gestion') : solicitar('/ofertas', { publico: true }),
       ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/postulaciones') : { postulaciones: [] },
     ]);
     return {
@@ -183,6 +184,13 @@ export const apiDatos = {
       : await solicitar('/evaluaciones', { metodo: 'POST', cuerpo: { solicitudId, ...datos } });
     return respuesta.evaluacion;
   },
+
+  crearOferta: async (datos, publicar) =>
+    (await solicitar('/ofertas', { metodo: 'POST', cuerpo: { ...datos, publicar } })).oferta,
+  editarOferta: async (id, datos, publicar) =>
+    (await solicitar(`/ofertas/${id}`, { metodo: 'PUT', cuerpo: { ...datos, publicar } })).oferta,
+  cambiarEstadoOferta: async (id, estado) =>
+    (await solicitar(`/ofertas/${id}/estado`, { metodo: 'PATCH', cuerpo: { estado } })).oferta,
 
   postular: async (ofertaId, datos) =>
     (await solicitar('/postulaciones', { metodo: 'POST', cuerpo: { ofertaId, ...datos }, publico: true }))

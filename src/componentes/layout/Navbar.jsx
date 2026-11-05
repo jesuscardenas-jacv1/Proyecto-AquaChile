@@ -45,7 +45,10 @@ export default function Navbar() {
   const enlaces = [
     { ruta: '/', etiqueta: 'Dashboard', icono: 'bi-grid-1x2', exacto: true },
     ...(esAnalista || esJefatura
-      ? [{ ruta: '/postulaciones', etiqueta: 'Postulaciones', icono: 'bi-person-lines-fill' }]
+      ? [
+          { ruta: '/ofertas', etiqueta: 'Ofertas', icono: 'bi-megaphone' },
+          { ruta: '/postulaciones', etiqueta: 'Postulaciones', icono: 'bi-person-lines-fill' },
+        ]
       : []),
     { ruta: '/candidatos', etiqueta: 'Candidatos', icono: 'bi-people' },
     { ruta: '/solicitudes', etiqueta: 'Solicitudes', icono: 'bi-clipboard' },

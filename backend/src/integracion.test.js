@@ -476,6 +476,70 @@ describe('API integrada (Hito 2)', () => {
     }
   });
 
+  it('el analista crea, publica y cierra ofertas; el portal solo ve las abiertas', async () => {
+    const completa = {
+      titulo: 'Operario de prueba',
+      area: 'Producción',
+      cargo: 'Operario',
+      familiaCargo: 'Operario',
+      ubicacion: 'Calbuco',
+      region: 'Los Lagos',
+      descripcion: 'Oferta ficticia de prueba.',
+      requisitos: [' Licencia B ', ''],
+    };
+    const postulante = {
+      nombre: 'Postulante Ficticio',
+      correo: 'postulante.oferta@ejemplo.cl',
+      telefono: '+56900000000',
+      ciudad: 'Puerto Montt',
+      origen: 'Externo',
+      consentimiento: true,
+    };
+
+    // Permisos: la jefatura consulta pero no escribe; el evaluador no entra; sin sesión tampoco.
+    assert.equal((await pedir('/ofertas/gestion', { rol: 'jefatura' })).status, 200);
+    assert.equal((await pedir('/ofertas/gestion', { rol: 'evaluador' })).status, 403);
+    assert.equal((await pedir('/ofertas/gestion')).status, 401);
+    assert.equal((await pedir('/ofertas', { rol: 'jefatura', metodo: 'POST', cuerpo: completa })).status, 403);
+    assert.equal((await pedir('/ofertas', { metodo: 'POST', cuerpo: completa })).status, 401);
+
+    // Un borrador solo necesita título y no se ve ni admite postulaciones.
+    const borrador = await pedir('/ofertas', { rol: 'analista', metodo: 'POST', cuerpo: { titulo: 'Borrador de prueba' } });
+    assert.equal(borrador.status, 201);
+    assert.equal(borrador.datos.oferta.estado, 'Borrador');
+    const id = borrador.datos.oferta.id;
+    assert.equal((await pedir(`/ofertas/${id}`)).status, 404);
+    assert.ok(!(await pedir('/ofertas')).datos.ofertas.some((o) => o.id === id));
+    assert.ok((await pedir('/ofertas/gestion', { rol: 'analista' })).datos.ofertas.some((o) => o.id === id));
+    assert.equal((await pedir('/postulaciones', { metodo: 'POST', cuerpo: { ...postulante, ofertaId: id } })).status, 404);
+
+    // No se publica incompleta, y al completarla queda abierta con fecha.
+    assert.equal((await pedir(`/ofertas/${id}/estado`, { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Abierta' } })).status, 400);
+    assert.equal((await pedir(`/ofertas/${id}`, { rol: 'analista', metodo: 'PUT', cuerpo: { titulo: 'Solo título', publicar: true } })).status, 400);
+    const publicada = await pedir(`/ofertas/${id}`, { rol: 'analista', metodo: 'PUT', cuerpo: { ...completa, publicar: true } });
+    assert.equal(publicada.status, 200);
+    assert.equal(publicada.datos.oferta.estado, 'Abierta');
+    assert.ok(publicada.datos.oferta.fechaPublicacion);
+    assert.deepEqual(publicada.datos.oferta.requisitos, ['Licencia B']);
+    assert.equal((await pedir(`/ofertas/${id}`)).status, 200);
+
+    // Publicada debe seguir completa y no vuelve a borrador.
+    assert.equal((await pedir(`/ofertas/${id}`, { rol: 'analista', metodo: 'PUT', cuerpo: { titulo: 'Solo título' } })).status, 400);
+    assert.equal((await pedir(`/ofertas/${id}/estado`, { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Borrador' } })).status, 400);
+
+    // Cerrada sale del portal y deja de recibir postulaciones; se puede reabrir.
+    assert.equal((await pedir(`/ofertas/${id}/estado`, { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Cerrada' } })).status, 200);
+    assert.equal((await pedir(`/ofertas/${id}`)).status, 404);
+    assert.equal((await pedir('/postulaciones', { metodo: 'POST', cuerpo: { ...postulante, ofertaId: id } })).status, 404);
+    const reabierta = await pedir(`/ofertas/${id}/estado`, { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Abierta' } });
+    assert.equal(reabierta.datos.oferta.fechaPublicacion, publicada.datos.oferta.fechaPublicacion);
+    assert.equal((await pedir(`/ofertas/${id}`)).status, 200);
+
+    // El administrador también gestiona; una oferta inexistente responde 404.
+    assert.equal((await pedir('/ofertas/gestion', { rol: 'admin' })).status, 200);
+    assert.equal((await pedir('/ofertas/999999', { rol: 'analista', metodo: 'PUT', cuerpo: completa })).status, 404);
+  });
+
   it('avisa a analistas y psicólogas, y cada usuario ve y marca solo sus notificaciones', async () => {
     const pedirComo = async (id, rol, ruta, metodo = 'GET') => {
       const respuesta = await fetch(`${base}${ruta}`, {

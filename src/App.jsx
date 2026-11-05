@@ -14,6 +14,9 @@ import InformesEnviados from './paginas/InformesEnviados';
 import Login from './paginas/Login';
 import Administracion from './paginas/Administracion';
 import Postulaciones from './paginas/Postulaciones';
+import Ofertas from './paginas/Ofertas';
+import NuevaOferta from './paginas/NuevaOferta';
+import EditarOferta from './paginas/EditarOferta';
 import PortalOfertas from './paginas/portal/PortalOfertas';
 import PortalOferta from './paginas/portal/PortalOferta';
 import LayoutPublico from './componentes/layout/LayoutPublico';
@@ -50,6 +53,30 @@ export default function App() {
             element={
               <RutaProtegida rolesPermitidos={['analista']}>
                 <EditarCandidato />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/ofertas"
+            element={
+              <RutaProtegida rolesPermitidos={['analista', 'jefatura']}>
+                <Ofertas />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/ofertas/nueva"
+            element={
+              <RutaProtegida rolesPermitidos={['analista']}>
+                <NuevaOferta />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/ofertas/:id/editar"
+            element={
+              <RutaProtegida rolesPermitidos={['analista']}>
+                <EditarOferta />
               </RutaProtegida>
             }
           />
