@@ -372,7 +372,9 @@ export default function FormularioSolicitud({
   const manejarEnvio = (evento) => {
     evento.preventDefault();
     setIntentoEnvio(true);
-    const nuevosErrores = validarFormularioSolicitud(formulario, candidatos);
+    const nuevosErrores = validarFormularioSolicitud(formulario, candidatos, {
+      descriptorDisponible: Boolean(descriptorAutomatico),
+    });
     setErrores(nuevosErrores);
     if (hayErrores(nuevosErrores)) return;
 
@@ -766,7 +768,7 @@ export default function FormularioSolicitud({
               ) : (
                 <CampoArchivo
                   id="descriptorAdjunto"
-                  etiqueta="Adjuntar descriptor de cargo"
+                  etiqueta="Adjuntar descriptor de cargo *"
                   ayuda="Queda guardado para este cargo y no se volverá a pedir."
                   archivo={formulario.descriptorAdjunto}
                   alSeleccionar={seleccionarArchivo('descriptorAdjunto')}

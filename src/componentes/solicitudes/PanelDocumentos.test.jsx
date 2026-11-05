@@ -134,7 +134,7 @@ describe('PanelDocumentos', () => {
     expect(screen.getByText('200 KB · 15-10-2026')).toBeInTheDocument();
     expect(screen.getByText('2,0 MB · 16-10-2026')).toBeInTheDocument();
     // El descriptor aún no tiene archivos.
-    expect(screen.getByText('Sin archivos.')).toBeInTheDocument();
+    expect(screen.getByText(/esta solicitud no tiene descriptor de cargo/i)).toBeInTheDocument();
   });
 
   it('si el descriptor indicado en la solicitud aún no está en la carpeta, lo dice', async () => {
@@ -146,7 +146,58 @@ describe('PanelDocumentos', () => {
     );
     await abrirCarpeta();
     expect(await screen.findByText('DC_Analista.pdf')).toBeInTheDocument();
-    expect(screen.getByText(/súbelo aquí para guardarlo en la carpeta/i)).toBeInTheDocument();
+    expect(screen.getByText(/falta el archivo/i)).toHaveTextContent('Súbelo aquí.');
+  });
+
+  it('avisa con la carpeta cerrada si falta el descriptor', async () => {
+    render(<PanelDocumentos solicitud={solicitud} api={crearApi(datosConArchivos)} />);
+    expect(await screen.findByText(/falta el descriptor de cargo en esta carpeta/i)).toBeInTheDocument();
+  });
+
+  it('sin permiso para subirlo indica quién debe hacerlo', async () => {
+    render(<PanelDocumentos solicitud={solicitud} api={crearApi({ ...datosConArchivos, permisos: [] })} />);
+    await abrirCarpeta();
+    expect(screen.getByText(/esta solicitud no tiene descriptor/i)).toHaveTextContent(/debe subirlo el analista/i);
+  });
+
+  describe('descriptor del catálogo sin copia en la carpeta', () => {
+    const conCatalogo = { ...solicitud, descriptorCargo: 'DC_Jefe_de_Centro.pdf' };
+    const sinCarpeta = { proveedor: 'drive', carpeta: null, permisos: ['descriptor'], archivos: [] };
+
+    it('lo cuenta como documento y no avisa que falta', async () => {
+      render(<PanelDocumentos solicitud={conCatalogo} api={crearApi(sinCarpeta)} />);
+      expect(await screen.findByRole('button', { name: /: 1 documento$/ })).toBeInTheDocument();
+      expect(screen.queryByText(/falta el descriptor/i)).toBeNull();
+    });
+
+    it('se puede ver y descargar', async () => {
+      const blob = new Blob(['%PDF'], { type: 'application/pdf' });
+      const respuesta = { ok: true, headers: new Headers({ 'content-type': 'application/pdf' }), blob: async () => blob };
+      const pedir = vi.spyOn(globalThis, 'fetch').mockResolvedValue(respuesta);
+      render(<PanelDocumentos solicitud={conCatalogo} api={crearApi(sinCarpeta)} />);
+      const usuario = await abrirCarpeta();
+
+      expect(screen.getByText('Del catálogo')).toBeInTheDocument();
+      expect(screen.queryByText(/súbelo aquí/i)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Descargar DC_Jefe_de_Centro.pdf' })).toBeInTheDocument();
+
+      await usuario.click(screen.getByRole('button', { name: 'DC_Jefe_de_Centro.pdf' }));
+      expect(screen.getByRole('dialog', { name: 'DC_Jefe_de_Centro.pdf' })).toBeInTheDocument();
+      await waitFor(() => expect(pedir).toHaveBeenCalled());
+      pedir.mockRestore();
+    });
+
+    it('si ya hay copia en la carpeta, muestra solo esa', async () => {
+      const conCopia = {
+        ...sinCarpeta,
+        carpeta: { id: 'c1', nombre: 'S0007 - Ana Pérez', webUrl: null },
+        archivos: [{ id: 'f9', nombre: 'Descriptor - DC_Jefe_de_Centro.pdf', categoria: 'descriptor', tamano: 1024, puedeEliminar: true }],
+      };
+      render(<PanelDocumentos solicitud={conCatalogo} api={crearApi(conCopia)} />);
+      await abrirCarpeta();
+      expect(screen.getByRole('button', { name: 'Descriptor - DC_Jefe_de_Centro.pdf' })).toBeInTheDocument();
+      expect(screen.queryByText('Del catálogo')).toBeNull();
+    });
   });
 
   it('con Google Drive muestra su nombre y el enlace para abrir la carpeta', async () => {

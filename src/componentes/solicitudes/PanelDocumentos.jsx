@@ -129,12 +129,15 @@ export default function PanelDocumentos({
       archivos.some((archivo) => archivo.categoria === categoria.id),
   );
   const categorias = archivos.some((archivo) => archivo.categoria === 'otro') ? [...visibles, OTROS] : visibles;
+  // Descriptor sin copia en la carpeta: el del catálogo se puede ver igual; si no, falta.
+  const descriptorEnCarpeta = archivos.some((archivo) => archivo.categoria === 'descriptor');
+  const descriptorDelCatalogo = !descriptorEnCarpeta && esDescriptorCatalogo(referencias.descriptor);
+  const faltaDescriptor = !descriptorEnCarpeta && !descriptorDelCatalogo;
+  const cantidad = archivos.length + (descriptorDelCatalogo ? 1 : 0);
   const idLista = `carpeta-solicitud-${solicitud.id}`;
   const nombreDeCarpeta = datos?.carpeta?.nombre ?? nombreCarpetaSolicitud(solicitud.id, nombreCandidato);
   const textoCantidad =
-    archivos.length === 0
-      ? 'Sin documentos todavía'
-      : `${archivos.length} ${archivos.length === 1 ? 'documento' : 'documentos'}`;
+    cantidad === 0 ? 'Sin documentos todavía' : `${cantidad} ${cantidad === 1 ? 'documento' : 'documentos'}`;
 
   return (
     <section className="card border-0 shadow-sm" aria-labelledby="titulo-documentos">
@@ -216,6 +219,13 @@ export default function PanelDocumentos({
           </button>
         ) : null}
 
+        {datos && faltaDescriptor && !abierta ? (
+          <p className="small text-warning-emphasis mt-2 mb-0">
+            <i className="bi bi-exclamation-triangle me-1" aria-hidden="true" />
+            Falta el descriptor de cargo en esta carpeta.
+          </p>
+        ) : null}
+
         {datos && abierta ? (
           <ul id={idLista} className="list-unstyled mb-0 mt-3 documentos-lista">
             {categorias.map((categoria) => {
@@ -263,7 +273,50 @@ export default function PanelDocumentos({
                     ) : null}
                   </div>
 
-                  {deCategoria.length === 0 ? (
+                  {categoria.id === 'descriptor' && descriptorDelCatalogo ? (
+                    <div className="documentos-archivo d-flex align-items-center justify-content-between gap-2 mt-2 ps-4">
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 text-start text-break"
+                        title="Ver documento"
+                        onClick={() =>
+                          setDocumentoReferencia({
+                            archivo: { nombre: referencias.descriptor },
+                            api: documentoCatalogo(referencias.descriptor),
+                          })
+                        }
+                      >
+                        <i className="bi bi-file-earmark-text me-1" aria-hidden="true" />
+                        {referencias.descriptor}
+                      </button>
+                      <span className="d-flex align-items-center gap-2 flex-shrink-0">
+                        <small className="text-secondary">Del catálogo</small>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-link p-0"
+                          aria-label={`Descargar ${referencias.descriptor}`}
+                          title="Descargar"
+                          disabled={ocupado !== null}
+                          onClick={() => ejecutar('descriptor-catalogo', documentoCatalogo(referencias.descriptor).descargar)}
+                        >
+                          <i className="bi bi-download" aria-hidden="true" />
+                        </button>
+                      </span>
+                    </div>
+                  ) : categoria.id === 'descriptor' && faltaDescriptor ? (
+                    <p className="small text-warning-emphasis mb-0 mt-1 ps-4">
+                      <i className="bi bi-exclamation-triangle me-1" aria-hidden="true" />
+                      {referencias.descriptor ? (
+                        <>
+                          Falta el archivo: la solicitud indica <strong>{referencias.descriptor}</strong>, pero no está en la
+                          carpeta.
+                        </>
+                      ) : (
+                        'Esta solicitud no tiene descriptor de cargo.'
+                      )}
+                      {puedeSubir ? ' Súbelo aquí.' : ' Debe subirlo el analista de reclutamiento.'}
+                    </p>
+                  ) : deCategoria.length === 0 ? (
                     <p className="small text-secondary mb-0 mt-1 ps-4">
                       Sin archivos.
                       {referencias[categoria.id] ? (
@@ -271,22 +324,6 @@ export default function PanelDocumentos({
                           {' '}
                           En la solicitud se indicó <strong>{referencias[categoria.id]}</strong>
                           {puedeSubir ? '; súbelo aquí para guardarlo en la carpeta.' : ', pero aún no está en la carpeta.'}
-                          {categoria.id === 'descriptor' && esDescriptorCatalogo(referencias.descriptor) ? (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-primary py-0 px-2 ms-2"
-                              aria-label={`Ver ${referencias.descriptor}`}
-                              title="Vista previa"
-                              onClick={() =>
-                                setDocumentoReferencia({
-                                  archivo: { nombre: referencias.descriptor },
-                                  api: documentoCatalogo(referencias.descriptor),
-                                })
-                              }
-                            >
-                              <i className="bi bi-eye" aria-hidden="true" />
-                            </button>
-                          ) : null}
                         </>
                       ) : null}
                     </p>
