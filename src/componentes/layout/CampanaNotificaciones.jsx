@@ -216,7 +216,7 @@ export default function CampanaNotificaciones({ api = apiNotificaciones, interva
 
   return (
     <>
-      {avisoNuevo ? (
+      {avisoNuevo ? createPortal(
         <div className="aviso-tiempo-real" role="status" aria-live="polite">
           <i className={`bi ${ICONOS[avisoNuevo.tipo] ?? 'bi-bell'}`} aria-hidden="true" />
           <span className="flex-grow-1">{avisoNuevo.mensaje}</span>
@@ -233,7 +233,8 @@ export default function CampanaNotificaciones({ api = apiNotificaciones, interva
             </button>
           ) : null}
           <button type="button" className="btn-close btn-close-white" aria-label="Cerrar aviso" onClick={() => setAvisoNuevo(null)} />
-        </div>
+        </div>,
+        document.body,
       ) : null}
       <button
         type="button"
