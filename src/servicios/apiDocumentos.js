@@ -217,6 +217,12 @@ export async function subirDescriptorOferta(ofertaId, archivo) {
   return respuesta.json();
 }
 
+/** Contenido del descriptor interno de una oferta, para la vista previa. */
+export async function contenidoDescriptorOferta(oferta) {
+  const respuesta = await llamar(`/ofertas/${oferta.id}/descriptor`);
+  return respuesta.blob();
+}
+
 /** Descarga el descriptor interno de una oferta. */
 export async function descargarDescriptorOferta(oferta) {
   const respuesta = await llamar(`/ofertas/${oferta.id}/descriptor`);
@@ -234,6 +240,7 @@ export const apiDocumentos = {
   traerCvDePostulacion,
   traerDescriptorDeOferta,
   subirDescriptorOferta,
+  contenidoDescriptorOferta,
   descargarDescriptorOferta,
   contenidoCvPostulacion,
   descargarCvPostulacion,

@@ -1572,6 +1572,47 @@ h1, h2, h3, h4, h5, h6,
   color: #e6edf2 !important;
 }
 
+/* Formulario de solicitud: secciones que se despliegan y datos heredados del proceso anterior. */
+.seccion-solicitud-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem !important;
+}
+
+.seccion-solicitud-numero {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background-color: var(--austral-pizarra);
+  color: #ffffff;
+  font-size: 0.8rem;
+}
+
+.seccion-solicitud-numero.completa {
+  background-color: var(--austral-verde);
+}
+
+.seccion-solicitud-pendiente .seccion-solicitud-titulo {
+  margin-bottom: 0 !important;
+  color: var(--austral-texto-suave);
+}
+
+.seccion-solicitud-pendiente .seccion-solicitud-numero {
+  background-color: #7f95a4;
+}
+
+/* Un tono distinto del blanco de lo que falta por completar; al editarlo vuelve a blanco. */
+.dato-heredado,
+.form-control.dato-heredado,
+.form-select.dato-heredado {
+  background-color: #e4edf3;
+}
+
 /* Igual que .card: Bootstrap define --bs-table-bg en la propia .table. */
 .app-principal .table {
   --bs-table-bg: #ffffff;

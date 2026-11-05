@@ -239,3 +239,21 @@ export function inicialesDe(nombre = '') {
 export function hayErrores(errores) {
   return Object.keys(errores).length > 0;
 }
+
+/** Secciones del formulario de solicitud, en orden, con los campos que debe completar cada una. */
+const SECCIONES_SOLICITUD = [
+  { id: 'candidato', campos: ['reclutador', 'nombreCandidato', 'correo', 'telefono', 'origen'] },
+  { id: 'cargo', campos: ['cargo', 'familiaCargo', 'ubicacion', 'ceco', 'requiereReferencias'] },
+  { id: 'evaluacion', campos: ['profesionalResponsable'] },
+  { id: 'antecedentes', campos: [] },
+];
+
+/**
+ * Cuántas secciones del formulario están disponibles: la primera incompleta y las anteriores.
+ * Se usa para ir desplegándolas a medida que se completan.
+ */
+export function seccionesDisponibles(formulario = {}, candidatos = []) {
+  const errores = validarFormularioSolicitud(formulario, candidatos);
+  const incompleta = SECCIONES_SOLICITUD.findIndex(({ campos }) => campos.some((campo) => errores[campo]));
+  return incompleta === -1 ? SECCIONES_SOLICITUD.length : incompleta + 1;
+}

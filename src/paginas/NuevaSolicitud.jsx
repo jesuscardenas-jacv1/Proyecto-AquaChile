@@ -43,6 +43,25 @@ export default function NuevaSolicitud() {
       }
     : {};
 
+  // Vista previa de lo que viene de la postulación y de la oferta (necesita el servidor).
+  const conServidor = apiDocumentos.conectado();
+  const documentosOrigen = {
+    cv:
+      conServidor && postulacionPendiente?.cvNombre
+        ? {
+            contenido: () => apiDocumentos.contenidoCvPostulacion(postulacionPendiente),
+            descargar: () => apiDocumentos.descargarCvPostulacion(postulacionPendiente),
+          }
+        : null,
+    descriptor:
+      conServidor && oferta?.descriptorNombre
+        ? {
+            contenido: () => apiDocumentos.contenidoDescriptorOferta(oferta),
+            descargar: () => apiDocumentos.descargarDescriptorOferta(oferta),
+          }
+        : null,
+  };
+
   const guardar = async ({ nombreCandidato, correo, telefono, archivos = {}, ...datos }) => {
     const candidatoId =
       datos.candidatoId ||
@@ -129,6 +148,7 @@ export default function NuevaSolicitud() {
             reclutadorFijo={reclutadorFijo}
             postulante={postulante}
             descriptorOferta={oferta?.descriptorNombre ?? ''}
+            documentosOrigen={documentosOrigen}
             alGuardar={guardar}
             alCancelar={() => navegar(postulacionPendiente ? '/postulaciones' : '/solicitudes')}
           />
