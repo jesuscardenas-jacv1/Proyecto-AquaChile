@@ -1,208 +1,219 @@
 # AquaChile · Módulo de Evaluaciones Psicolaborales
 
-MVP web desarrollado para el proyecto académico **DSY1104 – Desarrollo Full Stack II**
-(Evaluación Parcial 2), para la empresa **AquaChile** (Reclutamiento y Selección).
+MVP web del proyecto académico **DSY1104 – Desarrollo Full Stack II** (Duoc UC), en vinculación con el
+área de Reclutamiento y Selección de **AquaChile**. Digitaliza el proceso desde que una persona postula a
+una oferta hasta que se envía su informe psicolaboral.
 
-En esta etapa se construye **solo el frontend** con **datos simulados** persistidos en
-`localStorage`. No hay backend, ni base de datos, ni autenticación real.
+> Es un prototipo académico, no un sistema productivo. **Todos los datos son ficticios.**
+
+| | |
+| --- | --- |
+| **Aplicación** | <https://jesuscardenas-jacv1.github.io/Proyecto-AquaChile/> |
+| **Portal de empleo** | <https://jesuscardenas-jacv1.github.io/Proyecto-AquaChile/trabaja-con-nosotros> |
+| **API** | <https://aquachile-psicolaboral-api.azurewebsites.net/api> |
+
+## Cómo funciona
+
+1. **Postulante:** postula sin iniciar sesión en el portal **Trabaja con nosotros** y adjunta su CV.
+2. **Analista:** revisa la bandeja **Postulaciones** y pasa a evaluación o descarta. Al pasar a evaluación,
+   completa la solicitud, asigna la psicóloga y se crea la carpeta con el CV y el descriptor de cargo.
+3. **Psicóloga:** gestiona la solicitud en su **Planner**: *Evaluación Recibida → Entrevista Agendada →
+   Entrevista Realizada*. Luego registra la evaluación, con lo que se genera el informe PDF y la solicitud
+   queda en *Informe enviado*.
+4. **Jefatura:** consulta el dashboard y los listados en modo solo lectura.
+
+Reglas importantes:
+
+- El estado oficial avanza junto con las etapas: `Pendiente → En proceso → Finalizada`. **Solo se gestiona en
+  el Planner**: el detalle de la solicitud lo muestra, y el backend rechaza cambios por fuera de ese flujo.
+- Una solicitud se puede **cerrar sin evaluación**, por ejemplo si la persona desiste, y reabrir en la etapa
+  en que estaba.
+- **El descriptor se guarda por cargo:** se sube una vez y lo reutilizan sus ofertas y solicitudes. Cada
+  solicitud guarda su propia copia, que cambia si se corrige el cargo.
+- La **pauta de entrevista** y las notas clínicas son confidenciales: en la app solo las ven la psicóloga y
+  el administrador.
+
+## Arquitectura
+
+```mermaid
+flowchart TD
+    N[Navegador] --> F["Frontend · GitHub Pages<br/>React + Vite + Bootstrap"]
+    F <-->|"API REST por HTTPS, JWT y tiempo real"| B["Backend · Azure App Service<br/>Node + Express"]
+    B <--> D[("SQLite")]
+    B <--> G["Google Drive<br/>documentos"]
+```
+
+Es una aplicación monolítica, sin microservicios. El frontend tiene dos modos:
+
+- **api:** hay backend. El inicio de sesión usa JWT y los datos se leen y guardan en la base de datos.
+- **local:** sin backend. Usa datos de demostración guardados en `localStorage`, solo en ese navegador.
+
+El pie de página indica el modo activo.
 
 ## Stack
 
-| Tecnología | Versión | Uso |
+| Parte | Lenguaje | Tecnologías |
 | --- | --- | --- |
-| React + Vite (JavaScript) | 18.3 / 5.4 | SPA y herramientas de build |
-| Bootstrap 5 | 5.3 | Estilos, grilla, diseño responsive, tablas y formularios |
-| bootstrap-icons | 1.11 | Iconografía |
-| react-router-dom | 6.26 | Navegación entre vistas |
-| Vitest + React Testing Library + jsdom | 2.1 / 16.0 | Pruebas unitarias |
-| @vitest/coverage-v8 | 2.1 | Reporte de cobertura |
+| **Frontend** | JavaScript (JSX) y CSS | React 18.3, Vite 5.4, Bootstrap 5.3, Bootstrap Icons 1.13, React Router 6.26, Mammoth 1.8 |
+| **Backend** | JavaScript (Node 22) | Express 4.19, `jsonwebtoken` 9, `bcryptjs` 2.4, PDFKit 0.15, CORS |
+| **Base de datos** | SQL | SQLite con el módulo nativo `node:sqlite` |
+| **Documentos** | — | Disco local, Google Drive (producción) u OneDrive/SharePoint, según `backend/.env` |
+| **Pruebas** | JavaScript | Vitest 2.1, Testing Library 16 y cobertura v8; `node:test` en el backend |
 
 ## Instalación y ejecución
 
+Requiere Node 22 para el backend.
+
 ```bash
-npm install           # instalar dependencias
-npm run dev           # servidor de desarrollo en http://localhost:5173
+npm install && npm --prefix backend install
+npm run backend:migrar && npm run backend:semilla   # crea y llena SQLite con los datos de demostración
+npm run backend:dev                                 # API en http://localhost:3001
+npm run dev                                         # app en http://localhost:5173
+```
+
+Sin backend, basta con `npm install` y `npm run dev`. Para apuntar a otro backend, construye con
+`VITE_API_URL=https://.../api`.
+
+El almacenamiento de documentos y las variables de entorno están explicados en
+[`backend/README.md`](backend/README.md), junto con el catálogo de endpoints.
+
+Otros comandos:
+
+```bash
 npm run build         # build de producción en dist/
-npm run preview       # previsualizar el build
-npm test              # ejecutar las pruebas una vez
-npm run test:watch    # pruebas en modo watch
-npm run test:coverage # pruebas + reporte de cobertura
+npm run preview       # previsualiza el build
 npm run importar:bd   # regenera los datos semilla desde el Excel de bd/
 ```
 
-El reporte de cobertura se genera en `cobertura/index.html` (abrir en el navegador).
+## Despliegue
 
-### Con backend y base de datos (modo integrado)
+| Parte | Cuándo se publica | Cómo |
+| --- | --- | --- |
+| **Frontend** | Automático al fusionar a `main` | `.github/workflows/pages.yml` ejecuta las pruebas, compila con Vite y publica en GitHub Pages |
+| **Backend** | Manual | `backend/scripts/empaquetar-azure.sh` y `az webapp deploy`; ver [`backend/README.md`](backend/README.md) |
 
-```bash
-npm --prefix backend install
-npm run backend:migrar && npm run backend:semilla   # crea y llena SQLite con los datos de demostración
-npm run backend:dev                                 # API en http://localhost:3001
-npm run dev                                         # el frontend detecta el backend y usa la base de datos
-```
+Si un cambio afecta a ambos, **despliega primero el backend y después fusiona**. Las migraciones se aplican
+al iniciar el servidor.
 
-El pie de página indica el modo: *"Datos guardados en la base de datos del servidor"* o, si el backend no
-responde (por ejemplo en GitHub Pages), *"Sin servidor: datos de demostración en este navegador"*.
-Para apuntar a otro backend, construir con `VITE_API_URL=https://.../api`.
+## Vistas y permisos
 
-Pruebas del backend: `npm --prefix backend test` (smoke), `run test:roles`, `run test:integracion`
-y `run test:almacenamiento`.
+El administrador también puede entrar a todas las rutas protegidas.
 
-## Publicación en GitHub Pages
+| Ruta | Vista | Acceso |
+| --- | --- | --- |
+| `/trabaja-con-nosotros` | Portal público con las ofertas | Sin sesión |
+| `/trabaja-con-nosotros/ofertas/:id` | Oferta y formulario de postulación con CV | Sin sesión |
+| `/login` | Inicio de sesión | Sin sesión |
+| `/` | Dashboard con indicadores | Todos los roles |
+| `/ofertas` | Lista y publicación de ofertas | Analista; jefatura solo lectura |
+| `/ofertas/nueva`, `/ofertas/:id/editar` | Crear y editar ofertas | Analista |
+| `/postulaciones` | Bandeja: pasar a evaluación o descartar | Analista; jefatura solo lectura |
+| `/candidatos` | Directorio de candidatos | Todos; la psicóloga solo ve a quienes pasaron a evaluación |
+| `/candidatos/:id` | Ficha con las carpetas de sus solicitudes | Todos los roles |
+| `/candidatos/nuevo`, `/candidatos/:id/editar` | Registrar y editar candidatos | Analista |
+| `/solicitudes` | Bandeja con búsqueda y filtros | Todos los roles |
+| `/solicitudes/nueva` | Crear una solicitud | Analista |
+| `/solicitudes/:id` | Ficha, seguimiento, documentos y evaluación | Todos; las notas clínicas son solo de la psicóloga |
+| `/solicitudes/:id/informe` | Informe imprimible | Todos; sin notas clínicas para analista y jefatura |
+| `/planner` | Gestión de las etapas de cada solicitud | Psicóloga; jefatura solo lectura |
+| `/planner/informes` | Informes enviados | Psicóloga; jefatura solo lectura |
+| `/administracion` | Usuarios de prueba, roles y datos de demostración | Administrador |
 
-El workflow `.github/workflows/pages.yml` ejecuta las pruebas, construye la app y la publica en
-GitHub Pages en cada push a `main` (también se puede lanzar a mano desde la pestaña *Actions*).
-Queda disponible en `https://<usuario>.github.io/<repositorio>/`.
+## Usuarios de demostración
 
-Requisito (una sola vez, lo hace quien administra el repositorio):
-**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+| Rol | Correo / alias | Contraseña | Funciones |
+| --- | --- | --- | --- |
+| **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Gestiona ofertas y postulaciones, crea candidatos y solicitudes, asigna psicóloga y consulta el dictamen. |
+| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Avanza las solicitudes en su Planner, registra notas clínicas y dictamen. |
+| **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración. |
+| **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen, sin notas clínicas. |
 
-La app usa como base la ruta del repositorio (`--base=/<repositorio>/`) y se copia `index.html`
-como `404.html` para que las rutas de React Router funcionen al recargar la página.
+## Datos
 
-## Modelo de datos
+Tablas principales de la base de datos:
 
-```js
-Candidato  { id, nombre, correo, telefono, cargo, familiaCargo }
-
-Solicitud  { id, candidatoId, cargo, familiaCargo, fechaSolicitud,
-             estado, profesionalResponsable, observaciones }
-// estado: Pendiente | En proceso | Finalizada
-
-Evaluacion { id, solicitudId, fechaEvaluacion, resultado, observaciones, estado }
-// resultado: Recomendado | Recomendado con observaciones | No recomendado
-// estado: Pendiente | Realizada
-```
-
-Los datos se administran con `ProveedorDatos` (React Context) y se guardan en `localStorage`
-bajo la clave `aquachile_psicodelivery_v2`. En la primera visita se carga un conjunto de datos
-semilla con la **base de datos simulada** de AquaChile (100 evaluaciones, abr-2025 a mar-2026).
-
-### Base de datos simulada
-
-La fuente es `bd/BD_Simulada_Evaluaciones_Psicolaborales_AquaChile.xlsx` (hoja `Candidatos`).
-El script `scripts/importar-bd-simulada.mjs` la convierte en `src/datos/bdSimulada.json`, que
-`semilla.js` usa como datos iniciales. Si se modifica el Excel, basta con ejecutar `npm run importar:bd`.
-
-| Excel | Aplicación |
+| Tabla | Contenido |
 | --- | --- |
-| Nombre del Candidato/a, Origen | `Candidato.nombre`, `Candidato.origen` |
-| Nombre / Familia del Cargo | `cargo`, `familiaCargo` (candidato y solicitud) |
-| Fecha de petición | `Solicitud.fechaSolicitud` |
-| Reclutador/a | `Solicitud.profesionalResponsable` |
-| Aspectos a indagar | `Solicitud.observaciones` |
-| EV IN - EX, Ubicación, Unidad, CECO, Requiere Referencias, CV, Descriptor | campos extra de `Solicitud` |
-| Fecha entrevista | `Evaluacion.fechaEvaluacion` |
-| Categoría del evaluado | `Evaluacion.resultado` |
-| Fecha de envío informe, Referencias | `Evaluacion.fechaInforme`, `diasRespuesta` (días hábiles) y `observaciones` |
+| `candidatos` | Datos de contacto, origen y cargo |
+| `solicitudes` | Cargo, familia, reclutador, psicóloga, estado, etapa, entrevista, cierre y descriptor |
+| `evaluaciones` | Fecha, resultado, observaciones y competencias |
+| `ofertas`, `postulaciones` | Portal público y bandeja del analista |
+| `cargos` | Descriptor guardado por cargo |
+| `notificaciones`, `fotos_usuario` | Avisos y foto de perfil |
 
-Los catálogos de familias de cargo, resultados y reclutadoras (`constantes.js`) son los del Excel.
-El Excel no incluye correo ni teléfono, así que el script genera valores ficticios.
-Al cambiar el formato de los datos se subió la clave de `localStorage` a `v2`, para que los
-navegadores con datos antiguos carguen la nueva semilla.
+Los catálogos principales son:
+
+- **Estado de la solicitud:** `Pendiente`, `En proceso`, `Finalizada`.
+- **Resultado de la evaluación:** `Recomendado`, `Recomendado con observaciones`, `No recomendado`.
+
+### Datos de demostración
+
+La fuente es `bd/BD_Simulada_Evaluaciones_Psicolaborales_AquaChile.xlsx`. El script
+`scripts/importar-bd-simulada.mjs` la convierte en `src/datos/bdSimulada.json`, que no se edita a mano.
+`src/datos/semillaBase.js` le agrega los casos del Planner y del portal, y el backend siembra SQLite con esos
+mismos datos.
+
+La semilla trae 116 candidatos, 108 solicitudes, 8 ofertas y 8 postulaciones, con 20 cargos en el catálogo.
+Los descriptores ficticios de esos cargos están en `public/descriptores/`.
 
 ## Estructura del proyecto
 
 ```
 src/
-├── main.jsx                       # punto de entrada (Router + ProveedorDatos)
-├── App.jsx                        # definición de rutas
-├── estilos/estilos.css            # estilos menores sobre Bootstrap
-├── datos/
-│   ├── constantes.js              # catálogos (estados, familias, profesionales)
-│   ├── bdSimulada.json            # BD simulada generada desde el Excel (no editar)
-│   ├── semilla.js                 # datos semilla (usa bdSimulada.json)
-│   ├── almacen.js                 # lectura/escritura en localStorage (funciones puras)
-│   ├── DatosContext.jsx           # estado global y acciones de negocio
-│   └── DatosContext.test.jsx
-├── dominio/                       # lógica pura (fácilmente testeable)
-│   ├── validaciones.js            # validaciones de candidato, solicitud y evaluación
-│   ├── consultas.js               # búsquedas y filtros
-│   ├── indicadores.js             # métricas del dashboard y reglas de negocio
-│   ├── formateo.js, texto.js
-│   └── *.test.js
-├── componentes/
-│   ├── layout/                    # Layout, Navbar (colapsable), PiePagina
-│   ├── comunes/                   # Mensaje, EstadoVacio, EtiquetaEstado, TarjetaIndicador
-│   ├── candidatos/                # ListaCandidatos, FormularioCandidato
-│   ├── solicitudes/               # ListaSolicitudes, FormularioSolicitud, PanelGestion
-│   └── evaluacion/                # FormularioEvaluacion
-├── paginas/                       # un componente por vista
-└── pruebas/                       # configuración y utilidades compartidas de pruebas
+├── App.jsx            # rutas y permisos por rol
+├── paginas/           # una vista por ruta
+├── componentes/       # admin, candidatos, comunes, dashboard, evaluacion, layout,
+│                      # ofertas, perfil, planner, portal, solicitudes
+├── dominio/           # lógica pura: validaciones, consultas, indicadores, planner
+├── datos/             # contextos de autenticación y datos, catálogos y semilla
+├── servicios/         # cliente de la API, documentos y tiempo real
+└── pruebas/           # configuración y utilidades de pruebas
+
+backend/
+├── src/
+│   ├── servidor.js    # aplicación Express
+│   ├── rutas/         # endpoints de la API
+│   ├── middlewares/   # autenticación, roles, límites y errores
+│   ├── bd/            # conexión, migraciones, semilla y formatos de respuesta
+│   └── almacenamiento/ # proveedores de documentos e informe PDF
+└── scripts/           # empaquetado para Azure y generación de descriptores
 ```
 
-## Vistas y Control de Acceso (RBAC)
-
-| Ruta | Vista | Acceso por Rol |
-| --- | --- | --- |
-| `/login` | Inicio de sesión corporativo | No autenticado |
-| `/trabaja-con-nosotros` | Portal público con ofertas laborales por área | Público (sin sesión) |
-| `/trabaja-con-nosotros/ofertas/:id` | Detalle de la oferta y formulario de postulación con CV | Público (sin sesión) |
-| `/ofertas` | Crear, editar, publicar, cerrar y reabrir las ofertas del portal | Analista y Admin (Jefatura solo lectura) |
-| `/postulaciones` | Bandeja de postulaciones: pasar a evaluación o descartar | Analista y Admin (Jefatura solo lectura) |
-| `/` | Dashboard con indicadores y KPIs generales | Todos los roles |
-| `/candidatos` | Directorio de candidatos con búsqueda | Todos; el Evaluador solo ve a quienes pasaron a evaluación |
-| `/candidatos/nuevo` | Formulario de registro de candidato | Exclusivo Analista |
-| `/candidatos/:id/editar` | Formulario de edición de candidato | Exclusivo Analista |
-| `/solicitudes` | Bandeja de solicitudes con búsqueda y filtros | Analista y Evaluador |
-| `/solicitudes/nueva` | Creación de nueva solicitud de evaluación | Exclusivo Analista |
-| `/solicitudes/:id` | Ficha, seguimiento (solo lectura) y evaluación | Evaluador: notas clínicas y evaluación.<br>Analista: solo dictamen final (confidencial). |
-| `/solicitudes/:id/informe` | Informe Psicolaboral Oficial imprimible (PDF) | Analista y Evaluador (con membrete oficial y firmas) |
-| `/administracion` | Usuarios de prueba, roles, catálogos y datos de demostración | Exclusivo Administrador |
-| `*` | Página 404 con redirección al inicio | Cualquier ruta no reconocida |
-
-## Usuarios de demostración (AquaChile)
-
-| Rol | Correo / Alias | Contraseña | Funciones |
-| --- | --- | --- | --- |
-| **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl`<br>`analista@aquachile.cl` | `AquaChile2026!` | Registra candidatos, crea solicitudes, consulta dictamen final. |
-| **Profesional Evaluador** | `ignacia.valdes@aquachile.cl`<br>`evaluador@aquachile.cl` | `AquaChile2026!` | Avanza las solicitudes en su Planner, registra notas clínicas y dictamen. |
-| **Administrador académico** | `andres.valdivia@aquachile.cl`<br>`admin@aquachile.cl` | `AquaChile2026!` | Todo lo del analista y del evaluador; ve usuarios, roles y catálogos y restablece los datos de demostración (`/administracion`). |
-| **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl`<br>`jefatura@aquachile.cl` | `AquaChile2026!` | Solo lectura: dashboard, listados, detalle y dictamen (sin notas clínicas). |
-
-## Flujo principal a demostrar
-
-1. **Registro de candidato** → `/candidatos/nuevo` (formulario con validaciones).
-2. **Creación de solicitud** → `/solicitudes/nueva` (se selecciona el candidato y el cargo se completa
-   automáticamente). La solicitud queda en estado `Pendiente`.
-3. **Gestión** → asignar profesional responsable; la psicóloga avanza la solicitud en su **Planner** (agendar → entrevista realizada).
-4. **Registro de evaluación** → fecha, resultado (Aprobado / Reprobado / No concluyente) y observaciones.
-5. **Actualización de estado** → al guardar una evaluación con resultado, la solicitud pasa automáticamente
-   a `Finalizada` (regla implementada en `estadoSolicitudDesdeEvaluacion`).
-6. **Consulta de información** → indicadores del dashboard y listados con filtros.
-
-## Diseño responsive (Bootstrap 5)
-
-- Navbar colapsable (`navbar-expand-lg` con toggler manejado por estado de React).
-- Grilla de 12 columnas: indicadores `col-12 col-sm-6 col-xl-3`, formularios `col-12 col-md-6`, etc.
-- Tablas dentro de `.table-responsive`; el listado de candidatos además muestra una vista de tarjetas
-  en pantallas pequeñas (`d-none d-md-block` / `d-md-none`).
-- Filtros y acciones se apilan verticalmente en móvil.
+Cada componente o página nueva lleva su `*.test.jsx` al lado. Las convenciones del equipo están en
+[`CLAUDE.md`](CLAUDE.md).
 
 ## Pruebas y cobertura
 
-**131 pruebas en 20 archivos** (Vitest + React Testing Library), que cubren lógica, comportamiento de
-componentes y manipulación del DOM, con mocks del contexto de datos y de `useNavigate`.
+El docente dejó la herramienta a elección del equipo, y se usa **Vitest + Testing Library** como equivalente
+moderno de Jasmine y Karma.
 
-| Área | Qué se prueba |
-| --- | --- |
-| Formularios (candidato, solicitud, evaluación) | errores de validación, envío válido, precarga, recuperación de errores |
-| Listados (candidatos, solicitudes) | renderizado, búsqueda, filtros, estados vacíos, callbacks |
-| Dashboard | indicadores, solicitudes recientes, estado vacío (con `vi.mock` del contexto) |
-| Detalle de solicitud | seguimiento sin cambio de estado, asignación de profesional, reglas de evaluación |
-| Navegación (App) | rutas entre vistas y 404 |
-| Dominio y datos | validaciones, filtros, métricas, localStorage, acciones del contexto |
+```bash
+npm test                 # frontend
+npm run test:watch       # frontend en modo watch
+npm run test:coverage    # frontend con cobertura; el reporte queda en cobertura/index.html
 
-Cobertura actual (v8):
-
-```
-All files   | % Stmts | % Branch | % Funcs | % Lines
-    99.13   |  99.13  |   91.44  |  88.23  |  99.13
+npm --prefix backend test                        # prueba rápida de la API
+npm --prefix backend run test:almacenamiento     # documentos
+npm --prefix backend run test:auth               # clave de sesiones
+npm --prefix backend run test:roles              # permisos de los 4 roles (requiere BD sembrada)
+npm --prefix backend run test:integracion        # API usada por el frontend (requiere BD sembrada)
 ```
 
-Los umbrales están configurados en `vite.config.js` (sentencias/líneas 80, ramas 75, funciones 80);
-`npm run test:coverage` falla si la cobertura baja de esos valores.
+Resultados a noviembre de 2026:
+
+- **Frontend:** 488 pruebas en 62 archivos.
+- **Backend:** 80 pruebas entre almacenamiento, autenticación, roles e integración.
+
+| Cobertura del frontend (v8) | Actual | Mínimo |
+| --- | --- | --- |
+| Sentencias | 94,42 % | 80 % |
+| Ramas | 87,34 % | 75 % |
+| Funciones | 80,51 % | 80 % |
+| Líneas | 94,42 % | 80 % |
+
+`npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
 ## Fuera de alcance
 
-Backend, base de datos, autenticación real, Copilot, Power Automate y Planner.
+Copilot, Power Automate, Microsoft Planner e IA para informes quedan como evolución futura. El Planner de esta
+app es propio. OneDrive/SharePoint está disponible como proveedor de documentos, pero producción usa Google Drive.
