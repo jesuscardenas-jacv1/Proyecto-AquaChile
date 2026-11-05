@@ -9,6 +9,7 @@
     "dev": "node --env-file-if-exists=.env --watch src/servidor.js",
     "db:migrar": "node src/bd/migrar.js",
     "db:semilla": "node src/bd/semilla.js",
+    "descriptores:generar": "node scripts/generar-descriptores.js",
     "test": "node src/probar_api.js",
     "test:almacenamiento": "node --test src/almacenamiento/almacenamiento.test.js",
     "test:auth": "node --test src/middlewares/auth.test.js",

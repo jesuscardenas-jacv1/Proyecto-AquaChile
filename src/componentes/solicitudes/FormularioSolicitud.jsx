@@ -13,6 +13,7 @@ import { normalizar } from '../../dominio/texto';
 import { hayErrores, seccionesDisponibles, validarFormularioSolicitud } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
 import VentanaDocumento from './VentanaDocumento';
+import { documentoCatalogo } from '../../servicios/apiDocumentos';
 
 const camposIniciales = () => ({
   reclutador: '',
@@ -742,11 +743,15 @@ export default function FormularioSolicitud({
                   icono="bi-file-earmark-text"
                   etiqueta="Descriptor de cargo"
                   nombre={descriptorAutomatico}
-                  alVer={usaDescriptorOferta ? verOrigen(documentosOrigen.descriptor, descriptorAutomatico) : null}
+                  alVer={
+                    usaDescriptorOferta
+                      ? verOrigen(documentosOrigen.descriptor, descriptorAutomatico)
+                      : verOrigen(documentoCatalogo(descriptorAutomatico), descriptorAutomatico)
+                  }
                   ayuda={
                     usaDescriptorOferta
                       ? 'Viene de la oferta; se guarda en la carpeta de la solicitud.'
-                      : 'Asociado al cargo, sin archivo para mostrar. Para verlo, súbelo en la oferta o en Documentos.'
+                      : 'Asociado al cargo; se guarda en la carpeta de la solicitud.'
                   }
                 />
               ) : (

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ARCHIVOS_PERMITIDOS, FAMILIAS_CARGO } from '../../datos/constantes';
 import { CARGOS, buscarCargo } from '../../datos/catalogos';
+import { documentoCatalogo } from '../../servicios/apiDocumentos';
+import VentanaDocumento from '../solicitudes/VentanaDocumento';
 import { AREAS_OFERTA } from '../../datos/demoPostulaciones';
 import { JORNADAS_OFERTA, requisitosDesdeTexto, validarOferta } from '../../dominio/ofertas';
 import { hayErrores } from '../../dominio/validaciones';
@@ -34,6 +36,7 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [descriptor, setDescriptor] = useState(null);
+  const [documentoAbierto, setDocumentoAbierto] = useState(null);
   const descriptorCatalogo = buscarCargo(campos.cargo)?.descriptorCargo ?? '';
   const descriptorDisponible = inicial.descriptorNombre || descriptorCatalogo;
 
@@ -209,6 +212,22 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
                   Descargar
                 </button>
               ) : null}
+              {!inicial.descriptorNombre ? (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary py-0 px-2"
+                  aria-label={`Ver ${descriptorCatalogo}`}
+                  title="Vista previa"
+                  onClick={() =>
+                    setDocumentoAbierto({
+                      archivo: { nombre: descriptorCatalogo },
+                      api: documentoCatalogo(descriptorCatalogo),
+                    })
+                  }
+                >
+                  <i className="bi bi-eye" aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           ) : null}
           <input
@@ -262,6 +281,13 @@ export default function FormularioOferta({ inicial = VACIA, alGuardar, alCancela
           </button>
         )}
       </div>
+      {documentoAbierto ? (
+        <VentanaDocumento
+          archivo={documentoAbierto.archivo}
+          api={documentoAbierto.api}
+          alCerrar={() => setDocumentoAbierto(null)}
+        />
+      ) : null}
     </form>
   );
 }
