@@ -5,6 +5,7 @@
  */
 
 import { ErrorApi, URL_API, guardarToken, obtenerToken } from './api';
+import { rutaDescriptorCatalogo } from '../datos/catalogos';
 
 // Se re-exportan para quien ya los importaba desde aquí.
 export { ErrorApi, URL_API, obtenerToken };
@@ -229,6 +230,37 @@ export async function descargarDescriptorOferta(oferta) {
   await entregarDescarga(respuesta, oferta.descriptorNombre || `Descriptor oferta ${oferta.id}`);
 }
 
+async function pedirDescriptorCatalogo(nombre) {
+  let respuesta;
+  try {
+    respuesta = await fetch(rutaDescriptorCatalogo(nombre));
+  } catch {
+    throw new ErrorApi('No se pudo obtener el descriptor de cargo.', { noDisponible: true });
+  }
+  // Una ruta inexistente puede responder con la página de la app: solo vale un PDF.
+  if (!respuesta.ok || !respuesta.headers.get('content-type')?.includes('pdf')) {
+    throw new ErrorApi('No se encontró el archivo de este descriptor de cargo.', { status: 404 });
+  }
+  return respuesta;
+}
+
+/**
+ * Descriptor de demostración de un cargo del catálogo. Es un archivo público del sitio, así
+ * que no necesita servidor ni sesión. Se entrega con { contenido, descargar } para el visor.
+ */
+export function documentoCatalogo(nombre) {
+  return {
+    contenido: async () => (await pedirDescriptorCatalogo(nombre)).blob(),
+    descargar: async () => entregarDescarga(await pedirDescriptorCatalogo(nombre), nombre),
+  };
+}
+
+/** El descriptor del catálogo como archivo, para guardarlo en la carpeta de una solicitud. */
+export async function archivoDescriptorCatalogo(nombre) {
+  const contenido = await (await pedirDescriptorCatalogo(nombre)).blob();
+  return new File([contenido], nombre, { type: 'application/pdf' });
+}
+
 export const apiDocumentos = {
   conectado: () => Boolean(obtenerToken()),
   listar: listarDocumentos,
@@ -240,6 +272,7 @@ export const apiDocumentos = {
   traerCvDePostulacion,
   traerDescriptorDeOferta,
   subirDescriptorOferta,
+  archivoDescriptorCatalogo,
   contenidoDescriptorOferta,
   descargarDescriptorOferta,
   contenidoCvPostulacion,

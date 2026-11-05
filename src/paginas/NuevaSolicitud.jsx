@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+import { esDescriptorCatalogo } from '../datos/catalogos';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
 import Mensaje from '../componentes/comunes/Mensaje';
 
@@ -99,6 +100,19 @@ export default function NuevaSolicitud() {
       }
     }
 
+    // El descriptor del catálogo también queda en la carpeta, salvo que venga uno de la oferta.
+    const descriptorDeOfertaUsado = oferta?.descriptorNombre && datos.descriptorCargo === oferta.descriptorNombre;
+    let avisoDescriptor = '';
+    if (!descriptorDeOfertaUsado && esDescriptorCatalogo(datos.descriptorCargo) && apiDocumentos.conectado()) {
+      try {
+        const archivo = await apiDocumentos.archivoDescriptorCatalogo(datos.descriptorCargo);
+        await apiDocumentos.subir(solicitud.id, { categoria: 'descriptor', archivo, nombreCandidato });
+      } catch {
+        tipoMensaje = 'warning';
+        avisoDescriptor = ' No se pudo guardar el descriptor del cargo; súbelo desde Documentos.';
+      }
+    }
+
     if (postulacionPendiente) {
       await actualizarPostulacion(postulacionPendiente.id, { estado: 'En evaluación', solicitudId: solicitud.id });
       mensaje = 'El postulante pasó a evaluación y la solicitud quedó pendiente de agendar.';
@@ -110,7 +124,7 @@ export default function NuevaSolicitud() {
           tipoMensaje = 'warning';
           mensaje += ' No se pudo copiar el CV de la postulación; súbelo desde Documentos.';
         }
-        if (oferta?.descriptorNombre && datos.descriptorCargo === oferta.descriptorNombre) {
+        if (descriptorDeOfertaUsado) {
           try {
             await apiDocumentos.traerDescriptorDeOferta(solicitud.id, oferta.id, nombreCandidato);
           } catch {
@@ -121,7 +135,7 @@ export default function NuevaSolicitud() {
       }
     }
 
-    navegar(`/solicitudes/${solicitud.id}`, { state: { mensaje, tipo: tipoMensaje } });
+    navegar(`/solicitudes/${solicitud.id}`, { state: { mensaje: mensaje + avisoDescriptor, tipo: tipoMensaje } });
   };
 
   return (

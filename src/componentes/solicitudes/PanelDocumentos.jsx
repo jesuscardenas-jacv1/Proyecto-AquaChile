@@ -6,6 +6,8 @@ import { nombreCarpetaSolicitud } from '../../dominio/documentos';
 import { formatearFecha } from '../../dominio/formateo';
 import Mensaje from '../comunes/Mensaje';
 import VentanaDocumento from './VentanaDocumento';
+import { esDescriptorCatalogo } from '../../datos/catalogos';
+import { documentoCatalogo } from '../../servicios/apiDocumentos';
 
 /** Categorías de la carpeta de la solicitud, en el orden en que se muestran. */
 export const CATEGORIAS_DOCUMENTO = [
@@ -45,6 +47,7 @@ export default function PanelDocumentos({
   const [aviso, setAviso] = useState(null);
   const [abierta, setAbierta] = useState(false);
   const [documento, setDocumento] = useState(null);
+  const [documentoReferencia, setDocumentoReferencia] = useState(null);
   const { esAdmin } = useAuth();
   const entradas = useRef({});
   // Nombres que la solicitud trae de su creación (el CV elegido y el descriptor del
@@ -263,6 +266,22 @@ export default function PanelDocumentos({
                           {' '}
                           En la solicitud se indicó <strong>{referencias[categoria.id]}</strong>
                           {puedeSubir ? '; súbelo aquí para guardarlo en la carpeta.' : ', pero aún no está en la carpeta.'}
+                          {categoria.id === 'descriptor' && esDescriptorCatalogo(referencias.descriptor) ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-primary py-0 px-2 ms-2"
+                              aria-label={`Ver ${referencias.descriptor}`}
+                              title="Vista previa"
+                              onClick={() =>
+                                setDocumentoReferencia({
+                                  archivo: { nombre: referencias.descriptor },
+                                  api: documentoCatalogo(referencias.descriptor),
+                                })
+                              }
+                            >
+                              <i className="bi bi-eye" aria-hidden="true" />
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                     </p>
@@ -320,6 +339,13 @@ export default function PanelDocumentos({
         ) : null}
       </div>
 
+      {documentoReferencia ? (
+        <VentanaDocumento
+          archivo={documentoReferencia.archivo}
+          api={documentoReferencia.api}
+          alCerrar={() => setDocumentoReferencia(null)}
+        />
+      ) : null}
       {documento ? (
         <VentanaDocumento
           solicitudId={solicitud.id}

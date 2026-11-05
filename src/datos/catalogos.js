@@ -40,5 +40,15 @@ export const buscarCargo = (nombre) => buscarEn(CARGOS, nombre);
 export const descriptorDeOferta = (oferta) =>
   oferta?.descriptorNombre || buscarCargo(oferta?.cargo)?.descriptorCargo || '';
 
+/** Indica si el nombre corresponde a un descriptor del catálogo (hay un PDF de demostración). */
+export const esDescriptorCatalogo = (nombre) =>
+  Boolean(nombre) && CARGOS.some((cargo) => cargo.descriptorCargo === nombre);
+
+/** Ruta del PDF de demostración de un descriptor del catálogo (en disco va sin tildes). */
+export const rutaDescriptorCatalogo = (nombre) =>
+  `${import.meta.env.BASE_URL}descriptores/${encodeURIComponent(
+    nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+  )}`;
+
 /** Unidad a la que pertenece una ubicación del catálogo, o cadena vacía si no existe. */
 export const unidadDeUbicacion = (nombre) => buscarEn(UBICACIONES, nombre)?.unidad ?? '';

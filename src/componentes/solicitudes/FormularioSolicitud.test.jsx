@@ -194,14 +194,19 @@ describe('FormularioSolicitud', () => {
     expect(descriptor.contenido).toHaveBeenCalled();
   });
 
-  it('el descriptor del catálogo no tiene archivo: el ojo queda deshabilitado y lo explica', async () => {
+  it('el ojo abre el PDF de demostración del descriptor del catálogo, sin tildes en la ruta', async () => {
     const usuario = userEvent.setup();
+    const pedir = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(new Blob(['pdf']), { headers: { 'content-type': 'application/pdf' } }),
+    );
     renderFormulario();
 
-    await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Jefe de Centro');
+    await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Monitor Producción');
+    await usuario.click(screen.getByRole('button', { name: 'Ver DC_Monitor_Producción.pdf' }));
 
-    expect(screen.getByRole('button', { name: 'Ver DC_Jefe_de_Centro.pdf' })).toBeDisabled();
-    expect(screen.getByText(/sin archivo para mostrar/i)).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: /DC_Monitor_Producción\.pdf/ })).toBeInTheDocument();
+    expect(pedir.mock.calls[0][0]).toMatch(/descriptores\/DC_Monitor_Produccion\.pdf$/);
+    pedir.mockRestore();
   });
 
   it('el ojo también muestra un archivo recién adjuntado', async () => {
