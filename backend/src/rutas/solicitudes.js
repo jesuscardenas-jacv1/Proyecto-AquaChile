@@ -258,6 +258,7 @@ const CECO_VALIDO = /^[A-Z]\d{9}$/i;
 const CAMPOS_EDITABLES = {
   cargo: 'cargo',
   familiaCargo: 'familia_cargo',
+  descriptorCargo: 'descriptor_cargo',
   fechaSolicitud: 'fecha_solicitud',
   reclutador: 'reclutador',
   ubicacion: 'ubicacion',

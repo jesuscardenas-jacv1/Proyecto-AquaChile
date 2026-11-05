@@ -92,6 +92,16 @@ function claveCarpetaCargo(cargoId) {
   return `C${String(cargoId).padStart(4, '0')}`;
 }
 
+/** "Técnico  Eléctrico" y "tecnico electrico" son el mismo cargo. */
+function claveDeCargo(nombre) {
+  return String(nombre ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 function nombreCarpetaCargo(cargoId, nombre) {
   const limpio = limpiarNombre(nombre, 80);
   const clave = claveCarpetaCargo(cargoId);
@@ -185,6 +195,7 @@ module.exports = {
   claveCarpetaOferta,
   nombreCarpetaOferta,
   claveCarpetaCargo,
+  claveDeCargo,
   nombreCarpetaCargo,
   validarCvPortal,
   TAMANO_MAXIMO_CV_PORTAL,
