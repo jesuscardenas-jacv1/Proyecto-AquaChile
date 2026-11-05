@@ -20,8 +20,8 @@ export const CATEGORIAS_DOCUMENTO = [
 const OTROS = { id: 'otro', etiqueta: 'Otros archivos de la carpeta', icono: 'bi-folder2' };
 
 const PROVEEDORES = {
-  drive: { etiqueta: 'Google Drive', icono: 'bi-google' },
-  graph: { etiqueta: 'OneDrive', icono: 'bi-cloud-check' },
+  drive: { etiqueta: 'Google Drive', icono: 'bi-google', enLaNube: true },
+  graph: { etiqueta: 'OneDrive', icono: 'bi-cloud-check', enLaNube: true },
   local: { etiqueta: 'Almacenamiento local', icono: 'bi-hdd' },
 };
 
@@ -110,6 +110,29 @@ export default function PanelDocumentos({
     );
   };
 
+  /** Crea la carpeta que aún no existe y la abre; la pestaña se pide antes para que el navegador no la bloquee. */
+  const crearYAbrirCarpeta = async () => {
+    const pestana = window.open('', '_blank');
+    setOcupado('carpeta');
+    setAviso(null);
+    try {
+      const carpeta = await api.obtenerCarpeta(solicitud.id, nombreCandidato);
+      if (!carpeta?.webUrl) throw new Error('El proveedor no entregó el enlace de la carpeta.');
+      if (pestana) {
+        pestana.opener = null;
+        pestana.location.href = carpeta.webUrl;
+      } else {
+        setAviso({ tipo: 'warning', texto: 'El navegador bloqueó la pestaña nueva. Vuelve a presionar el botón.' });
+      }
+      await cargar();
+    } catch (excepcion) {
+      pestana?.close();
+      setAviso({ tipo: 'danger', texto: `No se pudo abrir la carpeta: ${excepcion.message}` });
+    } finally {
+      setOcupado(null);
+    }
+  };
+
   const alEliminar = (archivo) => {
     if (!window.confirm(`¿Eliminar "${archivo.nombre}" de la carpeta de la solicitud?`)) return;
     ejecutar(archivo.id, () => api.eliminar(solicitud.id, archivo.id), 'Documento eliminado.');
@@ -162,6 +185,19 @@ export default function PanelDocumentos({
               {proveedor.etiqueta}
               <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />
             </a>
+          ) : proveedor?.enLaNube && !soloLectura ? (
+            <button
+              type="button"
+              className="badge bg-light text-secondary border fw-medium"
+              aria-label={`Abrir la carpeta en ${proveedor.etiqueta}`}
+              title={`Abrir la carpeta en ${proveedor.etiqueta}`}
+              disabled={ocupado !== null}
+              onClick={crearYAbrirCarpeta}
+            >
+              <i className={`bi ${proveedor.icono} me-1`} aria-hidden="true" />
+              {proveedor.etiqueta}
+              <i className="bi bi-box-arrow-up-right ms-1" aria-hidden="true" />
+            </button>
           ) : proveedor ? (
             <span className="badge bg-light text-secondary border fw-medium">
               <i className={`bi ${proveedor.icono} me-1`} aria-hidden="true" />

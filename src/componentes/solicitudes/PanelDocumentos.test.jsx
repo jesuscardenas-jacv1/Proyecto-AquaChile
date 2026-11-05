@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import PanelDocumentos from './PanelDocumentos';
 import { ProveedorAuth } from '../../datos/AuthContext';
 import { ErrorApi } from '../../servicios/apiDocumentos';
@@ -107,6 +107,55 @@ describe('PanelDocumentos', () => {
     );
     expect(await screen.findByText('OneDrive')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /abrir la carpeta/i })).toBeNull();
+  });
+
+  describe('solicitud sin carpeta en la nube', () => {
+    const sinCarpeta = { proveedor: 'drive', carpeta: null, permisos: [], archivos: [] };
+    const enlace = 'https://drive.google.com/drive/folders/nueva';
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('crea la carpeta y la abre en una pestaña nueva', async () => {
+      const pestana = { location: {}, opener: {}, close: vi.fn() };
+      const abrir = vi.spyOn(window, 'open').mockReturnValue(pestana);
+      const api = {
+        ...crearApi(sinCarpeta),
+        obtenerCarpeta: vi.fn().mockResolvedValue({ id: 'n1', nombre: 'S0007 - Ana Pérez', webUrl: enlace }),
+      };
+      const usuario = userEvent.setup();
+      render(<PanelDocumentos solicitud={solicitud} nombreCandidato="Ana Pérez" api={api} />);
+
+      await usuario.click(await screen.findByRole('button', { name: 'Abrir la carpeta en Google Drive' }));
+
+      expect(abrir).toHaveBeenCalledWith('', '_blank');
+      expect(api.obtenerCarpeta).toHaveBeenCalledWith(7, 'Ana Pérez');
+      await waitFor(() => expect(pestana.location.href).toBe(enlace));
+      expect(pestana.opener).toBeNull();
+      expect(api.listar).toHaveBeenCalledTimes(2);
+    });
+
+    it('si falla, cierra la pestaña y lo avisa', async () => {
+      const pestana = { location: {}, opener: {}, close: vi.fn() };
+      vi.spyOn(window, 'open').mockReturnValue(pestana);
+      const api = { ...crearApi(sinCarpeta), obtenerCarpeta: vi.fn().mockRejectedValue(new Error('Drive no responde')) };
+      const usuario = userEvent.setup();
+      render(<PanelDocumentos solicitud={solicitud} api={api} />);
+
+      await usuario.click(await screen.findByRole('button', { name: 'Abrir la carpeta en Google Drive' }));
+
+      expect(await screen.findByText(/no se pudo abrir la carpeta: drive no responde/i)).toBeInTheDocument();
+      expect(pestana.close).toHaveBeenCalled();
+    });
+
+    it('la jefatura no puede crearla', async () => {
+      render(
+        <ProveedorAuth usuarioInicial={{ id: 4, nombre: 'Jefatura', rol: 'jefatura' }}>
+          <PanelDocumentos solicitud={solicitud} api={crearApi(sinCarpeta)} />
+        </ProveedorAuth>,
+      );
+      expect(await screen.findByText('Google Drive')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /abrir la carpeta/i })).toBeNull();
+    });
   });
 
   it('sin enlace en la nube la insignia no es un enlace', async () => {

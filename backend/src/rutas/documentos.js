@@ -255,6 +255,28 @@ router.post(
 );
 
 /**
+ * POST /api/solicitudes/:id/documentos/carpeta
+ * Cuerpo JSON: { nombreCandidato }. Devuelve la carpeta de la solicitud y la crea si no existe,
+ * para abrirla en la nube: las solicitudes antiguas o de demostración aún no tienen una.
+ */
+router.post(
+  '/carpeta',
+  autenticar,
+  requerirRol('analista', 'evaluador'),
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    if (!db.prepare('SELECT id FROM solicitudes WHERE id = ?').get(id)) {
+      throw new ErrorAlmacenamiento(`Solicitud #${id} no encontrada.`, 404);
+    }
+    const nombre = nombreCandidato(req, id, req.body?.nombreCandidato);
+    const carpeta = await obtenerAlmacenamiento().obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), {
+      crear: true,
+    });
+    res.json({ ok: true, carpeta });
+  }),
+);
+
+/**
  * POST /api/solicitudes/:id/documentos/sincronizar-descriptor
  * Cuerpo JSON: { nombreCandidato }. Tras cambiar el cargo de la solicitud, deja en su carpeta
  * el descriptor del cargo nuevo: copia el guardado, si existe, y quita los anteriores. También
