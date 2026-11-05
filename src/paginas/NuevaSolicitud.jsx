@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
-import { esDescriptorCatalogo } from '../datos/catalogos';
+import { resolverDescriptor } from '../datos/catalogos';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
 import Mensaje from '../componentes/comunes/Mensaje';
 
@@ -15,6 +15,8 @@ import Mensaje from '../componentes/comunes/Mensaje';
 export default function NuevaSolicitud() {
   const {
     candidatos,
+    cargos,
+    registrarCargo,
     agregarCandidato,
     agregarSolicitud,
     obtenerPostulacion,
@@ -100,17 +102,37 @@ export default function NuevaSolicitud() {
       }
     }
 
-    // El descriptor del catálogo también queda en la carpeta, salvo que venga uno de la oferta.
-    const descriptorDeOfertaUsado = oferta?.descriptorNombre && datos.descriptorCargo === oferta.descriptorNombre;
+    // El descriptor del cargo queda en la carpeta, y uno adjuntado aquí se guarda para el cargo.
+    const descriptor = resolverDescriptor({ cargo: datos.cargo, cargosGuardados: cargos, oferta });
     let avisoDescriptor = '';
-    if (!descriptorDeOfertaUsado && esDescriptorCatalogo(datos.descriptorCargo) && apiDocumentos.conectado()) {
-      try {
-        const archivo = await apiDocumentos.archivoDescriptorCatalogo(datos.descriptorCargo);
-        await apiDocumentos.subir(solicitud.id, { categoria: 'descriptor', archivo, nombreCandidato });
-      } catch {
-        tipoMensaje = 'warning';
-        avisoDescriptor = ' No se pudo guardar el descriptor del cargo; súbelo desde Documentos.';
+    try {
+      if (apiDocumentos.conectado()) {
+        if (descriptor.origen === 'cargo') {
+          await apiDocumentos.traerDescriptorDeCargo(solicitud.id, descriptor.cargoGuardado.id, nombreCandidato);
+        } else if (descriptor.origen === 'oferta') {
+          await apiDocumentos.traerDescriptorDeOferta(solicitud.id, oferta.id, nombreCandidato);
+        } else if (descriptor.origen === 'catalogo') {
+          const archivo = await apiDocumentos.archivoDescriptorCatalogo(descriptor.nombre);
+          await apiDocumentos.subir(solicitud.id, { categoria: 'descriptor', archivo, nombreCandidato });
+        } else if (archivos.descriptor) {
+          registrarCargo(
+            await apiDocumentos.subirDescriptorCargo({
+              cargo: datos.cargo,
+              familiaCargo: datos.familiaCargo,
+              archivo: archivos.descriptor,
+            }),
+          );
+        }
+      } else if (archivos.descriptor) {
+        registrarCargo({
+          nombre: datos.cargo,
+          familiaCargo: datos.familiaCargo,
+          descriptorNombre: archivos.descriptor.name,
+        });
       }
+    } catch {
+      tipoMensaje = 'warning';
+      avisoDescriptor = ' No se pudo guardar el descriptor del cargo; súbelo desde Documentos.';
     }
 
     if (postulacionPendiente) {
@@ -123,14 +145,6 @@ export default function NuevaSolicitud() {
         } catch {
           tipoMensaje = 'warning';
           mensaje += ' No se pudo copiar el CV de la postulación; súbelo desde Documentos.';
-        }
-        if (descriptorDeOfertaUsado) {
-          try {
-            await apiDocumentos.traerDescriptorDeOferta(solicitud.id, oferta.id, nombreCandidato);
-          } catch {
-            tipoMensaje = 'warning';
-            mensaje += ' No se pudo copiar el descriptor de la oferta; súbelo desde Documentos.';
-          }
         }
       }
     }
@@ -161,7 +175,8 @@ export default function NuevaSolicitud() {
             valoresIniciales={valoresIniciales}
             reclutadorFijo={reclutadorFijo}
             postulante={postulante}
-            descriptorOferta={oferta?.descriptorNombre ?? ''}
+            cargosGuardados={cargos}
+            oferta={oferta}
             documentosOrigen={documentosOrigen}
             alGuardar={guardar}
             alCancelar={() => navegar(postulacionPendiente ? '/postulaciones' : '/solicitudes')}

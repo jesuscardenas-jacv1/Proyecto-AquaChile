@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../datos/AuthContext';
 import { useDatos } from '../datos/DatosContext';
-import { descriptorDeOferta } from '../datos/catalogos';
+import { resolverDescriptor } from '../datos/catalogos';
 import {
   contarPostulacionesPorOferta,
   ESTADOS_OFERTA,
@@ -26,7 +26,7 @@ const COLOR_ESTADO = {
  * publica, cierra y reabre; la jefatura solo consulta.
  */
 export default function Ofertas() {
-  const { ofertas, postulaciones, cambiarEstadoOferta } = useDatos();
+  const { ofertas, postulaciones, cargos, cambiarEstadoOferta } = useDatos();
   const { soloLectura } = useAuth();
   const { state } = useLocation();
   const [criterios, setCriterios] = useState({ estado: '', busqueda: '' });
@@ -34,6 +34,8 @@ export default function Ofertas() {
 
   const visibles = filtrarGestionOfertas(ofertas, criterios);
   const cuentas = contarPostulacionesPorOferta(postulaciones);
+  const descriptorDe = (oferta) =>
+    resolverDescriptor({ cargo: oferta.cargo, cargosGuardados: cargos, oferta }).nombre;
   const cambiar = (campo, valor) => setCriterios((actual) => ({ ...actual, [campo]: valor }));
 
   const cambiarEstado = async (oferta, estado, texto) => {
@@ -41,7 +43,7 @@ export default function Ofertas() {
       setAviso({ tipo: 'warning', texto: `Completa "${oferta.titulo}" antes de publicarla: usa Editar.` });
       return;
     }
-    if (oferta.estado === 'Borrador' && !descriptorDeOferta(oferta)) {
+    if (oferta.estado === 'Borrador' && !descriptorDe(oferta)) {
       setAviso({ tipo: 'warning', texto: `Sube el descriptor de "${oferta.titulo}" antes de publicarla: usa Editar.` });
       return;
     }
@@ -148,7 +150,7 @@ export default function Ofertas() {
                       </small>
                       <small className="d-block text-secondary text-break">
                         <i className="bi bi-file-earmark-text me-1" aria-hidden="true" />
-                        {descriptorDeOferta(oferta) || 'Sin descriptor'}
+                        {descriptorDe(oferta) || 'Sin descriptor'}
                       </small>
                     </td>
                     <td>

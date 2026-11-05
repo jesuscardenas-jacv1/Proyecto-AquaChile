@@ -179,6 +179,16 @@ function migrar() {
   // Las ofertas existentes ya están publicadas; una nueva puede partir como borrador (0).
   agregarColumna('ofertas', 'publicada', 'INTEGER NOT NULL DEFAULT 1');
   agregarColumna('ofertas', 'descriptor_nombre', "TEXT NOT NULL DEFAULT ''");
+  // Descriptor por cargo: se sube una vez y lo reutilizan sus ofertas y solicitudes.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cargos (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      clave             TEXT    NOT NULL UNIQUE,
+      nombre            TEXT    NOT NULL,
+      familia_cargo     TEXT    NOT NULL DEFAULT '',
+      descriptor_nombre TEXT    NOT NULL DEFAULT ''
+    );
+  `);
 
   actualizarRolesUsuarios();
 

@@ -8,12 +8,18 @@ import {
   ORIGENES_CANDIDATO,
   RECLUTADORES,
 } from '../../datos/constantes';
-import { CARGOS, UBICACIONES, buscarCargo, unidadDeUbicacion } from '../../datos/catalogos';
+import {
+  UBICACIONES,
+  datosDeCargo,
+  nombresDeCargos,
+  resolverDescriptor,
+  unidadDeUbicacion,
+} from '../../datos/catalogos';
 import { normalizar } from '../../dominio/texto';
 import { hayErrores, seccionesDisponibles, validarFormularioSolicitud } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
 import VentanaDocumento from './VentanaDocumento';
-import { documentoCatalogo } from '../../servicios/apiDocumentos';
+import { apiDocumentos, documentoCargo, documentoCatalogo } from '../../servicios/apiDocumentos';
 
 const camposIniciales = () => ({
   reclutador: '',
@@ -142,7 +148,7 @@ function descargarArchivoLocal(archivo) {
 }
 
 /** Campo para adjuntar un archivo: el nombre va en la solicitud y el archivo, a su carpeta. */
-function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, alVer, error }) {
+function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, alVer, error, ayuda = '' }) {
   return (
     <div>
       <label className="form-label" htmlFor={id}>
@@ -185,6 +191,7 @@ function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, alVer, e
       <div className="form-text">
         1 archivo de hasta {ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB (
         {ARCHIVOS_PERMITIDOS.descripcion}).
+        {ayuda ? ` ${ayuda}` : ''}
       </div>
     </div>
   );
@@ -211,10 +218,10 @@ function FichaPostulante({ postulante }) {
  * - `reclutadorFijo`: quien pide la evaluación es el analista con sesión; se muestra y no se
  *   pregunta. Sin él (administrador) se elige de la lista de reclutadores.
  * - `postulante`: viene del portal; sus datos ya se conocen y se muestran como ficha.
- * - `descriptorOferta`: descriptor subido al publicar la oferta; mientras no se cambie el
- *   cargo de la oferta, se usa en vez de pedirlo.
+ * - `cargosGuardados`: cargos con su descriptor; si el cargo tiene uno, no se pide adjuntarlo.
+ * - `oferta`: de dónde viene la postulación; una oferta antigua puede tener descriptor propio.
  * - `documentosOrigen`: { cv, descriptor }, cada uno con { contenido, descargar } para ver los
- *   archivos que vienen de la postulación y de la oferta.
+ *   archivos que vienen de la postulación y de esa oferta.
  *
  * Las secciones se despliegan a medida que se completan, y lo heredado del proceso anterior se
  * distingue por su color: sigue siendo editable y, al cambiarlo, pasa a verse como un dato propio.
@@ -226,7 +233,8 @@ export default function FormularioSolicitud({
   valoresIniciales = {},
   reclutadorFijo = '',
   postulante = null,
-  descriptorOferta = '',
+  cargosGuardados = [],
+  oferta = null,
   documentosOrigen = {},
 }) {
   // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
@@ -271,9 +279,14 @@ export default function FormularioSolicitud({
   const candidatoRegistrado = candidatos.find(
     (candidato) => String(candidato.id) === String(formulario.candidatoId),
   );
-  const cargoCatalogo = buscarCargo(formulario.cargo);
-  const usaDescriptorOferta = Boolean(descriptorOferta) && formulario.cargo === valoresIniciales.cargo;
-  const descriptorAutomatico = usaDescriptorOferta ? descriptorOferta : cargoCatalogo?.descriptorCargo ?? '';
+  const cargoCatalogo = datosDeCargo(formulario.cargo, cargosGuardados);
+  const descriptor = resolverDescriptor({ cargo: formulario.cargo, cargosGuardados, oferta });
+  const descriptorAutomatico = descriptor.nombre;
+  const visorDescriptor = {
+    cargo: () => (apiDocumentos.conectado() ? documentoCargo(descriptor.cargoGuardado) : null),
+    oferta: () => documentosOrigen.descriptor,
+    catalogo: () => documentoCatalogo(descriptor.nombre),
+  }[descriptor.origen]?.();
   const unidad = unidadDeUbicacion(formulario.ubicacion);
   const esExterno = formulario.origen === 'Externo';
 
@@ -300,7 +313,7 @@ export default function FormularioSolicitud({
       actualizar({ nombreCandidato, candidatoId: '' });
       return;
     }
-    const cargo = buscarCargo(candidato.cargo);
+    const cargo = datosDeCargo(candidato.cargo, cargosGuardados);
     actualizar(
       {
         nombreCandidato,
@@ -320,7 +333,7 @@ export default function FormularioSolicitud({
 
   const cambiarCargo = (evento) => {
     const cargo = evento.target.value;
-    const encontrado = buscarCargo(cargo);
+    const encontrado = datosDeCargo(cargo, cargosGuardados);
     actualizar(encontrado ? { cargo, familiaCargo: encontrado.familiaCargo } : { cargo }, [
       'cargo',
       'familiaCargo',
@@ -569,8 +582,8 @@ export default function FormularioSolicitud({
                 onChange={cambiarCargo}
               />
               <datalist id="cargos-catalogo">
-                {CARGOS.map((cargo) => (
-                  <option key={cargo.nombre} value={cargo.nombre} />
+                {nombresDeCargos(cargosGuardados).map((nombre) => (
+                  <option key={nombre} value={nombre} />
                 ))}
               </datalist>
               {errorDe('cargo') ? <div className="invalid-feedback">{errores.cargo}</div> : null}
@@ -743,13 +756,9 @@ export default function FormularioSolicitud({
                   icono="bi-file-earmark-text"
                   etiqueta="Descriptor de cargo"
                   nombre={descriptorAutomatico}
-                  alVer={
-                    usaDescriptorOferta
-                      ? verOrigen(documentosOrigen.descriptor, descriptorAutomatico)
-                      : verOrigen(documentoCatalogo(descriptorAutomatico), descriptorAutomatico)
-                  }
+                  alVer={verOrigen(visorDescriptor, descriptorAutomatico)}
                   ayuda={
-                    usaDescriptorOferta
+                    descriptor.origen === 'oferta'
                       ? 'Viene de la oferta; se guarda en la carpeta de la solicitud.'
                       : 'Asociado al cargo; se guarda en la carpeta de la solicitud.'
                   }
@@ -758,6 +767,7 @@ export default function FormularioSolicitud({
                 <CampoArchivo
                   id="descriptorAdjunto"
                   etiqueta="Adjuntar descriptor de cargo"
+                  ayuda="Queda guardado para este cargo y no se volverá a pedir."
                   archivo={formulario.descriptorAdjunto}
                   alSeleccionar={seleccionarArchivo('descriptorAdjunto')}
                   alQuitar={() => quitarAdjunto('descriptorAdjunto')}

@@ -74,6 +74,14 @@ describe('Ofertas (gestión del analista)', () => {
     const fila = screen.getByText('Operario Nuevo').closest('tr');
     expect(within(fila).getByText('Publicada')).toBeInTheDocument();
     expect(within(fila).getByText('descriptor-operario.pdf')).toBeInTheDocument();
+
+    // La siguiente oferta de ese cargo ya no pide subirlo.
+    await usuario.click(screen.getByRole('link', { name: 'Nueva oferta' }));
+    await completar(usuario, 'Operario Otra Sede');
+    expect(screen.getByText(/guardado para este cargo/i)).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Publicar oferta' }));
+    expect(await screen.findByText('Oferta publicada en el portal.')).toBeInTheDocument();
+    expect(within(screen.getByText('Operario Otra Sede').closest('tr')).getByText('descriptor-operario.pdf')).toBeInTheDocument();
   });
 
   it('un cargo del catálogo completa la familia y ya trae su descriptor', async () => {
@@ -85,13 +93,13 @@ describe('Ofertas (gestión del analista)', () => {
 
     expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue(cargo.familiaCargo);
     expect(screen.getByText(cargo.descriptorCargo)).toBeInTheDocument();
-    expect(screen.getByText(/asociado al cargo/i)).toBeInTheDocument();
+    expect(screen.getByText(/de demostración para este cargo/i)).toBeInTheDocument();
   });
 
   it('si no se puede subir el descriptor, la oferta queda como borrador', async () => {
     const usuario = userEvent.setup();
     const espia = vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
-    const subir = vi.spyOn(apiDocumentos, 'subirDescriptorOferta').mockRejectedValue(new Error('Sin servicio.'));
+    const subir = vi.spyOn(apiDocumentos, 'subirDescriptorCargo').mockRejectedValue(new Error('Sin servicio.'));
     renderOfertas('/ofertas/nueva');
 
     await completar(usuario, 'Operario Sin Archivo');

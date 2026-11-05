@@ -90,6 +90,8 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
   descriptor, informe PDF (con competencias) y pauta de entrevista (confidencial: solo la ve la psicóloga). Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
+- **Descriptor de cargo:** se guarda por cargo (tabla `cargos`, carpeta `C0001 - Cargo`): se sube una vez y lo reutilizan
+  sus ofertas y solicitudes, cada solicitud con su copia. Los cargos del catálogo traen un PDF ficticio en `public/descriptores`.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).

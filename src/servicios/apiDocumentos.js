@@ -207,15 +207,34 @@ export async function traerDescriptorDeOferta(solicitudId, ofertaId, nombreCandi
   return respuesta.json();
 }
 
-/** Sube el descriptor interno de una oferta (no se publica en el portal). */
-export async function subirDescriptorOferta(ofertaId, archivo) {
-  const parametros = new URLSearchParams({ nombre: archivo.name });
-  const respuesta = await llamar(`/ofertas/${ofertaId}/descriptor?${parametros}`, {
+/** Copia el descriptor guardado del cargo a la carpeta de la solicitud recién creada. */
+export async function traerDescriptorDeCargo(solicitudId, cargoId, nombreCandidato) {
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/desde-cargo`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify({ cargoId, nombreCandidato }),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return respuesta.json();
+}
+
+/** Guarda el descriptor de un cargo, para todas sus ofertas y solicitudes. Devuelve el cargo. */
+export async function subirDescriptorCargo({ cargo, familiaCargo, archivo }) {
+  const parametros = new URLSearchParams({ cargo, familiaCargo: familiaCargo ?? '', nombre: archivo.name });
+  const respuesta = await llamar(`/cargos/descriptor?${parametros}`, {
     metodo: 'POST',
     cuerpo: archivo,
     cabeceras: { 'Content-Type': archivo.type || 'application/octet-stream' },
   });
-  return respuesta.json();
+  return (await respuesta.json()).cargo;
+}
+
+/** Descriptor guardado de un cargo, con { contenido, descargar } para el visor. */
+export function documentoCargo(cargo) {
+  return {
+    contenido: async () => (await llamar(`/cargos/${cargo.id}/descriptor`)).blob(),
+    descargar: async () =>
+      entregarDescarga(await llamar(`/cargos/${cargo.id}/descriptor`), cargo.descriptorNombre),
+  };
 }
 
 /** Contenido del descriptor interno de una oferta, para la vista previa. */
@@ -271,7 +290,8 @@ export const apiDocumentos = {
   generarInforme,
   traerCvDePostulacion,
   traerDescriptorDeOferta,
-  subirDescriptorOferta,
+  traerDescriptorDeCargo,
+  subirDescriptorCargo,
   archivoDescriptorCatalogo,
   contenidoDescriptorOferta,
   descargarDescriptorOferta,

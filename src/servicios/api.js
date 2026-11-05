@@ -142,13 +142,14 @@ export const apiDatos = {
 
   /** Todo lo que el usuario con sesión puede ver según su rol. */
   async cargarTodo(rol) {
-    const [candidatos, solicitudes, evaluaciones, ofertas, postulaciones] = await Promise.all([
+    const [candidatos, solicitudes, evaluaciones, ofertas, postulaciones, cargos] = await Promise.all([
       solicitar('/candidatos'),
       solicitar('/solicitudes'),
       solicitar('/evaluaciones'),
       // Quien gestiona ofertas también ve borradores y cerradas; el portal filtra las abiertas.
       ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/ofertas/gestion') : solicitar('/ofertas', { publico: true }),
       ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/postulaciones') : { postulaciones: [] },
+      ROLES_CON_POSTULACIONES.includes(rol) ? solicitar('/cargos') : { cargos: [] },
     ]);
     return {
       candidatos: candidatos.candidatos,
@@ -156,6 +157,7 @@ export const apiDatos = {
       evaluaciones: evaluaciones.evaluaciones,
       ofertas: ofertas.ofertas,
       postulaciones: postulaciones.postulaciones,
+      cargos: cargos.cargos,
     };
   },
 

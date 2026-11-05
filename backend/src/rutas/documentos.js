@@ -9,6 +9,7 @@ const {
   claveCarpeta,
   claveCarpetaPostulacion,
   claveCarpetaOferta,
+  claveCarpetaCargo,
   categoriaDeArchivo,
   nombreArchivo,
   nombreCarpeta,
@@ -215,6 +216,40 @@ router.post(
     }
 
     res.status(201).json({ ok: true, carpeta: destino, archivos: copiados });
+  }),
+);
+
+/**
+ * POST /api/solicitudes/:id/documentos/desde-cargo
+ * Cuerpo JSON: { cargoId, nombreCandidato }. Copia el descriptor guardado del cargo a la
+ * carpeta de la solicitud. Solo analista.
+ */
+router.post(
+  '/desde-cargo',
+  autenticar,
+  manejar(async (req, res) => {
+    const id = idSolicitud(req);
+    if (!puedeGestionar(req.usuario, 'descriptor')) {
+      throw new ErrorAlmacenamiento('Solo el analista puede guardar el descriptor en la solicitud.', 403);
+    }
+    const cargoId = Number(req.body?.cargoId);
+    if (!Number.isInteger(cargoId) || cargoId <= 0) {
+      throw new ErrorAlmacenamiento('Id de cargo inválido.', 400);
+    }
+
+    const almacenamiento = obtenerAlmacenamiento();
+    const origen = await almacenamiento.obtenerCarpeta(claveCarpetaCargo(cargoId), null);
+    const descriptor = origen
+      ? (await almacenamiento.listarArchivos(origen)).find((archivo) => categoriaDeArchivo(archivo.nombre) === 'descriptor')
+      : null;
+    if (!descriptor) throw new ErrorAlmacenamiento('El cargo no tiene un descriptor guardado.', 404);
+
+    const nombre = nombreCandidato(req, id, req.body?.nombreCandidato);
+    const destino = await almacenamiento.obtenerCarpeta(claveCarpeta(id), nombreCarpeta(id, nombre), { crear: true });
+    const { contenido } = await almacenamiento.descargarArchivo(origen, descriptor.id);
+    const copiado = await almacenamiento.subirArchivo(destino, descriptor.nombre, contenido);
+
+    res.status(201).json({ ok: true, carpeta: destino, archivo: copiado });
   }),
 );
 

@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useDatos } from '../datos/DatosContext';
 import FormularioOferta from '../componentes/ofertas/FormularioOferta';
 import { useGuardarOferta } from '../componentes/ofertas/useGuardarOferta';
 
 /** Crea una oferta como borrador o publicada, y vuelve al listado. */
 export default function NuevaOferta() {
+  const { cargos } = useDatos();
   const guardarOferta = useGuardarOferta();
   const navegar = useNavigate();
 
@@ -21,7 +23,7 @@ export default function NuevaOferta() {
       </header>
       <div className="row">
         <div className="col-12 col-xl-9">
-          <FormularioOferta alGuardar={guardar} alCancelar={() => navegar('/ofertas')} />
+          <FormularioOferta alGuardar={guardar} alCancelar={() => navegar('/ofertas')} cargosGuardados={cargos} />
         </div>
       </div>
     </div>
