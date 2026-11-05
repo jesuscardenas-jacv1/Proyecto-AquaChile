@@ -6,6 +6,7 @@ import {
   validarCandidato,
   validarEdicionSolicitud,
   validarEvaluacion,
+  validarFormularioSolicitud,
   validarSolicitud,
   validarUsuario,
 } from './validaciones';
@@ -170,5 +171,17 @@ describe('inicialesDe', () => {
     expect(inicialesDe('Carolina Muñoz Pérez')).toBe('CM');
     expect(inicialesDe('admin')).toBe('AD');
     expect(inicialesDe('')).toBe('?');
+  });
+});
+
+describe('validarFormularioSolicitud: descriptor de cargo', () => {
+  it('lo exige solo si el cargo no tiene uno disponible', () => {
+    const sinDescriptor = validarFormularioSolicitud({}, [], { descriptorDisponible: false });
+    expect(sinDescriptor.descriptorAdjunto).toMatch(/no tiene descriptor/i);
+
+    const adjunto = validarFormularioSolicitud({ descriptorAdjunto: 'dc.pdf' }, [], { descriptorDisponible: false });
+    expect(adjunto.descriptorAdjunto).toBeUndefined();
+
+    expect(validarFormularioSolicitud({}, []).descriptorAdjunto).toBeUndefined();
   });
 });

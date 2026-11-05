@@ -67,6 +67,13 @@ async function completarSolicitud(usuario, nombreCandidato) {
   await elegir(usuario, /requiere referencias/i, 'Sí');
 }
 
+// El cargo de María González no está en el catálogo: hay que adjuntar su descriptor.
+const adjuntarDescriptor = (usuario) =>
+  usuario.upload(
+    screen.getByLabelText(/adjuntar descriptor de cargo/i),
+    new File(['dc'], 'dc-tecnico.pdf', { type: 'application/pdf' }),
+  );
+
 describe('NuevaSolicitud', () => {
   it('el analista con sesión es quien solicita: no se le pregunta el reclutador', () => {
     renderNueva(datosDePrueba, { id: 1, nombre: 'Carolina Muñoz', rol: 'analista' });
@@ -89,10 +96,23 @@ describe('NuevaSolicitud', () => {
 
     await completarSolicitud(usuario, 'María González');
     await elegir(usuario, /origen/i, 'Interno');
+    await adjuntarDescriptor(usuario);
     await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
 
     expect(screen.getByRole('heading', { name: /detalle de solicitud #4/i })).toBeInTheDocument();
     expect(screen.getByText('Candidato: María González')).toBeInTheDocument();
+  });
+
+  it('no crea la solicitud si el cargo no tiene descriptor', async () => {
+    const usuario = userEvent.setup();
+    renderNueva(datosDePrueba, administrador);
+
+    await completarSolicitud(usuario, 'María González');
+    await elegir(usuario, /origen/i, 'Interno');
+    await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+
+    expect(screen.getByText(/este cargo no tiene descriptor/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /detalle de solicitud #4/i })).toBeNull();
   });
 
   describe('adjuntos del formulario', () => {
@@ -102,20 +122,25 @@ describe('NuevaSolicitud', () => {
       await completarSolicitud(usuario, 'María González');
       await elegir(usuario, /origen/i, 'Interno');
       await usuario.upload(screen.getByLabelText('Adjuntar CV'), new File(['cv'], 'cv-maria.pdf', { type: 'application/pdf' }));
+      await adjuntarDescriptor(usuario);
       await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
     };
 
     it('sube a la carpeta el archivo elegido, no solo su nombre', async () => {
       vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
       const subir = vi.spyOn(apiDocumentos, 'subir').mockResolvedValue({ ok: true });
+      const guardarEnCargo = vi
+        .spyOn(apiDocumentos, 'subirDescriptorCargo')
+        .mockResolvedValue({ id: 1, nombre: 'Técnico de Planta', familiaCargo: 'Técnico B C', descriptorNombre: 'dc-tecnico.pdf' });
       const usuario = userEvent.setup();
       renderNueva(datosDePrueba, administrador);
       await completarConCv(usuario);
 
       expect(await screen.findByText(/solicitud enviada/i)).toBeInTheDocument();
-      expect(subir).toHaveBeenCalledTimes(1);
-      const [, { categoria, archivo, nombreCandidato }] = subir.mock.calls[0];
-      expect(categoria).toBe('cv');
+      // El CV y el descriptor quedan en la carpeta, y el descriptor además se guarda para el cargo.
+      expect(subir.mock.calls.map(([, datos]) => datos.categoria).sort()).toEqual(['cv', 'descriptor']);
+      expect(guardarEnCargo).toHaveBeenCalledTimes(1);
+      const [, { archivo, nombreCandidato }] = subir.mock.calls.find(([, datos]) => datos.categoria === 'cv');
       expect(archivo.name).toBe('cv-maria.pdf');
       expect(nombreCandidato).toBe('María González');
     });

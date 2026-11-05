@@ -85,7 +85,7 @@ const CECO_VALIDO = /^[A-Z]\d{9}$/i;
  * Si el candidato no está registrado (`candidatoId` vacío), exige sus datos de contacto
  * para registrarlo junto con la solicitud.
  */
-export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
+export function validarFormularioSolicitud(formulario = {}, candidatos = [], { descriptorDisponible = true } = {}) {
   const { candidatoId, ...resto } = validarSolicitud(formulario, candidatos);
   const errores = { ...resto };
   const nombreCandidato = limpiar(formulario.nombreCandidato);
@@ -114,6 +114,11 @@ export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
 
   if (!limpiar(formulario.ubicacion)) {
     errores.ubicacion = 'La ubicación del cargo es obligatoria.';
+  }
+
+  // Cada solicitud lleva su descriptor: si el cargo aún no tiene uno, hay que adjuntarlo.
+  if (!descriptorDisponible && !limpiar(formulario.descriptorAdjunto)) {
+    errores.descriptorAdjunto = 'Este cargo no tiene descriptor: adjúntalo para continuar.';
   }
 
   if (!limpiar(formulario.requiereReferencias)) {
