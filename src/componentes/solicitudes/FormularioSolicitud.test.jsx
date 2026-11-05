@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeAll } from 'vitest';
 import FormularioSolicitud from './FormularioSolicitud';
 
 const candidatos = [
@@ -31,6 +31,12 @@ async function completarCargo(usuario) {
 }
 
 describe('FormularioSolicitud', () => {
+  // jsdom no trae estas funciones; el visor las usa para mostrar los archivos.
+  beforeAll(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:doc');
+    URL.revokeObjectURL = vi.fn();
+  });
+
   it('exige los campos obligatorios del formulario', async () => {
     const usuario = userEvent.setup();
     const alGuardar = vi.fn();
@@ -102,6 +108,110 @@ describe('FormularioSolicitud', () => {
 
     await elegir(usuario, /origen/i, 'Externo');
     expect(grupo(/referido/i)).toBeInTheDocument();
+  });
+
+  it('despliega cada sección al completar la anterior, sin volver a plegarla', async () => {
+    const usuario = userEvent.setup();
+    const cuerpo = (id) => document.querySelector(`#${id} .seccion-solicitud-cuerpo`);
+    const postulante = { nombre: 'Ana Pérez', correo: 'ana@ejemplo.cl', telefono: '+56900000000', origen: 'Externo' };
+    renderFormulario({
+      reclutadorFijo: 'Carolina Muñoz',
+      postulante,
+      candidatos: [{ id: 1, ...postulante }],
+      valoresIniciales: {
+        candidatoId: '1',
+        nombreCandidato: 'Ana Pérez',
+        origen: 'Externo',
+        cargo: 'Cargo de oferta',
+        familiaCargo: 'Operario',
+        ubicacion: 'Planta Calbuco',
+      },
+    });
+
+    // El candidato viene completo: se abre Cargo y lo demás sigue plegado.
+    expect(cuerpo('seccion-cargo')).not.toHaveClass('d-none');
+    expect(cuerpo('seccion-evaluacion')).toHaveClass('d-none');
+    expect(cuerpo('seccion-antecedentes')).toHaveClass('d-none');
+
+    await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170010311');
+    expect(cuerpo('seccion-evaluacion')).toHaveClass('d-none');
+    await elegir(usuario, /requiere referencias/i, 'No');
+    expect(cuerpo('seccion-evaluacion')).not.toHaveClass('d-none');
+
+    await usuario.selectOptions(screen.getByLabelText(/psicóloga responsable/i), 'Ignacia Valdés Ortiz');
+    expect(cuerpo('seccion-antecedentes')).not.toHaveClass('d-none');
+
+    // Corregir un dato anterior no pliega lo ya desplegado.
+    await usuario.selectOptions(screen.getByLabelText(/^ceco/i), '');
+    expect(cuerpo('seccion-antecedentes')).not.toHaveClass('d-none');
+  });
+
+  it('al enviar incompleto despliega todo para mostrar los errores', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario();
+    expect(document.querySelector('#seccion-evaluacion .seccion-solicitud-cuerpo')).toHaveClass('d-none');
+
+    await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+
+    expect(document.querySelector('#seccion-evaluacion .seccion-solicitud-cuerpo')).not.toHaveClass('d-none');
+  });
+
+  it('distingue lo heredado de la oferta, y al editarlo deja de verse heredado', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario({
+      postulante: { nombre: 'Ana Pérez', correo: 'ana@ejemplo.cl', telefono: '+56900000000', origen: 'Externo' },
+      valoresIniciales: { cargo: 'Cargo de oferta', ubicacion: 'Planta Calbuco' },
+    });
+
+    const cargo = screen.getByLabelText(/nombre del cargo/i);
+    expect(cargo).toHaveClass('dato-heredado');
+    expect(cargo).toBeEnabled();
+    expect(screen.getByLabelText(/^ceco/i)).not.toHaveClass('dato-heredado');
+
+    await usuario.type(cargo, ' editado');
+    expect(cargo).toHaveValue('Cargo de oferta editado');
+    expect(cargo).not.toHaveClass('dato-heredado');
+    expect(screen.getByLabelText(/ubicación del cargo/i)).toHaveClass('dato-heredado');
+  });
+
+  it('el ojo abre la vista previa de lo que viene de la postulación y de la oferta', async () => {
+    const usuario = userEvent.setup();
+    const cv = { contenido: vi.fn().mockResolvedValue(new Blob(['cv'])), descargar: vi.fn() };
+    const descriptor = { contenido: vi.fn().mockResolvedValue(new Blob(['d'])), descargar: vi.fn() };
+    renderFormulario({
+      postulante: { nombre: 'Ana Pérez', origen: 'Externo' },
+      valoresIniciales: { cargo: 'Cargo de oferta', cv: 'cv-ana.pdf' },
+      descriptorOferta: 'descriptor.pdf',
+      documentosOrigen: { cv, descriptor },
+    });
+
+    await usuario.click(screen.getByRole('button', { name: 'Ver cv-ana.pdf' }));
+    expect(cv.contenido).toHaveBeenCalled();
+    expect(await screen.findByRole('dialog', { name: /cv-ana\.pdf/ })).toBeInTheDocument();
+    await usuario.keyboard('{Escape}');
+
+    await usuario.click(await screen.findByRole('button', { name: 'Ver descriptor.pdf' }));
+    expect(descriptor.contenido).toHaveBeenCalled();
+  });
+
+  it('el descriptor del catálogo no tiene archivo: el ojo queda deshabilitado y lo explica', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario();
+
+    await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Jefe de Centro');
+
+    expect(screen.getByRole('button', { name: 'Ver DC_Jefe_de_Centro.pdf' })).toBeDisabled();
+    expect(screen.getByText(/sin archivo para mostrar/i)).toBeInTheDocument();
+  });
+
+  it('el ojo también muestra un archivo recién adjuntado', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario();
+
+    await usuario.upload(screen.getByLabelText(/adjuntar cv/i), new File(['cv'], 'mi-cv.pdf', { type: 'application/pdf' }));
+    await usuario.click(screen.getByRole('button', { name: 'Ver mi-cv.pdf' }));
+
+    expect(await screen.findByRole('dialog', { name: /mi-cv\.pdf/ })).toBeInTheDocument();
   });
 
   it('el CECO se elige de una lista', () => {

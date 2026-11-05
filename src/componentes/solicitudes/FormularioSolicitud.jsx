@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ARCHIVOS_PERMITIDOS,
   CECOS,
@@ -10,8 +10,9 @@ import {
 } from '../../datos/constantes';
 import { CARGOS, UBICACIONES, buscarCargo, unidadDeUbicacion } from '../../datos/catalogos';
 import { normalizar } from '../../dominio/texto';
-import { hayErrores, validarFormularioSolicitud } from '../../dominio/validaciones';
+import { hayErrores, seccionesDisponibles, validarFormularioSolicitud } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
+import VentanaDocumento from './VentanaDocumento';
 
 const camposIniciales = () => ({
   reclutador: '',
@@ -79,8 +80,68 @@ function GrupoOpciones({
   );
 }
 
+/**
+ * Sección numerada del formulario. Las siguientes a la que se está completando quedan
+ * plegadas hasta que le toque su turno; los campos siguen en la página para conservar lo escrito.
+ */
+function SeccionFormulario({ id, numero, titulo, completa, disponible, children }) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-titulo`}
+      className={`seccion-solicitud ${disponible ? '' : 'seccion-solicitud-pendiente'}`.trim()}
+    >
+      <h3 id={`${id}-titulo`} className="seccion-solicitud-titulo h6 mb-0">
+        <span className={`seccion-solicitud-numero ${completa ? 'completa' : ''}`.trim()} aria-hidden="true">
+          {completa ? <i className="bi bi-check-lg" /> : numero}
+        </span>
+        {titulo}
+        {!disponible ? <small className="fw-normal text-secondary ms-auto">Completa la sección anterior</small> : null}
+        {disponible && completa ? <span className="visually-hidden"> (completa)</span> : null}
+      </h3>
+      <div className={`seccion-solicitud-cuerpo ${disponible ? '' : 'd-none'}`.trim()}>{children}</div>
+    </section>
+  );
+}
+
+/** Nombre de un documento ya definido, con el botón del ojo para verlo sin salir del formulario. */
+function DocumentoDefinido({ icono, etiqueta, nombre, alVer, ayuda }) {
+  return (
+    <div>
+      <span className="form-label d-block">{etiqueta}</span>
+      <div className="dato-heredado d-flex align-items-center gap-2 border rounded px-3 py-2">
+        <i className={`bi ${icono} text-secondary`} aria-hidden="true" />
+        <span className="flex-grow-1 text-break small">{nombre}</span>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary py-0 px-2"
+          onClick={alVer}
+          disabled={!alVer}
+          aria-label={`Ver ${nombre}`}
+          title={alVer ? 'Vista previa' : 'Este documento no tiene archivo para mostrar'}
+        >
+          <i className="bi bi-eye" aria-hidden="true" />
+        </button>
+      </div>
+      {ayuda ? <div className="form-text">{ayuda}</div> : null}
+    </div>
+  );
+}
+
+/** Entrega un archivo recién elegido al navegador, para descargarlo desde la vista previa. */
+function descargarArchivoLocal(archivo) {
+  const url = URL.createObjectURL(archivo);
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = archivo.name;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** Campo para adjuntar un archivo: el nombre va en la solicitud y el archivo, a su carpeta. */
-function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error }) {
+function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, alVer, error }) {
   return (
     <div>
       <label className="form-label" htmlFor={id}>
@@ -90,6 +151,17 @@ function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error })
         <div className="d-flex align-items-center gap-2 border rounded px-3 py-2 bg-white">
           <i className="bi bi-paperclip text-secondary" aria-hidden="true" />
           <span className="flex-grow-1 text-break small">{archivo}</span>
+          {alVer ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary py-0 px-2"
+              onClick={alVer}
+              aria-label={`Ver ${archivo}`}
+              title="Vista previa"
+            >
+              <i className="bi bi-eye" aria-hidden="true" />
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-sm btn-link text-danger p-0"
@@ -120,7 +192,7 @@ function CampoArchivo({ id, etiqueta, archivo, alSeleccionar, alQuitar, error })
 /** Ficha de solo lectura del postulante que llega desde el portal "Trabaja con nosotros". */
 function FichaPostulante({ postulante }) {
   return (
-    <div className="border rounded p-3 bg-body-tertiary" aria-label="Datos del postulante">
+    <div className="dato-heredado border rounded p-3" aria-label="Datos del postulante">
       <p className="fw-semibold mb-1">{postulante.nombre}</p>
       <p className="small text-secondary mb-1">
         {[postulante.correo, postulante.telefono, postulante.origen].filter(Boolean).join(' · ')}
@@ -140,6 +212,11 @@ function FichaPostulante({ postulante }) {
  * - `postulante`: viene del portal; sus datos ya se conocen y se muestran como ficha.
  * - `descriptorOferta`: descriptor subido al publicar la oferta; mientras no se cambie el
  *   cargo de la oferta, se usa en vez de pedirlo.
+ * - `documentosOrigen`: { cv, descriptor }, cada uno con { contenido, descargar } para ver los
+ *   archivos que vienen de la postulación y de la oferta.
+ *
+ * Las secciones se despliegan a medida que se completan, y lo heredado del proceso anterior se
+ * distingue por su color: sigue siendo editable y, al cambiarlo, pasa a verse como un dato propio.
  */
 export default function FormularioSolicitud({
   candidatos = [],
@@ -149,6 +226,7 @@ export default function FormularioSolicitud({
   reclutadorFijo = '',
   postulante = null,
   descriptorOferta = '',
+  documentosOrigen = {},
 }) {
   // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
   const [formulario, setFormulario] = useState(() => ({
@@ -160,6 +238,34 @@ export default function FormularioSolicitud({
   const [intentoEnvio, setIntentoEnvio] = useState(false);
   // Los archivos elegidos: la página los sube a la carpeta al crear la solicitud.
   const [adjuntos, setAdjuntos] = useState({});
+  const [documentoAbierto, setDocumentoAbierto] = useState(null);
+  // Una sección ya desplegada no se vuelve a plegar aunque se corrija un dato anterior.
+  const refDisponibles = useRef(0);
+  const disponibles = intentoEnvio
+    ? Number.POSITIVE_INFINITY
+    : Math.max(refDisponibles.current, seccionesDisponibles(formulario, candidatos));
+  refDisponibles.current = disponibles;
+  const refUltimaDisponible = useRef(disponibles);
+
+  // Al desplegarse una sección, se muestra sin mover lo que ya está a la vista.
+  useEffect(() => {
+    if (disponibles === refUltimaDisponible.current || !Number.isFinite(disponibles)) return;
+    refUltimaDisponible.current = disponibles;
+    const id = ['seccion-candidato', 'seccion-cargo', 'seccion-evaluacion', 'seccion-antecedentes'][disponibles - 1];
+    document.getElementById(id)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [disponibles]);
+
+  // Lo heredado mantiene su color mientras siga igual a como llegó.
+  const esHeredado = (campo) =>
+    Boolean(postulante) && Boolean(formulario[campo]) && formulario[campo] === valoresIniciales[campo];
+  const claseHeredado = (campo) => (esHeredado(campo) ? 'dato-heredado' : '');
+  const avisoHeredado = (campo) =>
+    esHeredado(campo) ? (
+      <div className="form-text">
+        <i className="bi bi-pencil me-1" aria-hidden="true" />
+        Viene de la oferta. Puedes editarlo.
+      </div>
+    ) : null;
 
   const candidatoRegistrado = candidatos.find(
     (candidato) => String(candidato.id) === String(formulario.candidatoId),
@@ -235,6 +341,15 @@ export default function FormularioSolicitud({
     actualizar({ [campo]: archivo.name });
   };
 
+  const verAdjunto = (archivo) => () =>
+    setDocumentoAbierto({
+      archivo: { nombre: archivo.name },
+      api: { contenido: async () => archivo, descargar: async () => descargarArchivoLocal(archivo) },
+    });
+
+  const verOrigen = (origen, nombre) =>
+    origen ? () => setDocumentoAbierto({ archivo: { nombre }, api: origen }) : null;
+
   const quitarAdjunto = (campo) => {
     setAdjuntos(({ [campo]: _quitado, ...resto }) => resto);
     actualizar({ [campo]: '' });
@@ -305,10 +420,13 @@ export default function FormularioSolicitud({
           </section>
         )}
 
-        <section aria-labelledby="seccion-candidato">
-          <h3 id="seccion-candidato" className="h6 text-secondary text-uppercase small mb-3">
-            Candidato/a
-          </h3>
+        <SeccionFormulario
+          id="seccion-candidato"
+          numero={1}
+          titulo="Candidato/a"
+          disponible
+          completa={disponibles > 1}
+        >
           <div className="row g-3">
             {postulante ? (
               <div className="col-12">
@@ -425,12 +543,15 @@ export default function FormularioSolicitud({
               </div>
             ) : null}
           </div>
-        </section>
+        </SeccionFormulario>
 
-        <section aria-labelledby="seccion-cargo">
-          <h3 id="seccion-cargo" className="h6 text-secondary text-uppercase small mb-3">
-            Cargo
-          </h3>
+        <SeccionFormulario
+          id="seccion-cargo"
+          numero={2}
+          titulo="Cargo"
+          disponible={disponibles >= 2}
+          completa={disponibles > 2}
+        >
           <div className="row g-3">
             <div className="col-12 col-md-6">
               <label className="form-label" htmlFor="cargo">
@@ -442,7 +563,7 @@ export default function FormularioSolicitud({
                 type="text"
                 list="cargos-catalogo"
                 autoComplete="off"
-                className={clasesCampo('form-control', errorDe('cargo'))}
+                className={clasesCampo(`form-control ${claseHeredado('cargo')}`, errorDe('cargo'))}
                 value={formulario.cargo}
                 onChange={cambiarCargo}
               />
@@ -452,6 +573,7 @@ export default function FormularioSolicitud({
                 ))}
               </datalist>
               {errorDe('cargo') ? <div className="invalid-feedback">{errores.cargo}</div> : null}
+              {avisoHeredado('cargo')}
             </div>
 
             <div className="col-12 col-md-6">
@@ -461,7 +583,7 @@ export default function FormularioSolicitud({
               <select
                 id="familiaCargo"
                 name="familiaCargo"
-                className={clasesCampo('form-select', errorDe('familiaCargo'))}
+                className={clasesCampo(`form-select ${claseHeredado('familiaCargo')}`, errorDe('familiaCargo'))}
                 value={formulario.familiaCargo}
                 onChange={cambiarCampo}
               >
@@ -475,9 +597,8 @@ export default function FormularioSolicitud({
               {errorDe('familiaCargo') ? (
                 <div className="invalid-feedback">{errores.familiaCargo}</div>
               ) : null}
-              {cargoCatalogo ? (
-                <div className="form-text">Completada según el cargo seleccionado.</div>
-              ) : null}
+              {avisoHeredado('familiaCargo') ??
+                (cargoCatalogo ? <div className="form-text">Completada según el cargo seleccionado.</div> : null)}
             </div>
 
             <div className="col-12 col-md-6">
@@ -490,7 +611,7 @@ export default function FormularioSolicitud({
                 type="text"
                 list="ubicaciones-catalogo"
                 autoComplete="off"
-                className={clasesCampo('form-control', errorDe('ubicacion'))}
+                className={clasesCampo(`form-control ${claseHeredado('ubicacion')}`, errorDe('ubicacion'))}
                 value={formulario.ubicacion}
                 onChange={cambiarCampo}
               />
@@ -502,6 +623,7 @@ export default function FormularioSolicitud({
               {errorDe('ubicacion') ? (
                 <div className="invalid-feedback">{errores.ubicacion}</div>
               ) : null}
+              {avisoHeredado('ubicacion')}
               {unidad ? <div className="form-text">Unidad: {unidad}</div> : null}
             </div>
 
@@ -538,12 +660,15 @@ export default function FormularioSolicitud({
               />
             </div>
           </div>
-        </section>
+        </SeccionFormulario>
 
-        <section aria-labelledby="seccion-evaluacion">
-          <h3 id="seccion-evaluacion" className="h6 text-secondary text-uppercase small mb-3">
-            Evaluación
-          </h3>
+        <SeccionFormulario
+          id="seccion-evaluacion"
+          numero={3}
+          titulo="Evaluación"
+          disponible={disponibles >= 3}
+          completa={disponibles > 3}
+        >
           <div className="row g-3">
             <div className="col-12 col-md-6">
               <label className="form-label" htmlFor="profesionalResponsable">
@@ -569,32 +694,35 @@ export default function FormularioSolicitud({
               <div className="form-text">Recibirá un aviso con la nueva solicitud.</div>
             </div>
           </div>
-        </section>
+        </SeccionFormulario>
 
-        <section aria-labelledby="seccion-antecedentes">
-          <h3 id="seccion-antecedentes" className="h6 text-secondary text-uppercase small mb-3">
-            Antecedentes
-          </h3>
+        <SeccionFormulario
+          id="seccion-antecedentes"
+          numero={4}
+          titulo="Antecedentes"
+          disponible={disponibles >= 4}
+          completa={false}
+        >
           <div className="row g-3">
             <div className="col-12 col-md-6">
               {postulante ? (
                 // El CV viene de la postulación: se copia solo a la carpeta de la solicitud.
-                <div>
-                  <span className="form-label d-block">CV del postulante</span>
-                  {formulario.cv ? (
-                    <>
-                      <div className="d-flex align-items-center gap-2 border rounded px-3 py-2 bg-body-tertiary">
-                        <i className="bi bi-file-earmark-person text-secondary" aria-hidden="true" />
-                        <span className="flex-grow-1 text-break small">{formulario.cv}</span>
-                      </div>
-                      <div className="form-text">Viene de la postulación; se guarda en la carpeta de la solicitud.</div>
-                    </>
-                  ) : (
+                formulario.cv ? (
+                  <DocumentoDefinido
+                    icono="bi-file-earmark-person"
+                    etiqueta="CV del postulante"
+                    nombre={formulario.cv}
+                    alVer={verOrigen(documentosOrigen.cv, formulario.cv)}
+                    ayuda="Viene de la postulación; se guarda en la carpeta de la solicitud."
+                  />
+                ) : (
+                  <div>
+                    <span className="form-label d-block">CV del postulante</span>
                     <div className="form-text mt-0">
                       No adjuntó CV en el portal. Podrás subirlo después en Documentos de la solicitud.
                     </div>
-                  )}
-                </div>
+                  </div>
+                )
               ) : (
                 <CampoArchivo
                   id="cv"
@@ -602,6 +730,7 @@ export default function FormularioSolicitud({
                   archivo={formulario.cv}
                   alSeleccionar={seleccionarArchivo('cv')}
                   alQuitar={() => quitarAdjunto('cv')}
+                  alVer={adjuntos.cv ? verAdjunto(adjuntos.cv) : null}
                   error={errorDe('cv')}
                 />
               )}
@@ -609,18 +738,17 @@ export default function FormularioSolicitud({
 
             <div className="col-12 col-md-6">
               {descriptorAutomatico ? (
-                <div>
-                  <span className="form-label d-block">Descriptor de cargo</span>
-                  <div className="d-flex align-items-center gap-2 border rounded px-3 py-2 bg-body-tertiary">
-                    <i className="bi bi-file-earmark-text text-secondary" aria-hidden="true" />
-                    <span className="flex-grow-1 text-break small">{descriptorAutomatico}</span>
-                  </div>
-                  <div className="form-text">
-                    {usaDescriptorOferta
+                <DocumentoDefinido
+                  icono="bi-file-earmark-text"
+                  etiqueta="Descriptor de cargo"
+                  nombre={descriptorAutomatico}
+                  alVer={usaDescriptorOferta ? verOrigen(documentosOrigen.descriptor, descriptorAutomatico) : null}
+                  ayuda={
+                    usaDescriptorOferta
                       ? 'Viene de la oferta; se guarda en la carpeta de la solicitud.'
-                      : 'Asociado automáticamente al cargo.'}
-                  </div>
-                </div>
+                      : 'Asociado al cargo, sin archivo para mostrar. Para verlo, súbelo en la oferta o en Documentos.'
+                  }
+                />
               ) : (
                 <CampoArchivo
                   id="descriptorAdjunto"
@@ -628,6 +756,7 @@ export default function FormularioSolicitud({
                   archivo={formulario.descriptorAdjunto}
                   alSeleccionar={seleccionarArchivo('descriptorAdjunto')}
                   alQuitar={() => quitarAdjunto('descriptorAdjunto')}
+                  alVer={adjuntos.descriptorAdjunto ? verAdjunto(adjuntos.descriptorAdjunto) : null}
                   error={errorDe('descriptorAdjunto')}
                 />
               )}
@@ -648,7 +777,7 @@ export default function FormularioSolicitud({
               />
             </div>
           </div>
-        </section>
+        </SeccionFormulario>
       </div>
       <div className="card-footer bg-white d-flex flex-column flex-sm-row justify-content-between gap-2">
         <span className="small text-secondary align-self-sm-center">
@@ -665,6 +794,13 @@ export default function FormularioSolicitud({
           </button>
         </div>
       </div>
+      {documentoAbierto ? (
+        <VentanaDocumento
+          archivo={documentoAbierto.archivo}
+          api={documentoAbierto.api}
+          alCerrar={() => setDocumentoAbierto(null)}
+        />
+      ) : null}
     </form>
   );
 }
