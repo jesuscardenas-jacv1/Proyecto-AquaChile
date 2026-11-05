@@ -13,7 +13,7 @@ npm install
 ```
 
 ### 2. Migración y siembra de la Base de Datos
-Crea las tablas relacionales y carga los 100 registros históricos de candidatos, solicitudes y evaluaciones desde la base simulada:
+Crea las tablas y carga los datos de demostración: 116 candidatos, 108 solicitudes, 8 ofertas y 8 postulaciones.
 ```bash
 npm run db:migrar
 npm run db:semilla
@@ -32,7 +32,11 @@ El servidor quedará escuchando en `http://localhost:3001`.
 
 ### 4. Ejecutar pruebas automatizadas de la API
 ```bash
-npm test
+npm test                     # prueba rápida de la API
+npm run test:almacenamiento  # documentos
+npm run test:auth            # clave de sesiones (JWT_SECRETO)
+npm run test:roles           # permisos de los 4 roles (requiere BD sembrada)
+npm run test:integracion     # API usada por el frontend (requiere BD sembrada)
 ```
 
 ---
@@ -43,10 +47,14 @@ npm test
 |---|---|---|---|---|
 | **Analista de Reclutamiento** | `carolina.munoz@aquachile.cl` | `analista@aquachile.cl` | `AquaChile2026!` | `analista` |
 | **Psicóloga Evaluadora** | `ignacia.valdes@aquachile.cl` | `evaluador@aquachile.cl` | `AquaChile2026!` | `evaluador` |
+| **Administrador académico** | `andres.valdivia@aquachile.cl` | `admin@aquachile.cl` | `AquaChile2026!` | `admin` |
+| **Jefatura / contraparte** | `patricia.saavedra@aquachile.cl` | `jefatura@aquachile.cl` | `AquaChile2026!` | `jefatura` |
 
 ---
 
 ## 📡 Catálogo de Endpoints REST
+
+El administrador puede usar también lo indicado para los demás perfiles.
 
 ### Salud del Servicio
 * `GET /api/salud`: Estado y versión de la API.
@@ -54,6 +62,9 @@ npm test
 ### Autenticación (`/api/auth`)
 * `POST /api/auth/login`: Inicia sesión, valida clave encriptada con bcrypt y genera token JWT.
 * `GET /api/auth/perfil`: Datos del usuario autenticado (requiere cabecera `Authorization: Bearer <token>`).
+* `PUT /api/auth/perfil/foto`: Guarda la foto de perfil del usuario `{ foto }`.
+* `DELETE /api/auth/perfil/foto`: Quita la foto de perfil.
+* `PUT /api/auth/contrasena`: Cambia la contraseña `{ actual, nueva }`.
 
 ### Candidatos (`/api/candidatos`)
 * `GET /api/candidatos`: Listado de postulantes (permite `?busqueda=nombre`).
@@ -67,14 +78,45 @@ npm test
 * `GET /api/solicitudes/:id`: Detalle completo, candidato y evaluación asociada.
   * **Regla de confidencialidad:** Si el usuario es Analista, las observaciones clínicas se ocultan y el campo `confidencial: true`.
 * `POST /api/solicitudes`: Crear solicitud (**Exclusivo Analista**).
-* `PATCH /api/solicitudes/:id/estado`: Transición de estado (`Pendiente`, `En proceso`, `Finalizada`) y asignación de psicólogo/a.
-* `PATCH /api/solicitudes/:id`: Corrige los datos de la solicitud (cargo, familia, ubicación, CECO, referencias, reclutador, fecha y aspectos a indagar); solo cambia los campos enviados (**Analista y Evaluador**).
+* `PATCH /api/solicitudes/:id/estado`: Asigna la psicóloga responsable `{ profesionalResponsable }` (**Exclusivo Analista**). **No cambia el estado:** responde `409` si se intenta.
+* `PATCH /api/solicitudes/:id/etapa`: Mueve la solicitud en el Planner `{ etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista }` y ajusta su estado (**Exclusivo Evaluador**). Etapas: `recibida`, `agendada`, `realizada`, `informe`.
+* `POST /api/solicitudes/:id/cierre`: Cierra sin evaluación `{ motivo, comentario }` (**Analista y Evaluador**).
+* `DELETE /api/solicitudes/:id/cierre`: Reabre en la etapa en que estaba (**Analista y Evaluador**).
+* `PATCH /api/solicitudes/:id`: Corrige los datos de la solicitud (cargo, familia, descriptor, ubicación, CECO, referencias, reclutador, fecha y aspectos a indagar); solo cambia los campos enviados (**Analista y Evaluador**).
 
 ### Evaluaciones Psicolaborales (`/api/evaluaciones`)
 * `GET /api/evaluaciones`: Listado de evaluaciones realizadas.
 * `GET /api/evaluaciones/solicitud/:solicitudId`: Evaluación de una solicitud.
-* `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Pasa la solicitud a `Finalizada` automáticamente mediante transacción. Acepta `competencias` opcionales: `[{ competencia, nivel, fortalezas, oportunidades }]` (catálogo en `src/bd/competencias.js`); las competencias las ve también el analista, las observaciones clínicas no.
+* `POST /api/evaluaciones`: Registro de informe y dictamen (**Exclusivo Evaluador**). Exige la entrevista realizada y pasa la solicitud a `Finalizada` mediante transacción. Acepta `competencias` opcionales: `[{ competencia, nivel, fortalezas, oportunidades }]` (catálogo en `src/bd/competencias.js`); las competencias las ve también el analista, las observaciones clínicas no.
 * `PUT /api/evaluaciones/:id`: Modificación de evaluación, incluidas las competencias (**Exclusivo Evaluador**).
+
+### Ofertas (`/api/ofertas`)
+* `GET /api/ofertas`: Ofertas abiertas del portal (público).
+* `GET /api/ofertas/:id`: Detalle de una oferta abierta (público).
+* `GET /api/ofertas/gestion`: Todas las ofertas, incluidos borradores y cerradas (**Analista y Jefatura**).
+* `POST /api/ofertas`: Crea una oferta (**Exclusivo Analista**).
+* `PUT /api/ofertas/:id`: Edita una oferta (**Exclusivo Analista**).
+* `PATCH /api/ofertas/:id/estado`: Publica, cierra o reabre `{ estado }` (**Exclusivo Analista**).
+* `GET /api/ofertas/:id/descriptor`: Descriptor subido antes de guardarse por cargo (**Exclusivo Analista**).
+
+### Postulaciones (`/api/postulaciones`)
+* `POST /api/postulaciones`: Registra una postulación (público, limitado por IP).
+* `POST /api/postulaciones/:id/cv?nombre=cv.pdf`: Sube el CV en binario, PDF o Word de hasta 5 MB (público, limitado por IP).
+* `GET /api/postulaciones`: Bandeja de postulaciones (**Analista y Jefatura**).
+* `GET /api/postulaciones/:id/cv`: Descarga el CV (**Analista y Jefatura**).
+* `PATCH /api/postulaciones/:id`: Cambia el estado de la postulación (**Exclusivo Analista**).
+
+### Cargos (`/api/cargos`)
+Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizarlo en sus ofertas y solicitudes.
+* `GET /api/cargos`: Cargos con descriptor guardado (**Analista, Evaluador y Jefatura**).
+* `POST /api/cargos/descriptor?cargo=Nombre&familiaCargo=Familia&nombre=archivo.pdf`: Crea el cargo si no existe y reemplaza su descriptor; cuerpo binario (**Exclusivo Analista**).
+* `GET /api/cargos/:id/descriptor`: Descarga el descriptor (**Exclusivo Analista**).
+
+### Notificaciones y tiempo real
+* `GET /api/notificaciones`: Avisos del usuario con sesión.
+* `POST /api/notificaciones/leidas`: Marca todos como leídos.
+* `PATCH /api/notificaciones/:id/leida`: Marca uno como leído.
+* `GET /api/eventos`: Conexión abierta con Server-Sent Events. Envía `notificacion` cuando hay un aviso nuevo y `datos` cuando alguien cambia información. Funciona en memoria, para una sola instancia del servidor.
 
 ### Administración (`/api/admin`, **exclusivo Administrador**)
 * `GET /api/admin/usuarios`: Usuarios de prueba (sin contraseñas).
@@ -84,9 +126,14 @@ npm test
 * `POST /api/admin/reiniciar`: Restablece los datos de demostración, incluidos los 4 usuarios de prueba originales.
 
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
-Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo y el informe psicolaboral. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `), así la carpeta se entiende igual al abrirla directo en OneDrive.
+Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo, el informe psicolaboral y la pauta de entrevista. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `, `Pauta - `), así la carpeta se entiende igual al abrirla directo en Google Drive u OneDrive.
 * `GET /api/solicitudes/:id/documentos`: Carpeta, archivos y categorías que el usuario puede gestionar.
 * `POST /api/solicitudes/:id/documentos?categoria=cv|descriptor|informe|pauta&nombre=archivo.pdf`: Sube el archivo (cuerpo binario, máx. 10 MB) y crea la carpeta si no existe. CV y descriptor: **Analista**; informe y pauta de entrevista: **Evaluador**. La **pauta es confidencial**: para analista y jefatura no aparece en el listado ni se puede descargar.
+* `POST /api/solicitudes/:id/documentos/informe`: Genera y guarda el informe PDF, sin observaciones clínicas (**Exclusivo Evaluador**).
+* `POST /api/solicitudes/:id/documentos/desde-postulacion`: Copia el CV del portal `{ postulacionId, nombreCandidato }` (**Exclusivo Analista**).
+* `POST /api/solicitudes/:id/documentos/desde-cargo`: Copia el descriptor del cargo `{ cargoId, nombreCandidato }` (**Exclusivo Analista**).
+* `POST /api/solicitudes/:id/documentos/desde-oferta`: Copia el descriptor de una oferta antigua (**Exclusivo Analista**).
+* `POST /api/solicitudes/:id/documentos/sincronizar-descriptor`: Tras cambiar el cargo, copia el descriptor guardado y quita los anteriores (**Analista y Evaluador**).
 * `GET /api/solicitudes/:id/documentos/:archivoId/contenido`: Descarga el archivo.
 * `DELETE /api/solicitudes/:id/documentos/:archivoId`: Elimina el archivo (mismo perfil que puede subirlo).
 
@@ -98,9 +145,9 @@ La variable `ALMACENAMIENTO` elige dónde viven las carpetas (copie `.env.exampl
 
 | Valor | Destino | Uso |
 |---|---|---|
-| `local` (por defecto) | `backend/documentos/` | Desarrollo y demo, sin Microsoft 365 |
-| `drive` | Google Drive (API v3) | Opción recomendada para el proyecto: basta una cuenta de Google |
-| `graph` | OneDrive o biblioteca de SharePoint vía Microsoft Graph | Producción en el tenant de AquaChile |
+| `local` (por defecto) | `backend/documentos/` | Desarrollo y demo, sin cuentas externas |
+| `drive` | Google Drive (API v3) | Producción actual: basta una cuenta de Google |
+| `graph` | OneDrive o biblioteca de SharePoint vía Microsoft Graph | Alternativa para un tenant de Microsoft 365 |
 
 **Cada solicitud crea su carpeta** (`S0001 - Nombre del postulante`) al momento de crearse. Si el proveedor no responde, la solicitud se guarda igual y la respuesta trae `avisoCarpeta`; la carpeta se vuelve a intentar al subir el primer archivo.
 
@@ -141,4 +188,6 @@ Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga 
 bash backend/scripts/empaquetar-azure.sh
 az webapp deploy -g rg-aquachile-chile -n aquachile-psicolaboral-api --src-path backend/despliegue-azure.zip --type zip
 ```
+
+Se ejecuta desde la raíz del repositorio. Si un cambio afecta también al frontend, despliega primero el backend y después fusiona a `main`.
 
