@@ -89,9 +89,18 @@ describe('agruparPorEtapa', () => {
     expect(grupos.informe.map((s) => s.id)).not.toContain(8);
   });
 
+  it('deja primero las solicitudes recibidas más nuevas, también entre las del mismo día', () => {
+    const recibidas = [
+      { id: 10, estado: 'Pendiente', fechaSolicitud: '2026-10-01' },
+      { id: 12, estado: 'Pendiente', fechaSolicitud: '2026-10-05' },
+      { id: 13, estado: 'Pendiente', fechaSolicitud: '2026-10-05' },
+    ];
+    expect(agruparPorEtapa(recibidas).recibida.map((s) => s.id)).toEqual([13, 12, 10]);
+  });
+
   it('ordena cada columna según lo que se atiende primero', () => {
     const grupos = agruparPorEtapa(solicitudes, evaluaciones);
-    expect(grupos.recibida.map((s) => s.id)).toEqual([2, 1]);
+    expect(grupos.recibida.map((s) => s.id)).toEqual([1, 2]);
     expect(grupos.agendada.map((s) => s.id)).toEqual([4, 3]);
     expect(grupos.informe.map((s) => s.id)).toEqual([6, 7]);
   });
