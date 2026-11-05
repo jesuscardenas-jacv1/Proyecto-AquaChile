@@ -31,6 +31,7 @@ export default function DetalleSolicitud() {
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [avisoInforme, setAvisoInforme] = useState(null);
   const [editando, setEditando] = useState(false);
+  const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [avisoEdicion, setAvisoEdicion] = useState(null);
 
   const solicitud = obtenerSolicitud(id);
@@ -63,29 +64,34 @@ export default function DetalleSolicitud() {
    * Si el servicio de documentos no responde, la evaluación queda registrada igual.
    */
   const guardarEvaluacion = async (datos) => {
-    const registro = await registrarEvaluacion(solicitud.id, datos);
-    if (!registro) return;
-    if (!apiDocumentos.conectado()) {
-      setAvisoInforme({
-        tipo: 'warning',
-        texto:
-          'Evaluación registrada. El informe no se guardó en la carpeta porque el servicio de documentos no está conectado.',
-      });
-      return;
-    }
-    setAvisoInforme({ tipo: 'info', texto: 'Evaluación registrada. Guardando el informe en la carpeta…' });
+    setGuardandoEvaluacion(true);
     try {
-      await apiDocumentos.generarInforme(solicitud.id, { candidato, solicitud, evaluacion: registro });
-      setVersionDocumentos((version) => version + 1);
-      setAvisoInforme({
+      const registro = await registrarEvaluacion(solicitud.id, datos);
+      if (!registro) return;
+      const nombre = candidato?.nombre ?? 'el candidato';
+      // Al guardar, la solicitud queda finalizada: se vuelve al Planner con un aviso en la esquina.
+      let aviso = {
         tipo: 'success',
-        texto: 'Evaluación registrada y el informe psicolaboral se guardó en la carpeta de la solicitud.',
-      });
-    } catch (error) {
-      setAvisoInforme({
-        tipo: 'warning',
-        texto: `Evaluación registrada, pero no se pudo guardar el informe en la carpeta: ${error.message}`,
-      });
+        mensaje: `Evaluación ${evaluacion ? 'actualizada' : 'registrada'}: ${nombre}. La solicitud quedó finalizada en "Informe enviado".`,
+      };
+      if (!apiDocumentos.conectado()) {
+        aviso = {
+          tipo: 'warning',
+          mensaje: 'Evaluación registrada. El informe no se guardó en la carpeta porque el servicio de documentos no está conectado.',
+        };
+      } else {
+        try {
+          await apiDocumentos.generarInforme(solicitud.id, { candidato, solicitud, evaluacion: registro });
+        } catch (error) {
+          aviso = {
+            tipo: 'warning',
+            mensaje: `Evaluación registrada, pero no se pudo guardar el informe en la carpeta: ${error.message}`,
+          };
+        }
+      }
+      navegar('/planner', { state: aviso });
+    } finally {
+      setGuardandoEvaluacion(false);
     }
   };
 
@@ -316,6 +322,7 @@ export default function DetalleSolicitud() {
                 <FormularioEvaluacion
                   evaluacion={evaluacion}
                   alGuardar={guardarEvaluacion}
+                  guardando={guardandoEvaluacion}
                 />
               ) : null}
             </>

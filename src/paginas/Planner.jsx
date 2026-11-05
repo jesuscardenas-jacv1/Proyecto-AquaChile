@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { ETAPAS_PLANNER, RECLUTADORES } from '../datos/constantes';
@@ -13,6 +13,7 @@ import {
 } from '../dominio/planner';
 import { normalizar } from '../dominio/texto';
 import Mensaje from '../componentes/comunes/Mensaje';
+import AvisoEsquina from '../componentes/comunes/AvisoEsquina';
 import ColumnaPlanner from '../componentes/planner/ColumnaPlanner';
 import TarjetaPlanner from '../componentes/planner/TarjetaPlanner';
 import VentanaAgenda from '../componentes/planner/VentanaAgenda';
@@ -29,6 +30,7 @@ import ListaCerradas from '../componentes/planner/ListaCerradas';
  */
 export default function Planner() {
   const navegar = useNavigate();
+  const ubicacion = useLocation();
   const { esEvaluador } = useAuth();
   const { solicitudes, candidatos, evaluaciones, moverEtapa, cerrarSolicitud, reabrirSolicitud } = useDatos();
   const [texto, setTexto] = useState('');
@@ -37,15 +39,11 @@ export default function Planner() {
   const [ventanaCierre, setVentanaCierre] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [realizando, setRealizando] = useState(null);
-  const [toast, setToast] = useState(null);
+  // Aviso de esquina: entrevista realizada, o un mensaje que llega desde otra pantalla (p. ej. evaluación guardada).
+  const [toast, setToast] = useState(() =>
+    ubicacion.state?.mensaje ? { texto: ubicacion.state.mensaje, tipo: ubicacion.state.tipo } : null,
+  );
   const hoy = hoyIso();
-
-  // El aviso de "entrevista realizada" se muestra en la esquina y se cierra solo.
-  useEffect(() => {
-    if (!toast) return undefined;
-    const temporizador = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(temporizador);
-  }, [toast]);
 
   const candidatosPorId = useMemo(
     () => Object.fromEntries(candidatos.map((candidato) => [candidato.id, candidato])),
@@ -96,7 +94,7 @@ export default function Planner() {
     const movida = await moverEtapa(solicitud.id, 'realizada');
     setRealizando(null);
     if (!movida) return;
-    setToast(`Entrevista realizada: ${nombreDe(solicitud)}. Ahora está en "Entrevista Realizada".`);
+    setToast({ texto: `Entrevista realizada: ${nombreDe(solicitud)}. Ahora está en "Entrevista Realizada".` });
   };
 
   const retroceder = async (solicitud, etapaActual) => {
@@ -249,11 +247,12 @@ export default function Planner() {
       />
 
       {toast ? (
-        <div className="aviso-tiempo-real" role="status" aria-live="polite">
-          <i className="bi bi-person-check" aria-hidden="true" />
-          <span className="flex-grow-1">{toast}</span>
-          <button type="button" className="btn-close btn-close-white" aria-label="Cerrar aviso" onClick={() => setToast(null)} />
-        </div>
+        <AvisoEsquina
+          mensaje={toast.texto}
+          icono={toast.tipo === 'warning' ? 'bi-exclamation-circle' : 'bi-person-check'}
+          duracion={toast.tipo === 'warning' ? null : 4000}
+          alCerrar={() => setToast(null)}
+        />
       ) : null}
 
       {ventanaCierre ? (
