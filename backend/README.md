@@ -133,6 +133,7 @@ Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descr
 * `POST /api/solicitudes/:id/documentos/desde-postulacion`: Copia el CV del portal `{ postulacionId, nombreCandidato }` (**Exclusivo Analista**).
 * `POST /api/solicitudes/:id/documentos/desde-cargo`: Copia el descriptor del cargo `{ cargoId, nombreCandidato }` (**Exclusivo Analista**).
 * `POST /api/solicitudes/:id/documentos/desde-oferta`: Copia el descriptor de una oferta antigua (**Exclusivo Analista**).
+* `POST /api/solicitudes/:id/documentos/carpeta`: Devuelve la carpeta y la crea si no existe, para abrirla en la nube (**Analista y Evaluador**).
 * `POST /api/solicitudes/:id/documentos/sincronizar-descriptor`: Tras cambiar el cargo, copia el descriptor guardado y quita los anteriores (**Analista y Evaluador**).
 * `GET /api/solicitudes/:id/documentos/:archivoId/contenido`: Descarga el archivo.
 * `DELETE /api/solicitudes/:id/documentos/:archivoId`: Elimina el archivo (mismo perfil que puede subirlo).

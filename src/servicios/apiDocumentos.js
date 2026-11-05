@@ -217,6 +217,16 @@ export async function traerDescriptorDeCargo(solicitudId, cargoId, nombreCandida
   return respuesta.json();
 }
 
+/** Carpeta de la solicitud; el backend la crea si aún no existe. */
+export async function obtenerCarpeta(solicitudId, nombreCandidato) {
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/carpeta`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify({ nombreCandidato }),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return (await respuesta.json()).carpeta;
+}
+
 /** Deja en la carpeta el descriptor del cargo actual de la solicitud y quita los anteriores. */
 export async function sincronizarDescriptor(solicitudId, nombreCandidato) {
   const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/sincronizar-descriptor`, {
@@ -293,6 +303,7 @@ export async function archivoDescriptorCatalogo(nombre) {
 export const apiDocumentos = {
   conectado: () => Boolean(obtenerToken()),
   listar: listarDocumentos,
+  obtenerCarpeta,
   subir: subirDocumento,
   descargar: descargarDocumento,
   contenido: contenidoDocumento,

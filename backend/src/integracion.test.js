@@ -549,6 +549,26 @@ describe('API integrada (Hito 2)', () => {
     assert.equal((await pedir('/ofertas/999999', { rol: 'analista', metodo: 'PUT', cuerpo: completa })).status, 404);
   });
 
+  it('crea la carpeta de la solicitud al pedirla para abrirla', async () => {
+    const creada = await pedir('/solicitudes', {
+      rol: 'analista',
+      metodo: 'POST',
+      cuerpo: { candidatoId: 1, cargo: 'Cargo Carpeta Prueba', familiaCargo: 'Operario' },
+    });
+    const id = creada.datos.solicitud.id;
+    const ruta = `/solicitudes/${id}/documentos/carpeta`;
+
+    assert.equal((await pedir(ruta, { metodo: 'POST', cuerpo: {} })).status, 401);
+    assert.equal((await pedir(ruta, { rol: 'jefatura', metodo: 'POST', cuerpo: {} })).status, 403);
+    const pedida = await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: {} });
+    assert.equal(pedida.status, 200);
+    assert.match(pedida.datos.carpeta.nombre, new RegExp(`^S${String(id).padStart(4, '0')}`));
+    // Pedirla otra vez entrega la misma carpeta.
+    const otra = await pedir(ruta, { rol: 'analista', metodo: 'POST', cuerpo: {} });
+    assert.equal(otra.datos.carpeta.id, pedida.datos.carpeta.id);
+    assert.equal((await pedir('/solicitudes/99999/documentos/carpeta', { rol: 'analista', metodo: 'POST', cuerpo: {} })).status, 404);
+  });
+
   it('al cambiar el cargo de la solicitud, su carpeta queda con el descriptor del cargo nuevo', async () => {
     const subirCargo = (cargo, nombre) =>
       fetch(`${base}/cargos/descriptor?${new URLSearchParams({ cargo, familiaCargo: 'Operario', nombre })}`, {
