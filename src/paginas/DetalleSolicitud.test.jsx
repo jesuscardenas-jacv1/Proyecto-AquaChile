@@ -203,7 +203,7 @@ describe('DetalleSolicitud', () => {
       await usuario.clear(screen.getByLabelText(/nombre del cargo/i));
       await usuario.type(screen.getByLabelText(/nombre del cargo/i), 'Analista de Sistemas');
       await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Oficina Central');
-      await usuario.type(screen.getByLabelText(/^ceco/i), 'A170010311');
+      await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170010311');
       await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
       expect(await screen.findByText('Datos de la solicitud actualizados.')).toBeInTheDocument();

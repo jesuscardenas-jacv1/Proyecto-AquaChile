@@ -47,6 +47,7 @@ export function normalizarOferta(datos = {}) {
     descripcion: limpiar(datos.descripcion),
     requisitos: datos.requisitos ?? [],
     jornada: limpiar(datos.jornada) || JORNADAS_OFERTA[0],
+    descriptorNombre: limpiar(datos.descriptorNombre),
   };
 }
 

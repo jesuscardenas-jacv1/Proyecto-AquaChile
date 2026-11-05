@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../datos/AuthContext';
 import { useDatos } from '../datos/DatosContext';
+import { descriptorDeOferta } from '../datos/catalogos';
 import {
   contarPostulacionesPorOferta,
   ESTADOS_OFERTA,
@@ -29,7 +30,7 @@ export default function Ofertas() {
   const { soloLectura } = useAuth();
   const { state } = useLocation();
   const [criterios, setCriterios] = useState({ estado: '', busqueda: '' });
-  const [aviso, setAviso] = useState(state?.mensaje ? { tipo: state.tipo, texto: state.mensaje } : null);
+  const [aviso, setAviso] = useState(state?.mensaje ? { tipo: state.tipo ?? 'success', texto: state.mensaje } : null);
 
   const visibles = filtrarGestionOfertas(ofertas, criterios);
   const cuentas = contarPostulacionesPorOferta(postulaciones);
@@ -38,6 +39,10 @@ export default function Ofertas() {
   const cambiarEstado = async (oferta, estado, texto) => {
     if (oferta.estado === 'Borrador' && hayErrores(validarOferta(oferta, { completa: true }))) {
       setAviso({ tipo: 'warning', texto: `Completa "${oferta.titulo}" antes de publicarla: usa Editar.` });
+      return;
+    }
+    if (oferta.estado === 'Borrador' && !descriptorDeOferta(oferta)) {
+      setAviso({ tipo: 'warning', texto: `Sube el descriptor de "${oferta.titulo}" antes de publicarla: usa Editar.` });
       return;
     }
     if (await cambiarEstadoOferta(oferta.id, estado)) setAviso({ tipo: 'success', texto });
@@ -140,6 +145,10 @@ export default function Ofertas() {
                       <div className="fw-semibold">{oferta.titulo}</div>
                       <small className="text-secondary">
                         {[oferta.area, oferta.ubicacion, oferta.region].filter(Boolean).join(' · ') || 'Sin completar'}
+                      </small>
+                      <small className="d-block text-secondary text-break">
+                        <i className="bi bi-file-earmark-text me-1" aria-hidden="true" />
+                        {descriptorDeOferta(oferta) || 'Sin descriptor'}
                       </small>
                     </td>
                     <td>

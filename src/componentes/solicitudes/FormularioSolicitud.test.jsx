@@ -25,7 +25,8 @@ const elegir = (usuario, nombreGrupo, opcion) =>
 
 async function completarCargo(usuario) {
   await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Planta Calbuco');
-  await usuario.type(screen.getByLabelText(/^ceco/i), 'a170010311');
+  await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170010311');
+  await usuario.selectOptions(screen.getByLabelText(/psicóloga responsable/i), 'Ignacia Valdés Ortiz');
   await elegir(usuario, /requiere referencias/i, 'No');
 }
 
@@ -43,6 +44,7 @@ describe('FormularioSolicitud', () => {
     expect(screen.getByText('El cargo es obligatorio.')).toBeInTheDocument();
     expect(screen.getByText('La ubicación del cargo es obligatoria.')).toBeInTheDocument();
     expect(screen.getByText('El CECO es obligatorio.')).toBeInTheDocument();
+    expect(screen.getByText('Debe asignar la psicóloga responsable.')).toBeInTheDocument();
     expect(screen.getByText('Debe indicar si requiere referencias.')).toBeInTheDocument();
     expect(alGuardar).not.toHaveBeenCalled();
   });
@@ -102,14 +104,25 @@ describe('FormularioSolicitud', () => {
     expect(grupo(/referido/i)).toBeInTheDocument();
   });
 
-  it('valida el formato del CECO', async () => {
-    const usuario = userEvent.setup();
+  it('el CECO se elige de una lista', () => {
     renderFormulario();
+    expect(screen.getByRole('combobox', { name: /^ceco/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /A170010311 · Planta Calbuco/ })).toBeInTheDocument();
+  });
 
-    await usuario.type(screen.getByLabelText(/^ceco/i), '12345');
-    await usuario.click(screen.getByRole('button', { name: /enviar solicitud/i }));
+  it('usa el descriptor de la oferta y no lo pide, salvo que cambie el cargo', async () => {
+    const usuario = userEvent.setup();
+    renderFormulario({
+      valoresIniciales: { cargo: 'Cargo sin catálogo' },
+      descriptorOferta: 'descriptor-oferta.pdf',
+    });
 
-    expect(screen.getByText(/letra seguida de 9 dígitos/i)).toBeInTheDocument();
+    expect(screen.getByText('descriptor-oferta.pdf')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/adjuntar descriptor/i)).toBeNull();
+
+    await usuario.type(screen.getByLabelText(/nombre del cargo/i), ' otro');
+    expect(screen.queryByText('descriptor-oferta.pdf')).toBeNull();
+    expect(screen.getByLabelText(/adjuntar descriptor/i)).toBeInTheDocument();
   });
 
   it('entrega la solicitud de un candidato registrado', async () => {
@@ -135,6 +148,7 @@ describe('FormularioSolicitud', () => {
         ubicacion: 'Planta Calbuco',
         unidad: 'Industrial',
         ceco: 'A170010311',
+        profesionalResponsable: 'Ignacia Valdés Ortiz',
         requiereReferencias: false,
         referido: null,
         observaciones: 'Indagar en liderazgo',

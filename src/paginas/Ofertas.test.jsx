@@ -1,7 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { CARGOS } from '../datos/catalogos';
+import { apiDocumentos } from '../servicios/apiDocumentos';
 import Ofertas from './Ofertas';
 import NuevaOferta from './NuevaOferta';
 import EditarOferta from './EditarOferta';
@@ -56,16 +58,50 @@ describe('Ofertas (gestión del analista)', () => {
     expect(screen.getByText('Describe el cargo.')).toBeInTheDocument();
   });
 
-  it('publica una oferta nueva con la fecha del día', async () => {
+  it('exige el descriptor para publicar un cargo fuera del catálogo y lo muestra al subirlo', async () => {
     const usuario = userEvent.setup();
     renderOfertas('/ofertas/nueva');
 
     await completar(usuario, 'Operario Nuevo');
     await usuario.click(screen.getByRole('button', { name: 'Publicar oferta' }));
+    expect(screen.getByText('Sube el descriptor de cargo para publicar la oferta.')).toBeInTheDocument();
+
+    const archivo = new File(['pdf'], 'descriptor-operario.pdf', { type: 'application/pdf' });
+    await usuario.upload(screen.getByLabelText(/descriptor de cargo/i), archivo);
+    await usuario.click(screen.getByRole('button', { name: 'Publicar oferta' }));
 
     expect(await screen.findByText('Oferta publicada en el portal.')).toBeInTheDocument();
     const fila = screen.getByText('Operario Nuevo').closest('tr');
     expect(within(fila).getByText('Publicada')).toBeInTheDocument();
+    expect(within(fila).getByText('descriptor-operario.pdf')).toBeInTheDocument();
+  });
+
+  it('un cargo del catálogo completa la familia y ya trae su descriptor', async () => {
+    const usuario = userEvent.setup();
+    const cargo = CARGOS[0];
+    renderOfertas('/ofertas/nueva');
+
+    await usuario.type(screen.getByLabelText(/^cargo/i), cargo.nombre);
+
+    expect(screen.getByLabelText(/familia de cargo/i)).toHaveValue(cargo.familiaCargo);
+    expect(screen.getByText(cargo.descriptorCargo)).toBeInTheDocument();
+    expect(screen.getByText(/asociado al cargo/i)).toBeInTheDocument();
+  });
+
+  it('si no se puede subir el descriptor, la oferta queda como borrador', async () => {
+    const usuario = userEvent.setup();
+    const espia = vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(true);
+    const subir = vi.spyOn(apiDocumentos, 'subirDescriptorOferta').mockRejectedValue(new Error('Sin servicio.'));
+    renderOfertas('/ofertas/nueva');
+
+    await completar(usuario, 'Operario Sin Archivo');
+    await usuario.upload(screen.getByLabelText(/descriptor de cargo/i), new File(['pdf'], 'd.pdf'));
+    await usuario.click(screen.getByRole('button', { name: 'Publicar oferta' }));
+
+    expect(await screen.findByText(/no se pudo subir el descriptor: sin servicio\. quedó como borrador/i)).toBeInTheDocument();
+    expect(within(screen.getByText('Operario Sin Archivo').closest('tr')).getByText('Borrador')).toBeInTheDocument();
+    espia.mockRestore();
+    subir.mockRestore();
   });
 
   it('edita una oferta publicada, y la cierra y reabre desde el listado', async () => {

@@ -120,6 +120,10 @@ export function validarFormularioSolicitud(formulario = {}, candidatos = []) {
     errores.requiereReferencias = 'Debe indicar si requiere referencias.';
   }
 
+  if (!limpiar(formulario.profesionalResponsable)) {
+    errores.profesionalResponsable = 'Debe asignar la psicóloga responsable.';
+  }
+
   if (!ceco) {
     errores.ceco = 'El CECO es obligatorio.';
   } else if (!CECO_VALIDO.test(ceco)) {

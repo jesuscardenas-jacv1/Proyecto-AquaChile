@@ -1,18 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { useDatos } from '../datos/DatosContext';
 import FormularioOferta from '../componentes/ofertas/FormularioOferta';
+import { useGuardarOferta } from '../componentes/ofertas/useGuardarOferta';
 
 /** Crea una oferta como borrador o publicada, y vuelve al listado. */
 export default function NuevaOferta() {
-  const { agregarOferta } = useDatos();
+  const guardarOferta = useGuardarOferta();
   const navegar = useNavigate();
 
-  const guardar = async (datos, { publicar }) => {
+  const guardar = async (datos, opciones) => {
     // Si el servidor rechaza la oferta, el motivo se muestra arriba y no se navega.
-    if (!(await agregarOferta(datos, { publicar }))) return;
-    navegar('/ofertas', {
-      state: { mensaje: publicar ? 'Oferta publicada en el portal.' : 'Borrador guardado.', tipo: 'success' },
-    });
+    const resultado = await guardarOferta(null, datos, opciones);
+    if (resultado) navegar('/ofertas', { state: resultado });
   };
 
   return (

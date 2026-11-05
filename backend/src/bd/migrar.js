@@ -178,6 +178,7 @@ function migrar() {
   agregarColumna('solicitudes', 'cerrada_por', "TEXT NOT NULL DEFAULT ''");
   // Las ofertas existentes ya están publicadas; una nueva puede partir como borrador (0).
   agregarColumna('ofertas', 'publicada', 'INTEGER NOT NULL DEFAULT 1');
+  agregarColumna('ofertas', 'descriptor_nombre', "TEXT NOT NULL DEFAULT ''");
 
   actualizarRolesUsuarios();
 

@@ -78,6 +78,16 @@ function nombreCarpetaPostulacion(postulacionId, nombreCandidato) {
   return candidato ? `${clave} - ${candidato}` : clave;
 }
 
+function claveCarpetaOferta(ofertaId) {
+  return `O${String(ofertaId).padStart(4, '0')}`;
+}
+
+function nombreCarpetaOferta(ofertaId, titulo) {
+  const limpio = limpiarNombre(titulo, 80);
+  const clave = claveCarpetaOferta(ofertaId);
+  return limpio ? `${clave} - ${limpio}` : clave;
+}
+
 /** El CV del portal acepta solo documentos (PDF o Word), hasta 5 MB. */
 const EXTENSIONES_CV_PORTAL = ['pdf', 'doc', 'docx'];
 const TAMANO_MAXIMO_CV_PORTAL = 5 * 1024 * 1024;
@@ -162,6 +172,8 @@ module.exports = {
   nombreCarpeta,
   claveCarpetaPostulacion,
   nombreCarpetaPostulacion,
+  claveCarpetaOferta,
+  nombreCarpetaOferta,
   validarCvPortal,
   TAMANO_MAXIMO_CV_PORTAL,
   esCarpetaDeSolicitud,

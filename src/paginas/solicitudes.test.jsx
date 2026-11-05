@@ -62,7 +62,8 @@ async function completarSolicitud(usuario, nombreCandidato) {
   await elegir(usuario, /reclutador/i, 'Carolina Muñoz');
   await usuario.type(screen.getByLabelText('Candidato/a *'), nombreCandidato);
   await usuario.type(screen.getByLabelText(/ubicación del cargo/i), 'Oficina Central');
-  await usuario.type(screen.getByLabelText(/^ceco/i), 'A170010311');
+  await usuario.selectOptions(screen.getByLabelText(/^ceco/i), 'A170010311');
+  await usuario.selectOptions(screen.getByLabelText(/psicóloga responsable/i), 'Ignacia Valdés Ortiz');
   await elegir(usuario, /requiere referencias/i, 'Sí');
 }
 

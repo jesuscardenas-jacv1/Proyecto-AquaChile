@@ -31,6 +31,22 @@ export const ARCHIVOS_CV = {
   tamanoMaximoMb: 5,
 };
 
+/** Centros de costo ficticios para la lista desplegable de la solicitud. */
+export const CECOS = [
+  { codigo: 'A170010301', nombre: 'Cultivo Agua Dulce - Pisciculturas' },
+  { codigo: 'A170010311', nombre: 'Planta Calbuco - Producción' },
+  { codigo: 'A170020706', nombre: 'Cultivo Mar - Centros Chiloé' },
+  { codigo: 'A170021102', nombre: 'Cultivo Mar - Centros Aysén' },
+  { codigo: 'A170021510', nombre: 'Cultivo Mar - Centros Magallanes' },
+  { codigo: 'A170030402', nombre: 'Planta de Alimentos - Pargua' },
+  { codigo: 'A170030404', nombre: 'Cadena de Suministro - Bodegas' },
+  { codigo: 'A170040205', nombre: 'Mantención Industrial' },
+  { codigo: 'A170040209', nombre: 'Calidad y Laboratorio' },
+  { codigo: 'A170050104', nombre: 'Administración y Finanzas' },
+  { codigo: 'A170050603', nombre: 'Gestión de Personas' },
+  { codigo: 'A170050605', nombre: 'Tecnología y Sistemas' },
+];
+
 export const ESTADOS_SOLICITUD = ['Pendiente', 'En proceso', 'Finalizada'];
 
 export const ESTADOS_EVALUACION = ['Pendiente', 'Realizada'];

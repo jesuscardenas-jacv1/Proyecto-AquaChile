@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
   ARCHIVOS_PERMITIDOS,
+  CECOS,
+  EVALUADORES,
   FAMILIAS_CARGO,
   OPCIONES_SI_NO,
   ORIGENES_CANDIDATO,
@@ -13,6 +15,7 @@ import Mensaje from '../comunes/Mensaje';
 
 const camposIniciales = () => ({
   reclutador: '',
+  profesionalResponsable: '',
   candidatoId: '',
   nombreCandidato: '',
   correo: '',
@@ -135,6 +138,8 @@ function FichaPostulante({ postulante }) {
  * - `reclutadorFijo`: quien pide la evaluación es el analista con sesión; se muestra y no se
  *   pregunta. Sin él (administrador) se elige de la lista de reclutadores.
  * - `postulante`: viene del portal; sus datos ya se conocen y se muestran como ficha.
+ * - `descriptorOferta`: descriptor subido al publicar la oferta; mientras no se cambie el
+ *   cargo de la oferta, se usa en vez de pedirlo.
  */
 export default function FormularioSolicitud({
   candidatos = [],
@@ -143,6 +148,7 @@ export default function FormularioSolicitud({
   valoresIniciales = {},
   reclutadorFijo = '',
   postulante = null,
+  descriptorOferta = '',
 }) {
   // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
   const [formulario, setFormulario] = useState(() => ({
@@ -159,7 +165,8 @@ export default function FormularioSolicitud({
     (candidato) => String(candidato.id) === String(formulario.candidatoId),
   );
   const cargoCatalogo = buscarCargo(formulario.cargo);
-  const descriptorAutomatico = cargoCatalogo?.descriptorCargo ?? '';
+  const usaDescriptorOferta = Boolean(descriptorOferta) && formulario.cargo === valoresIniciales.cargo;
+  const descriptorAutomatico = usaDescriptorOferta ? descriptorOferta : cargoCatalogo?.descriptorCargo ?? '';
   const unidad = unidadDeUbicacion(formulario.ubicacion);
   const esExterno = formulario.origen === 'Externo';
 
@@ -502,15 +509,20 @@ export default function FormularioSolicitud({
               <label className="form-label" htmlFor="ceco">
                 CECO *
               </label>
-              <input
+              <select
                 id="ceco"
                 name="ceco"
-                type="text"
-                placeholder="A170010311"
-                className={clasesCampo('form-control', errorDe('ceco'))}
+                className={clasesCampo('form-select', errorDe('ceco'))}
                 value={formulario.ceco}
                 onChange={cambiarCampo}
-              />
+              >
+                <option value="">Seleccione un CECO</option>
+                {CECOS.map(({ codigo, nombre }) => (
+                  <option key={codigo} value={codigo}>
+                    {codigo} · {nombre}
+                  </option>
+                ))}
+              </select>
               {errorDe('ceco') ? <div className="invalid-feedback">{errores.ceco}</div> : null}
             </div>
 
@@ -524,6 +536,37 @@ export default function FormularioSolicitud({
                 error={errorDe('requiereReferencias')}
                 obligatorio
               />
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="seccion-evaluacion">
+          <h3 id="seccion-evaluacion" className="h6 text-secondary text-uppercase small mb-3">
+            Evaluación
+          </h3>
+          <div className="row g-3">
+            <div className="col-12 col-md-6">
+              <label className="form-label" htmlFor="profesionalResponsable">
+                Psicóloga responsable *
+              </label>
+              <select
+                id="profesionalResponsable"
+                name="profesionalResponsable"
+                className={clasesCampo('form-select', errorDe('profesionalResponsable'))}
+                value={formulario.profesionalResponsable}
+                onChange={cambiarCampo}
+              >
+                <option value="">Seleccione una psicóloga</option>
+                {EVALUADORES.map((nombre) => (
+                  <option key={nombre} value={nombre}>
+                    {nombre}
+                  </option>
+                ))}
+              </select>
+              {errorDe('profesionalResponsable') ? (
+                <div className="invalid-feedback">{errores.profesionalResponsable}</div>
+              ) : null}
+              <div className="form-text">Recibirá un aviso con la nueva solicitud.</div>
             </div>
           </div>
         </section>
@@ -572,7 +615,11 @@ export default function FormularioSolicitud({
                     <i className="bi bi-file-earmark-text text-secondary" aria-hidden="true" />
                     <span className="flex-grow-1 text-break small">{descriptorAutomatico}</span>
                   </div>
-                  <div className="form-text">Asociado automáticamente al cargo.</div>
+                  <div className="form-text">
+                    {usaDescriptorOferta
+                      ? 'Viene de la oferta; se guarda en la carpeta de la solicitud.'
+                      : 'Asociado automáticamente al cargo.'}
+                  </div>
                 </div>
               ) : (
                 <CampoArchivo

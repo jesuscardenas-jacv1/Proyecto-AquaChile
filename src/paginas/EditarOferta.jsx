@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import Mensaje from '../componentes/comunes/Mensaje';
 import FormularioOferta from '../componentes/ofertas/FormularioOferta';
+import { useGuardarOferta } from '../componentes/ofertas/useGuardarOferta';
+import { apiDocumentos } from '../servicios/apiDocumentos';
 
 /** Edita una oferta; si es un borrador, también permite publicarla. */
 export default function EditarOferta() {
   const { id } = useParams();
-  const { obtenerOferta, editarOferta } = useDatos();
+  const { obtenerOferta } = useDatos();
+  const guardarOferta = useGuardarOferta();
+  const [errorDescarga, setErrorDescarga] = useState(null);
   const navegar = useNavigate();
   const oferta = obtenerOferta(id);
 
@@ -23,11 +28,18 @@ export default function EditarOferta() {
     );
   }
 
-  const guardar = async (datos, { publicar }) => {
-    if (!(await editarOferta(oferta.id, datos, { publicar }))) return;
-    navegar('/ofertas', {
-      state: { mensaje: publicar ? 'Oferta publicada en el portal.' : 'Oferta actualizada.', tipo: 'success' },
-    });
+  const guardar = async (datos, opciones) => {
+    const resultado = await guardarOferta(oferta, datos, opciones);
+    if (resultado) navegar('/ofertas', { state: resultado });
+  };
+
+  const descargarDescriptor = async () => {
+    setErrorDescarga(null);
+    try {
+      await apiDocumentos.descargarDescriptorOferta(oferta);
+    } catch (error) {
+      setErrorDescarga(error.message);
+    }
   };
 
   return (
@@ -36,9 +48,20 @@ export default function EditarOferta() {
         <h1 className="h4 mb-1">Editar oferta</h1>
         <p className="text-secondary mb-0">{oferta.titulo}</p>
       </header>
+      {errorDescarga ? (
+        <Mensaje tipo="danger" alCerrar={() => setErrorDescarga(null)}>
+          {errorDescarga}
+        </Mensaje>
+      ) : null}
       <div className="row">
         <div className="col-12 col-xl-9">
-          <FormularioOferta key={oferta.id} inicial={oferta} alGuardar={guardar} alCancelar={() => navegar('/ofertas')} />
+          <FormularioOferta
+            key={oferta.id}
+            inicial={oferta}
+            alGuardar={guardar}
+            alCancelar={() => navegar('/ofertas')}
+            alDescargarDescriptor={descargarDescriptor}
+          />
         </div>
       </div>
     </div>

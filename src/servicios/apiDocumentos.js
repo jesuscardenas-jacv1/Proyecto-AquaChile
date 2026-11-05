@@ -196,6 +196,33 @@ export async function traerCvDePostulacion(solicitudId, postulacionId, nombreCan
   return respuesta.json();
 }
 
+/** Copia el descriptor interno de la oferta a la carpeta de la solicitud recién creada. */
+export async function traerDescriptorDeOferta(solicitudId, ofertaId, nombreCandidato) {
+  const respuesta = await llamar(`${rutaDocumentos(solicitudId)}/desde-oferta`, {
+    metodo: 'POST',
+    cuerpo: JSON.stringify({ ofertaId, nombreCandidato }),
+    cabeceras: { 'Content-Type': 'application/json' },
+  });
+  return respuesta.json();
+}
+
+/** Sube el descriptor interno de una oferta (no se publica en el portal). */
+export async function subirDescriptorOferta(ofertaId, archivo) {
+  const parametros = new URLSearchParams({ nombre: archivo.name });
+  const respuesta = await llamar(`/ofertas/${ofertaId}/descriptor?${parametros}`, {
+    metodo: 'POST',
+    cuerpo: archivo,
+    cabeceras: { 'Content-Type': archivo.type || 'application/octet-stream' },
+  });
+  return respuesta.json();
+}
+
+/** Descarga el descriptor interno de una oferta. */
+export async function descargarDescriptorOferta(oferta) {
+  const respuesta = await llamar(`/ofertas/${oferta.id}/descriptor`);
+  await entregarDescarga(respuesta, oferta.descriptorNombre || `Descriptor oferta ${oferta.id}`);
+}
+
 export const apiDocumentos = {
   conectado: () => Boolean(obtenerToken()),
   listar: listarDocumentos,
@@ -205,6 +232,9 @@ export const apiDocumentos = {
   eliminar: eliminarDocumento,
   generarInforme,
   traerCvDePostulacion,
+  traerDescriptorDeOferta,
+  subirDescriptorOferta,
+  descargarDescriptorOferta,
   contenidoCvPostulacion,
   descargarCvPostulacion,
 };
