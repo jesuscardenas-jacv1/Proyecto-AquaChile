@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
@@ -36,7 +36,16 @@ export default function Planner() {
   const [ventana, setVentana] = useState(null);
   const [ventanaCierre, setVentanaCierre] = useState(null);
   const [aviso, setAviso] = useState(null);
+  const [realizando, setRealizando] = useState(null);
+  const [toast, setToast] = useState(null);
   const hoy = hoyIso();
+
+  // El aviso de "entrevista realizada" se muestra en la esquina y se cierra solo.
+  useEffect(() => {
+    if (!toast) return undefined;
+    const temporizador = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(temporizador);
+  }, [toast]);
 
   const candidatosPorId = useMemo(
     () => Object.fromEntries(candidatos.map((candidato) => [candidato.id, candidato])),
@@ -83,11 +92,11 @@ export default function Planner() {
   };
 
   const marcarRealizada = async (solicitud) => {
-    if (!(await moverEtapa(solicitud.id, 'realizada'))) return;
-    setAviso({
-      tipo: 'success',
-      texto: `Entrevista de ${nombreDe(solicitud)} marcada como realizada. Siguiente paso: registrar la evaluación y el informe.`,
-    });
+    setRealizando(solicitud.id);
+    const movida = await moverEtapa(solicitud.id, 'realizada');
+    setRealizando(null);
+    if (!movida) return;
+    setToast(`Entrevista realizada: ${nombreDe(solicitud)}. Ahora está en "Entrevista Realizada".`);
   };
 
   const retroceder = async (solicitud, etapaActual) => {
@@ -221,6 +230,7 @@ export default function Planner() {
                   alAgendar={() => setVentana({ solicitud, reagendar: false })}
                   alReagendar={() => setVentana({ solicitud, reagendar: true })}
                   alMarcarRealizada={() => marcarRealizada(solicitud)}
+                  realizando={realizando === solicitud.id}
                   alRegistrarInforme={() => navegar(`/solicitudes/${solicitud.id}`)}
                   alRetroceder={() => retroceder(solicitud, etapa.id)}
                   alCerrarSinEvaluacion={() => setVentanaCierre(solicitud)}
@@ -237,6 +247,14 @@ export default function Planner() {
         editable={esEvaluador}
         alReabrir={reabrir}
       />
+
+      {toast ? (
+        <div className="aviso-tiempo-real" role="status" aria-live="polite">
+          <i className="bi bi-person-check" aria-hidden="true" />
+          <span className="flex-grow-1">{toast}</span>
+          <button type="button" className="btn-close btn-close-white" aria-label="Cerrar aviso" onClick={() => setToast(null)} />
+        </div>
+      ) : null}
 
       {ventanaCierre ? (
         <VentanaCierre

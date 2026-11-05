@@ -55,6 +55,7 @@ export default function TarjetaPlanner({
   alAgendar,
   alReagendar,
   alMarcarRealizada,
+  realizando,
   alRegistrarInforme,
   alRetroceder,
   alCerrarSinEvaluacion,
@@ -165,10 +166,11 @@ export default function TarjetaPlanner({
                 type="button"
                 className="btn btn-sm btn-primary"
                 onClick={alMarcarRealizada}
+                disabled={realizando}
                 aria-label={`Realizada: marcar entrevista de ${nombre}`}
               >
-                <i className="bi bi-check2 me-1" aria-hidden="true" />
-                Realizada
+                <i className={`bi ${realizando ? 'bi-hourglass-split' : 'bi-check2'} me-1`} aria-hidden="true" />
+                {realizando ? 'Guardando…' : 'Realizada'}
               </button>
             ) : null}
             {acciones.registrarInforme ? (
