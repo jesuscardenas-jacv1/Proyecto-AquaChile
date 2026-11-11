@@ -215,6 +215,18 @@ function migrar() {
     );
     CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones (usuario_id, leida);
   `);
+
+  // Último análisis del CV hecho con IA para cada postulación (sugerencia para el analista).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS analisis_cv (
+      postulacion_id INTEGER PRIMARY KEY REFERENCES postulaciones(id) ON DELETE CASCADE,
+      resultado      TEXT    NOT NULL,
+      modelo         TEXT    NOT NULL DEFAULT '',
+      descriptor     TEXT    NOT NULL DEFAULT '',
+      creado_por     TEXT    NOT NULL DEFAULT '',
+      creado_en      TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

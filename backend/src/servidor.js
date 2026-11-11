@@ -13,6 +13,7 @@ const rutaCargos = require('./rutas/cargos');
 const rutaAdmin = require('./rutas/admin');
 const rutaNotificaciones = require('./rutas/notificaciones');
 const rutaEventos = require('./rutas/eventos');
+const rutaIa = require('./rutas/ia');
 const { emitir } = require('./tiempoReal');
 
 const app = express();
@@ -32,8 +33,8 @@ app.use(cors(origenes.length ? { origin: origenes } : undefined));
 app.use(express.json());
 
 // Tras cada cambio exitoso, las pantallas abiertas vuelven a traer sus datos al instante.
-// Se excluyen las lecturas de avisos y de sesión, que no cambian la información del proceso.
-const RUTAS_SIN_AVISO = ['/api/notificaciones', '/api/auth'];
+// Se excluyen avisos, sesión y sugerencias de IA, que no cambian la información del proceso.
+const RUTAS_SIN_AVISO = ['/api/notificaciones', '/api/auth', '/api/ia'];
 app.use('/api', (req, res, next) => {
   const escribe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
   if (escribe && !RUTAS_SIN_AVISO.some((ruta) => req.originalUrl.startsWith(ruta))) {
@@ -65,6 +66,7 @@ app.use('/api/cargos', rutaCargos);
 app.use('/api/notificaciones', rutaNotificaciones);
 app.use('/api/eventos', rutaEventos);
 app.use('/api/admin', rutaAdmin);
+app.use('/api/ia', rutaIa);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);
 

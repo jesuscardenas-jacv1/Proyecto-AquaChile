@@ -4,7 +4,7 @@
  * Requiere la BD migrada y sembrada; al final restablece los datos de demostración.
  * Ejecutar con: npm run test:integracion
  */
-const { describe, it, before, after } = require('node:test');
+const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const fs = require('fs/promises');
@@ -14,6 +14,7 @@ const app = require('./servidor');
 const { JWT_SECRETO } = require('./middlewares/auth');
 const { establecerAlmacenamiento } = require('./almacenamiento');
 const { AlmacenamientoLocal } = require('./almacenamiento/local');
+const { establecerClienteIa } = require('./ia/cliente');
 
 describe('API integrada (Hito 2)', () => {
   let servidor;
@@ -45,6 +46,110 @@ describe('API integrada (Hito 2)', () => {
     servidor.close();
     establecerAlmacenamiento(null);
     await fs.rm(raizDocumentos, { recursive: true, force: true });
+  });
+
+  describe('ayudas de IA (con un cliente simulado, sin costo)', () => {
+    const llamadas = [];
+    let respuesta;
+    const cliente = {
+      beta: {
+        messages: {
+          create: async (solicitud) => {
+            llamadas.push(solicitud);
+            return { model: 'claude-opus-5-5', stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(respuesta) }] };
+          },
+        },
+      },
+    };
+    const analisis = {
+      resumen: 'Técnico con experiencia en plantas de proceso.',
+      coincidencias: [{ requisito: 'Experiencia en producción', evidencia: '3 años en planta' }],
+      brechas: [{ requisito: 'Licencia de grúa', detalle: 'No la menciona' }],
+      preguntasSugeridas: ['¿Ha operado grúa horquilla?'],
+      alertas: [],
+    };
+
+    afterEach(() => establecerClienteIa(null));
+
+    it('sin clave la IA no está disponible y sus acciones responden 503', async () => {
+      assert.equal((await pedir('/ia/estado')).status, 401);
+      const estado = await pedir('/ia/estado', { rol: 'analista' });
+      assert.deepEqual([estado.status, estado.datos.disponible], [200, false]);
+      assert.equal((await pedir('/ia/postulaciones/1/analisis', { rol: 'analista', metodo: 'POST' })).status, 503);
+      assert.equal((await pedir('/ia/redactar-oferta', { rol: 'analista', metodo: 'POST', cuerpo: { cargo: 'Gruero' } })).status, 503);
+    });
+
+    it('analiza el CV de una postulación contra el descriptor de su cargo y guarda el resultado', async () => {
+      establecerClienteIa(cliente);
+      respuesta = analisis;
+      const creada = await pedir('/postulaciones', {
+        metodo: 'POST',
+        cuerpo: {
+          ofertaId: 1,
+          nombre: 'Postulante IA',
+          correo: `ia.${Date.now()}@correo.cl`,
+          telefono: '+56933334444',
+          ciudad: 'Calbuco',
+          origen: 'Externo',
+          consentimiento: true,
+          cvNombre: 'cv-ia.pdf',
+        },
+      });
+      const id = creada.datos.postulacion.id;
+      const ruta = `/ia/postulaciones/${id}/analisis`;
+
+      assert.equal((await pedir(ruta, { rol: 'analista', metodo: 'POST' })).status, 404, 'sin CV no hay análisis');
+      await fetch(`${base}/postulaciones/${id}/cv?nombre=cv-ia.pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf', 'X-Candidato': encodeURIComponent('Postulante IA') },
+        body: Buffer.from('%PDF-1.4 CV de prueba IA'),
+      });
+
+      assert.equal((await pedir(ruta, { rol: 'jefatura', metodo: 'POST' })).status, 403);
+      assert.equal((await pedir(ruta, { rol: 'analista' })).status, 404, 'aún no hay análisis guardado');
+      llamadas.length = 0;
+      const hecho = await pedir(ruta, { rol: 'analista', metodo: 'POST' });
+      assert.equal(hecho.status, 201);
+      assert.deepEqual(hecho.datos.analisis.resultado, analisis);
+      // La oferta 1 es de Monitor Producción: se usa su descriptor de demostración.
+      assert.equal(hecho.datos.analisis.descriptor, 'DC_Monitor_Produccion.pdf');
+      const documentos = llamadas[0].messages[0].content.filter((bloque) => bloque.type === 'document');
+      assert.deepEqual(documentos.map((bloque) => bloque.title), ['CV del postulante', 'Descriptor del cargo']);
+
+      const guardado = await pedir(ruta, { rol: 'jefatura' });
+      assert.deepEqual([guardado.status, guardado.datos.analisis.resultado.resumen], [200, analisis.resumen]);
+      assert.equal((await pedir(ruta, { rol: 'evaluador' })).status, 403);
+    });
+
+    it('extrae los datos de contacto de un CV sin guardarlo', async () => {
+      establecerClienteIa(cliente);
+      respuesta = { nombre: 'Ana Pérez', correo: 'ana@correo.cl', telefono: '+56911112222', ciudad: 'Osorno', resumen: 'Operaria.' };
+      const enviar = (rol, nombre) =>
+        fetch(`${base}/ia/extraer-cv?nombre=${nombre}`, {
+          method: 'POST',
+          headers: { ...cabeceras(rol), 'Content-Type': 'application/pdf' },
+          body: Buffer.from('%PDF-1.4 CV'),
+        });
+      assert.equal((await enviar('evaluador', 'cv.pdf')).status, 403);
+      assert.equal((await enviar('analista', 'cv.doc')).status, 415);
+      const extraido = await enviar('analista', 'cv.pdf');
+      assert.equal(extraido.status, 200);
+      assert.deepEqual((await extraido.json()).datos, respuesta);
+    });
+
+    it('redacta una oferta a partir del descriptor del cargo', async () => {
+      establecerClienteIa(cliente);
+      respuesta = { titulo: 'Gruero - Calbuco', descripcion: 'Opera grúas.', requisitos: ['Licencia clase D'] };
+      assert.equal((await pedir('/ia/redactar-oferta', { rol: 'analista', metodo: 'POST', cuerpo: {} })).status, 400);
+      const redactada = await pedir('/ia/redactar-oferta', {
+        rol: 'analista',
+        metodo: 'POST',
+        cuerpo: { cargo: 'Grúero', ubicacion: 'Calbuco' },
+      });
+      assert.equal(redactada.status, 200);
+      assert.deepEqual(redactada.datos.oferta, respuesta);
+      assert.equal(redactada.datos.descriptor, 'DC_Gruero.pdf');
+    });
   });
 
   it('publica las ofertas abiertas sin sesión', async () => {

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { formatearFecha } from '../../dominio/formateo';
 import { apiDocumentos } from '../../servicios/apiDocumentos';
 import VentanaDocumento from '../solicitudes/VentanaDocumento';
+import { apiIa as apiIaPorDefecto } from '../../servicios/apiIa';
+import PanelAnalisisCv from './PanelAnalisisCv';
 
 const SELECTOR_ENFOCABLES =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -33,6 +35,7 @@ export default function VentanaPostulante({
   alCambiarEstado,
   alCerrar,
   api = apiDocumentos,
+  apiIa = apiIaPorDefecto,
 }) {
   const { candidato, oferta } = postulacion;
   const nombre = candidato?.nombre ?? 'Postulante eliminado';
@@ -227,6 +230,10 @@ export default function VentanaPostulante({
                   </p>
                 ) : null}
               </section>
+
+              {conServidor && postulacion.cvNombre ? (
+                <PanelAnalisisCv postulacion={postulacion} puedeAnalizar={!soloLectura} api={apiIa} />
+              ) : null}
             </div>
 
             <div className="modal-footer">

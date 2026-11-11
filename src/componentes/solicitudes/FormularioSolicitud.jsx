@@ -236,6 +236,7 @@ export default function FormularioSolicitud({
   cargosGuardados = [],
   oferta = null,
   documentosOrigen = {},
+  alExtraerCv = null,
 }) {
   // valoresIniciales permite partir con datos ya conocidos (p. ej. desde una postulación).
   const [formulario, setFormulario] = useState(() => ({
@@ -248,6 +249,8 @@ export default function FormularioSolicitud({
   // Los archivos elegidos: la página los sube a la carpeta al crear la solicitud.
   const [adjuntos, setAdjuntos] = useState({});
   const [documentoAbierto, setDocumentoAbierto] = useState(null);
+  const [leyendoCv, setLeyendoCv] = useState(false);
+  const [avisoIa, setAvisoIa] = useState(null);
   // Una sección ya desplegada no se vuelve a plegar aunque se corrija un dato anterior.
   const refDisponibles = useRef(0);
   const disponibles = intentoEnvio
@@ -324,6 +327,52 @@ export default function FormularioSolicitud({
       },
       ['nombreCandidato', 'correo', 'telefono', 'origen', 'cargo', 'familiaCargo'],
     );
+  };
+
+  /**
+   * Lee el CV con IA y completa los datos del candidato que estén vacíos; el CV queda
+   * adjunto a la solicitud. Son sugerencias: el analista las revisa antes de enviar.
+   */
+  const completarDesdeCv = async (evento) => {
+    const archivo = evento.target.files?.[0];
+    evento.target.value = '';
+    if (!archivo) return;
+    if (archivo.size > ARCHIVOS_PERMITIDOS.tamanoMaximoMb * 1024 * 1024) {
+      setAvisoIa({ tipo: 'danger', texto: `El archivo supera el límite de ${ARCHIVOS_PERMITIDOS.tamanoMaximoMb} MB.` });
+      return;
+    }
+    setAvisoIa(null);
+    setLeyendoCv(true);
+    try {
+      const datos = await alExtraerCv(archivo);
+      const sugeridos = {
+        nombreCandidato: formulario.nombreCandidato.trim() ? '' : datos.nombre?.trim(),
+        correo: formulario.correo.trim() ? '' : datos.correo?.trim(),
+        telefono: formulario.telefono.trim() ? '' : datos.telefono?.replace(/[\s-]/g, ''),
+      };
+      const completados = Object.fromEntries(Object.entries(sugeridos).filter(([, valor]) => valor));
+      if (!formulario.cv) {
+        setAdjuntos((actual) => ({ ...actual, cv: archivo }));
+        completados.cv = archivo.name;
+      }
+      actualizar(completados);
+      const nombres = { nombreCandidato: 'nombre', correo: 'correo', telefono: 'teléfono' };
+      const campos = Object.keys(completados).filter((campo) => nombres[campo]).map((campo) => nombres[campo]);
+      setAvisoIa(
+        campos.length
+          ? {
+              tipo: 'success',
+              texto: `${campos.length === 1 ? 'Se completó el' : 'Se completaron'} ${campos
+                .join(', ')
+                .replace(/, ([^,]+)$/, ' y $1')} desde el CV. Revisa que sea correcto.`,
+            }
+          : { tipo: 'warning', texto: 'El CV no tenía datos nuevos para completar.' },
+      );
+    } catch (excepcion) {
+      setAvisoIa({ tipo: 'danger', texto: excepcion.message });
+    } finally {
+      setLeyendoCv(false);
+    }
   };
 
   const cambiarOrigen = (evento) => {
@@ -493,6 +542,41 @@ export default function FormularioSolicitud({
               )}
             </div>
             )}
+
+            {alExtraerCv && !postulante && !candidatoRegistrado ? (
+              <div className="col-12">
+                <label
+                  className={`btn btn-sm btn-outline-primary ${leyendoCv ? 'disabled' : ''}`.trim()}
+                  htmlFor="cv-ia"
+                >
+                  {leyendoCv ? (
+                    <span className="spinner-border spinner-border-sm me-1" aria-hidden="true" />
+                  ) : (
+                    <i className="bi bi-stars me-1" aria-hidden="true" />
+                  )}
+                  {leyendoCv ? 'Leyendo el CV…' : 'Completar con IA desde el CV'}
+                </label>
+                <input
+                  id="cv-ia"
+                  type="file"
+                  className="d-none"
+                  accept=".pdf,.docx"
+                  aria-label="CV para completar con IA"
+                  disabled={leyendoCv}
+                  onChange={completarDesdeCv}
+                />
+                {avisoIa ? (
+                  <div
+                    className={`form-text ${{ success: 'text-success', warning: 'text-warning-emphasis', danger: 'text-danger' }[avisoIa.tipo]}`}
+                    role={avisoIa.tipo === 'danger' ? 'alert' : 'status'}
+                  >
+                    {avisoIa.texto}
+                  </div>
+                ) : (
+                  <div className="form-text">PDF o Word. Completa nombre, correo y teléfono, y deja el CV adjunto.</div>
+                )}
+              </div>
+            ) : null}
 
             {!postulante && !candidatoRegistrado && formulario.nombreCandidato.trim() ? (
               <>

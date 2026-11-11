@@ -19,6 +19,8 @@ mkdir -p "$TEMPORAL/datos-semilla"
 for archivo in semillaBase.js constantes.js demoPlanner.js demoPostulaciones.js bdSimulada.json; do
   cp "$RAIZ/src/datos/$archivo" "$TEMPORAL/datos-semilla/"
 done
+# Descriptores de demostración: la IA los lee cuando el cargo no tiene uno guardado.
+cp -R "$RAIZ/public/descriptores" "$TEMPORAL/descriptores"
 # Los datos del frontend son módulos ES; el backend es CommonJS.
 echo '{ "type": "module" }' > "$TEMPORAL/datos-semilla/package.json"
 

@@ -33,6 +33,19 @@ Reglas importantes:
 - La **pauta de entrevista** y las notas clínicas son confidenciales: en la app solo las ven la psicóloga y
   el administrador.
 
+### Ayudas de IA (fase 1)
+
+Con una clave de Anthropic en el servidor (`ANTHROPIC_API_KEY`), el analista tiene tres ayudas. Sin clave, no
+aparecen.
+
+- **Análisis del CV** en Postulaciones: compara el CV con el descriptor del cargo y muestra coincidencias, brechas,
+  datos a confirmar y preguntas para la entrevista. No entrega puntaje ni recomienda descartar.
+- **Completar con IA desde el CV** en Nueva solicitud: llena nombre, correo y teléfono vacíos y deja el CV adjunto.
+- **Redactar con IA** en ofertas: propone título, descripción y requisitos a partir del descriptor del cargo.
+
+Todo es una sugerencia que el equipo revisa. Usa Claude Opus 5.5 con respuestas en un formato JSON fijo, y las
+instrucciones le indican tratar el contenido de los documentos como datos, no como órdenes.
+
 ## Arquitectura
 
 ```mermaid
@@ -55,7 +68,8 @@ El pie de página indica el modo activo.
 | Parte | Lenguaje | Tecnologías |
 | --- | --- | --- |
 | **Frontend** | JavaScript (JSX) y CSS | React 18.3, Vite 5.4, Bootstrap 5.3, Bootstrap Icons 1.13, React Router 6.26, Mammoth 1.8 |
-| **Backend** | JavaScript (Node 22) | Express 4.19, `jsonwebtoken` 9, `bcryptjs` 2.4, PDFKit 0.15, CORS |
+| **Backend** | JavaScript (Node 22) | Express 4.19, `jsonwebtoken` 9, `bcryptjs` 2.4, PDFKit 0.15, CORS, Mammoth |
+| **IA** | — | SDK de Anthropic (`@anthropic-ai/sdk`), modelo Claude Opus 5.5 |
 | **Base de datos** | SQL | SQLite con el módulo nativo `node:sqlite` |
 | **Documentos** | — | Disco local, Google Drive (producción) u OneDrive/SharePoint, según `backend/.env` |
 | **Pruebas** | JavaScript | Vitest 2.1, Testing Library 16 y cobertura v8; `node:test` en el backend |
@@ -197,23 +211,24 @@ npm --prefix backend run test:almacenamiento     # documentos
 npm --prefix backend run test:auth               # clave de sesiones
 npm --prefix backend run test:roles              # permisos de los 4 roles (requiere BD sembrada)
 npm --prefix backend run test:integracion        # API usada por el frontend (requiere BD sembrada)
+npm --prefix backend run test:ia                 # ayudas de IA con un cliente simulado (sin costo)
 ```
 
 Resultados a noviembre de 2026:
 
-- **Frontend:** 488 pruebas en 62 archivos.
-- **Backend:** 80 pruebas entre almacenamiento, autenticación, roles e integración.
+- **Frontend:** 513 pruebas en 65 archivos.
+- **Backend:** 91 pruebas entre almacenamiento, autenticación, roles, integración e IA.
 
 | Cobertura del frontend (v8) | Actual | Mínimo |
 | --- | --- | --- |
-| Sentencias | 94,42 % | 80 % |
-| Ramas | 87,34 % | 75 % |
-| Funciones | 80,51 % | 80 % |
-| Líneas | 94,42 % | 80 % |
+| Sentencias | 94,45 % | 80 % |
+| Ramas | 87,50 % | 75 % |
+| Funciones | 80,84 % | 80 % |
+| Líneas | 94,45 % | 80 % |
 
 `npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
 ## Fuera de alcance
 
-Copilot, Power Automate, Microsoft Planner e IA para informes quedan como evolución futura. El Planner de esta
+Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la IA en la entrevista y el informe (fase 2). El Planner de esta
 app es propio. OneDrive/SharePoint está disponible como proveedor de documentos, pero producción usa Google Drive.

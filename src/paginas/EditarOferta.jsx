@@ -5,9 +5,11 @@ import Mensaje from '../componentes/comunes/Mensaje';
 import FormularioOferta from '../componentes/ofertas/FormularioOferta';
 import { useGuardarOferta } from '../componentes/ofertas/useGuardarOferta';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+import { apiIa, useIaDisponible } from '../servicios/apiIa';
 
 /** Edita una oferta; si es un borrador, también permite publicarla. */
 export default function EditarOferta() {
+  const iaDisponible = useIaDisponible();
   const { id } = useParams();
   const { obtenerOferta, cargos } = useDatos();
   const guardarOferta = useGuardarOferta();
@@ -62,6 +64,7 @@ export default function EditarOferta() {
             alCancelar={() => navegar('/ofertas')}
             alDescargarDescriptor={descargarDescriptor}
             cargosGuardados={cargos}
+            alRedactar={iaDisponible ? (datos) => apiIa.redactarOferta({ ...datos, ofertaId: oferta.id }) : null}
           />
         </div>
       </div>

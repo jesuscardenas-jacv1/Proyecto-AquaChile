@@ -2,12 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import FormularioOferta from '../componentes/ofertas/FormularioOferta';
 import { useGuardarOferta } from '../componentes/ofertas/useGuardarOferta';
+import { apiIa, useIaDisponible } from '../servicios/apiIa';
 
 /** Crea una oferta como borrador o publicada, y vuelve al listado. */
 export default function NuevaOferta() {
   const { cargos } = useDatos();
   const guardarOferta = useGuardarOferta();
   const navegar = useNavigate();
+  const iaDisponible = useIaDisponible();
 
   const guardar = async (datos, opciones) => {
     // Si el servidor rechaza la oferta, el motivo se muestra arriba y no se navega.
@@ -23,7 +25,12 @@ export default function NuevaOferta() {
       </header>
       <div className="row">
         <div className="col-12 col-xl-9">
-          <FormularioOferta alGuardar={guardar} alCancelar={() => navegar('/ofertas')} cargosGuardados={cargos} />
+          <FormularioOferta
+            alGuardar={guardar}
+            alCancelar={() => navegar('/ofertas')}
+            cargosGuardados={cargos}
+            alRedactar={iaDisponible ? apiIa.redactarOferta : null}
+          />
         </div>
       </div>
     </div>
