@@ -137,6 +137,44 @@ describe('API integrada (Hito 2)', () => {
       assert.deepEqual((await extraido.json()).datos, respuesta);
     });
 
+    it('propone un borrador de la evaluación desde las notas de la psicóloga, sin guardarlas', async () => {
+      establecerClienteIa(cliente);
+      const largo = 'x'.repeat(900);
+      respuesta = {
+        competencias: [
+          { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: largo, oportunidades: 'Delegar más.', evidencia: 'Coordina el turno.' },
+          { competencia: 'Trabajo en equipo', nivel: 'Esperado', fortalezas: 'Repetida', oportunidades: '', evidencia: '' },
+        ],
+        observaciones: 'Persona colaborativa y ordenada.',
+        resultadoSugerido: 'Recomendado',
+        fundamento: 'Evidencia consistente con el cargo.',
+        faltantes: ['Liderazgo'],
+      };
+      const ruta = '/ia/solicitudes/2/borrador-evaluacion';
+      const notas = 'Entrevista: coordina el turno con su equipo, ordena tareas y responde con calma ante fallas.';
+
+      assert.equal((await pedir(ruta, { rol: 'analista', metodo: 'POST', cuerpo: { notas } })).status, 403);
+      assert.equal((await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { notas: 'muy corto' } })).status, 400);
+      assert.equal((await pedir('/ia/solicitudes/99999/borrador-evaluacion', { rol: 'evaluador', metodo: 'POST', cuerpo: { notas } })).status, 404);
+
+      const evaluacionAntes = (await pedir('/evaluaciones/solicitud/2', { rol: 'evaluador' })).datos;
+      llamadas.length = 0;
+      const borrador = await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { notas } });
+      assert.equal(borrador.status, 200);
+      const { competencias, resultadoSugerido, faltantes } = borrador.datos.borrador;
+      assert.equal(competencias.length, 1, 'sin competencias repetidas');
+      assert.equal(competencias[0].fortalezas.length, 600, 'recortado al largo que acepta la evaluación');
+      assert.equal(resultadoSugerido, 'Recomendado');
+      assert.deepEqual(faltantes, ['Liderazgo']);
+
+      const texto = llamadas[0].messages[0].content.at(-1).text;
+      assert.match(texto, /coordina el turno con su equipo/);
+      const esquema = llamadas[0].output_config.format.schema;
+      assert.ok(esquema.properties.competencias.items.properties.competencia.enum.includes('Liderazgo'));
+      // Las notas no quedan guardadas: la evaluación de la solicitud no cambia.
+      assert.deepEqual((await pedir('/evaluaciones/solicitud/2', { rol: 'evaluador' })).datos, evaluacionAntes);
+    });
+
     it('redacta una oferta a partir del descriptor del cargo', async () => {
       establecerClienteIa(cliente);
       respuesta = { titulo: 'Gruero - Calbuco', descripcion: 'Opera grúas.', requisitos: ['Licencia clase D'] };

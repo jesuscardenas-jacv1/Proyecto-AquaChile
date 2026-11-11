@@ -3,6 +3,7 @@ import { RESULTADOS_EVALUACION } from '../../datos/constantes';
 import { hayErrores, validarEvaluacion } from '../../dominio/validaciones';
 import Mensaje from '../comunes/Mensaje';
 import SeccionCompetencias from './SeccionCompetencias';
+import BorradorIa from './BorradorIa';
 
 const CAMPOS_INICIALES = {
   fechaEvaluacion: new Date().toISOString().slice(0, 10),
@@ -26,9 +27,10 @@ const construirEstadoInicial = (evaluacion) => ({
 });
 
 /**
- * Formulario para registrar o actualizar la evaluación psicolaboral.
+ * Formulario para registrar o actualizar la evaluación psicolaboral. Con `alGenerarBorrador`
+ * (IA disponible), la psicóloga puede partir de un borrador hecho desde sus notas.
  */
-export default function FormularioEvaluacion({ evaluacion = null, alGuardar, guardando = false }) {
+export default function FormularioEvaluacion({ evaluacion = null, alGuardar, guardando = false, alGenerarBorrador = null }) {
   const [formulario, setFormulario] = useState(() => construirEstadoInicial(evaluacion));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
@@ -45,6 +47,23 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar, gua
       Object.fromEntries(Object.entries(actual).filter(([campo]) => !campo.startsWith('competencia:'))),
     );
   };
+
+  /** Aplica el borrador de la IA: competencias y observaciones. El resultado lo elige la psicóloga. */
+  const aplicarBorrador = ({ competencias, observaciones }) => {
+    setFormulario((actual) => ({
+      ...actual,
+      observaciones,
+      competencias: competencias.map(({ competencia, nivel, fortalezas, oportunidades }) => ({
+        competencia,
+        nivel,
+        fortalezas,
+        oportunidades,
+      })),
+    }));
+    setErrores({});
+  };
+
+  const tieneContenido = Boolean(formulario.observaciones.trim() || formulario.competencias.length);
 
   const manejarEnvio = (evento) => {
     evento.preventDefault();
@@ -70,6 +89,10 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar, gua
           <Mensaje tipo="danger" titulo="Revisa los datos de la evaluación">
             Hay campos obligatorios o con formato inválido.
           </Mensaje>
+        ) : null}
+
+        {alGenerarBorrador ? (
+          <BorradorIa alGenerar={alGenerarBorrador} alAplicar={aplicarBorrador} hayContenido={tieneContenido} />
         ) : null}
 
         <div className="row g-3">

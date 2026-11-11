@@ -132,6 +132,7 @@ Requieren `ANTHROPIC_API_KEY` en el servidor; sin ella, `estado` responde `dispo
 * `GET /api/ia/postulaciones/:id/analisis`: Último análisis guardado del CV (**Analista y Jefatura**).
 * `POST /api/ia/postulaciones/:id/analisis`: Analiza el CV del portal contra el descriptor del cargo (guardado, de la oferta o de demostración) y guarda el resultado: resumen, coincidencias, brechas, preguntas sugeridas y datos a confirmar. Sin puntaje ni recomendación (**Exclusivo Analista**).
 * `POST /api/ia/extraer-cv?nombre=cv.pdf`: Devuelve nombre, correo, teléfono, ciudad y un resumen del CV en binario (PDF o Word); no lo guarda (**Exclusivo Analista**).
+* `POST /api/ia/solicitudes/:id/borrador-evaluacion`: Borrador de la evaluación desde `{ notas }` de la entrevista (30 a 20.000 caracteres), con el descriptor del cargo y los aspectos a indagar: competencias con nivel, fortalezas, oportunidades y evidencia, observaciones, resultado sugerido con fundamento y temas sin evidencia. Las notas no se guardan (**Exclusivo Evaluador**).
 * `POST /api/ia/redactar-oferta`: Borrador `{ titulo, descripcion, requisitos }` a partir del descriptor del cargo `{ cargo, familiaCargo, area, ubicacion, jornada, ofertaId? }` (**Exclusivo Analista**).
 
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)

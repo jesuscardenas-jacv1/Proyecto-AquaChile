@@ -57,6 +57,10 @@ export const apiIa = {
       })
     ).datos,
 
+  /** Borrador de la evaluación desde las notas de la entrevista (las notas no se guardan). */
+  borradorEvaluacion: async (solicitudId, notas) =>
+    (await llamar(`/ia/solicitudes/${solicitudId}/borrador-evaluacion`, json({ notas }))).borrador,
+
   /** Borrador { titulo, descripcion, requisitos } a partir del descriptor del cargo. */
   redactarOferta: async (oferta) => (await llamar('/ia/redactar-oferta', json(oferta))).oferta,
 };

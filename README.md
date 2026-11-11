@@ -33,15 +33,21 @@ Reglas importantes:
 - La **pauta de entrevista** y las notas clínicas son confidenciales: en la app solo las ven la psicóloga y
   el administrador.
 
-### Ayudas de IA (fase 1)
+### Ayudas de IA
 
-Con una clave de Anthropic en el servidor (`ANTHROPIC_API_KEY`), el analista tiene tres ayudas. Sin clave, no
-aparecen.
+Con una clave de Anthropic en el servidor (`ANTHROPIC_API_KEY`) aparecen estas ayudas; sin clave, no se muestran.
+Para el analista:
 
 - **Análisis del CV** en Postulaciones: compara el CV con el descriptor del cargo y muestra coincidencias, brechas,
   datos a confirmar y preguntas para la entrevista. No entrega puntaje ni recomienda descartar.
 - **Completar con IA desde el CV** en Nueva solicitud: llena nombre, correo y teléfono vacíos y deja el CV adjunto.
 - **Redactar con IA** en ofertas: propone título, descripción y requisitos a partir del descriptor del cargo.
+
+Para la psicóloga:
+
+- **Borrador de la evaluación** en Registrar evaluación: a partir de sus notas de la entrevista, propone nivel,
+  fortalezas y oportunidades por competencia, las observaciones y un resultado sugerido con su fundamento. El
+  resultado no queda marcado: lo elige ella. Las notas no se guardan.
 
 Todo es una sugerencia que el equipo revisa. Usa Claude Opus 5.5 con respuestas en un formato JSON fijo, y las
 instrucciones le indican tratar el contenido de los documentos como datos, no como órdenes.
@@ -216,19 +222,19 @@ npm --prefix backend run test:ia                 # ayudas de IA con un cliente s
 
 Resultados a noviembre de 2026:
 
-- **Frontend:** 513 pruebas en 65 archivos.
-- **Backend:** 91 pruebas entre almacenamiento, autenticación, roles, integración e IA.
+- **Frontend:** 519 pruebas en 66 archivos.
+- **Backend:** 92 pruebas entre almacenamiento, autenticación, roles, integración e IA.
 
 | Cobertura del frontend (v8) | Actual | Mínimo |
 | --- | --- | --- |
-| Sentencias | 94,45 % | 80 % |
+| Sentencias | 94,52 % | 80 % |
 | Ramas | 87,50 % | 75 % |
-| Funciones | 80,84 % | 80 % |
-| Líneas | 94,45 % | 80 % |
+| Funciones | 80,71 % | 80 % |
+| Líneas | 94,52 % | 80 % |
 
 `npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
 ## Fuera de alcance
 
-Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la IA en la entrevista y el informe (fase 2). El Planner de esta
+Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la grabación y transcripción de la entrevista y la redacción del informe con IA. El Planner de esta
 app es propio. OneDrive/SharePoint está disponible como proveedor de documentos, pero producción usa Google Drive.
