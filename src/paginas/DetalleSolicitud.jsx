@@ -13,9 +13,11 @@ import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion
 import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
 import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+import { apiIa, useIaDisponible } from '../servicios/apiIa';
 
 /** Detalle de solicitud: datos del candidato, seguimiento y evaluación. El avance se gestiona en el Planner. */
 export default function DetalleSolicitud() {
+  const iaDisponible = useIaDisponible();
   const { id } = useParams();
   const navegar = useNavigate();
   const ubicacion = useLocation();
@@ -363,6 +365,7 @@ export default function DetalleSolicitud() {
                   evaluacion={evaluacion}
                   alGuardar={guardarEvaluacion}
                   guardando={guardandoEvaluacion}
+                  alGenerarBorrador={iaDisponible ? (notas) => apiIa.borradorEvaluacion(solicitud.id, notas) : null}
                 />
               ) : null}
             </>

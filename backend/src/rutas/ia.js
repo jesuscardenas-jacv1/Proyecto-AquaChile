@@ -6,11 +6,12 @@ const { obtenerAlmacenamiento } = require('../almacenamiento');
 const { categoriaDeArchivo, claveCarpetaPostulacion } = require('../almacenamiento/comun');
 const { ErrorIa, iaDisponible, modeloIa } = require('../ia/cliente');
 const { buscarDescriptor } = require('../ia/documentos');
-const { analizarCv, extraerDatosCv, redactarOferta } = require('../ia/tareas');
+const { analizarCv, borradorEvaluacion, extraerDatosCv, redactarOferta } = require('../ia/tareas');
 
 /**
- * Ayudas de IA para el analista (fase 1): análisis del CV contra el descriptor del cargo,
- * datos del CV para autocompletar el formulario y borrador de la descripción de una oferta.
+ * Ayudas de IA. Para el analista (fase 1): análisis del CV contra el descriptor del cargo,
+ * datos del CV para autocompletar el formulario y borrador de una oferta. Para la psicóloga
+ * (fase 2): borrador de la evaluación a partir de sus notas de la entrevista.
  * Son sugerencias: el sistema no toma ninguna decisión con ellas.
  */
 const router = express.Router();
@@ -126,6 +127,56 @@ router.post(
     const descriptor = await buscarDescriptor({ cargo: oferta.cargo, ofertaId: Number(req.body?.ofertaId) || null });
     const { datos } = await redactarOferta({ oferta, descriptor });
     res.json({ ok: true, oferta: datos, descriptor: descriptor?.nombre ?? '' });
+  }),
+);
+
+const LARGO_MINIMO_NOTAS = 30;
+const LARGO_MAXIMO_NOTAS = 20000;
+const recortar = (valor, maximo = 600) => (typeof valor === 'string' ? valor.trim().slice(0, maximo) : '');
+
+/**
+ * POST /api/ia/solicitudes/:id/borrador-evaluacion
+ * Cuerpo JSON: { notas }. Devuelve un borrador de la evaluación (competencias, observaciones
+ * y un resultado sugerido). Las notas no se guardan: solo se envían a la IA (Exclusivo Evaluador).
+ */
+router.post(
+  '/solicitudes/:id/borrador-evaluacion',
+  requerirRol('evaluador'),
+  exigirIa,
+  limite,
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    const solicitud = db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
+    if (!solicitud) throw new ErrorIa(`Solicitud #${id} no encontrada.`, 404);
+    if (solicitud.motivo_cierre) throw new ErrorIa('La solicitud se cerró sin evaluación.', 409);
+
+    const notas = texto(req.body?.notas);
+    if (notas.length < LARGO_MINIMO_NOTAS) {
+      throw new ErrorIa('Escribe tus notas de la entrevista (al menos unas líneas) para generar el borrador.', 400);
+    }
+    if (notas.length > LARGO_MAXIMO_NOTAS) {
+      throw new ErrorIa('Las notas superan los 20.000 caracteres. Resume o divide el texto.', 413);
+    }
+
+    const descriptor = await buscarDescriptor({ cargo: solicitud.cargo });
+    const { datos } = await borradorEvaluacion({ notas, solicitud, descriptor });
+    // Mismo límite de texto que acepta la evaluación al guardarse (src/bd/competencias.js).
+    const vistas = new Set();
+    const competencias = datos.competencias
+      .filter(({ competencia }) => !vistas.has(competencia) && vistas.add(competencia))
+      .map((item) => ({
+        competencia: item.competencia,
+        nivel: item.nivel,
+        fortalezas: recortar(item.fortalezas),
+        oportunidades: recortar(item.oportunidades),
+        evidencia: recortar(item.evidencia, 300),
+      }));
+
+    res.json({
+      ok: true,
+      borrador: { ...datos, competencias, observaciones: recortar(datos.observaciones, 2000) },
+      descriptor: descriptor?.nombre ?? '',
+    });
   }),
 );
 

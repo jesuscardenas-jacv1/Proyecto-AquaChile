@@ -94,8 +94,9 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
 - **Descriptor de cargo:** se guarda por cargo (tabla `cargos`, carpeta `C0001 - Cargo`): se sube una vez y lo reutilizan
   sus ofertas y solicitudes, cada solicitud con su copia. Los cargos del catálogo traen un PDF ficticio en `public/descriptores`.
-- **IA (fase 1):** análisis del CV contra el descriptor en Postulaciones, "Completar con IA desde el CV" en Nueva
-  solicitud y "Redactar con IA" en ofertas. Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
+- **IA:** análisis del CV contra el descriptor en Postulaciones, "Completar con IA desde el CV" en Nueva
+  solicitud, "Redactar con IA" en ofertas y, para la psicóloga, "Borrador con IA desde tus notas" en la evaluación
+  (el resultado solo se sugiere; lo marca ella y las notas no se guardan). Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
   salida con esquema JSON). Solo con `ANTHROPIC_API_KEY`; sin clave la app oculta estas opciones. La IA sugiere y no
   decide: sin puntajes ni recomendaciones de descarte. Las pruebas usan un cliente simulado (`establecerClienteIa`).
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado

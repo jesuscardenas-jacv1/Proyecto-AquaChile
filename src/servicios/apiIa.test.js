@@ -49,6 +49,13 @@ describe('apiIa', () => {
     expect(opciones.headers['Content-Type']).toBe('application/pdf');
   });
 
+  it('pide el borrador de la evaluación con las notas', async () => {
+    fetch.mockReturnValue(respuestaJson({ borrador: { resultadoSugerido: 'Recomendado' } }));
+    expect(await apiIa.borradorEvaluacion(5, 'Notas de la entrevista')).toEqual({ resultadoSugerido: 'Recomendado' });
+    expect(fetch.mock.calls[0][0]).toBe(`${URL_API}/ia/solicitudes/5/borrador-evaluacion`);
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ notas: 'Notas de la entrevista' });
+  });
+
   it('pide el borrador de una oferta en JSON', async () => {
     fetch.mockReturnValue(respuestaJson({ oferta: { titulo: 'Gruero' } }));
     expect(await apiIa.redactarOferta({ cargo: 'Gruero' })).toEqual({ titulo: 'Gruero' });
