@@ -356,3 +356,53 @@ describe('FormularioSolicitud', () => {
     expect(screen.getByRole('group', { name: /referido/i })).toBeInTheDocument();
   });
 });
+
+describe('FormularioSolicitud: completar con IA desde el CV', () => {
+  const cvPdf = () => new File(['%PDF'], 'cv-ana.pdf', { type: 'application/pdf' });
+
+  it('no ofrece la opción si la IA no está disponible', () => {
+    render(<FormularioSolicitud candidatos={[]} alGuardar={vi.fn()} />);
+    expect(screen.queryByLabelText(/cv para completar con ia/i)).toBeNull();
+  });
+
+  it('completa nombre, correo y teléfono vacíos, y deja el CV adjunto', async () => {
+    const usuario = userEvent.setup();
+    const alExtraerCv = vi.fn().mockResolvedValue({
+      nombre: 'Ana Pérez Soto',
+      correo: 'ana.perez@correo.cl',
+      telefono: '+56 9 1111-2222',
+      ciudad: 'Osorno',
+      resumen: 'Operaria de planta.',
+    });
+    render(<FormularioSolicitud candidatos={[]} alGuardar={vi.fn()} alExtraerCv={alExtraerCv} />);
+
+    await usuario.upload(screen.getByLabelText(/cv para completar con ia/i), cvPdf());
+
+    expect(alExtraerCv).toHaveBeenCalledWith(expect.objectContaining({ name: 'cv-ana.pdf' }));
+    expect(await screen.findByText(/se completaron nombre, correo y teléfono desde el cv/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Candidato/a *')).toHaveValue('Ana Pérez Soto');
+    expect(screen.getByLabelText(/^correo/i)).toHaveValue('ana.perez@correo.cl');
+    expect(screen.getByLabelText(/^teléfono/i)).toHaveValue('+56911112222');
+  });
+
+  it('no reemplaza lo que el analista ya escribió', async () => {
+    const usuario = userEvent.setup();
+    const alExtraerCv = vi.fn().mockResolvedValue({ nombre: 'Otro Nombre', correo: '', telefono: '', ciudad: '', resumen: '' });
+    render(<FormularioSolicitud candidatos={[]} alGuardar={vi.fn()} alExtraerCv={alExtraerCv} />);
+    await usuario.type(screen.getByLabelText('Candidato/a *'), 'Ana Pérez');
+
+    await usuario.upload(screen.getByLabelText(/cv para completar con ia/i), cvPdf());
+
+    expect(await screen.findByText(/no tenía datos nuevos/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Candidato/a *')).toHaveValue('Ana Pérez');
+  });
+
+  it('muestra el error si la IA no puede leer el CV', async () => {
+    const usuario = userEvent.setup();
+    const alExtraerCv = vi.fn().mockRejectedValue(new Error('La IA solo lee archivos PDF o Word (.docx).'));
+    render(<FormularioSolicitud candidatos={[]} alGuardar={vi.fn()} alExtraerCv={alExtraerCv} />);
+
+    await usuario.upload(screen.getByLabelText(/cv para completar con ia/i), cvPdf());
+    expect(await screen.findByRole('alert')).toHaveTextContent('La IA solo lee archivos PDF o Word (.docx).');
+  });
+});

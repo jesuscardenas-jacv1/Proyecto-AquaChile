@@ -32,6 +32,7 @@ export default function FormularioOferta({
   alCancelar,
   alDescargarDescriptor,
   cargosGuardados = [],
+  alRedactar = null,
 }) {
   const esBorrador = (inicial.estado ?? 'Borrador') === 'Borrador';
   const [campos, setCampos] = useState({
@@ -43,6 +44,8 @@ export default function FormularioOferta({
   const [guardando, setGuardando] = useState(false);
   const [descriptor, setDescriptor] = useState(null);
   const [documentoAbierto, setDocumentoAbierto] = useState(null);
+  const [redactando, setRedactando] = useState(false);
+  const [avisoIa, setAvisoIa] = useState(null);
   const resuelto = resolverDescriptor({ cargo: campos.cargo, cargosGuardados, oferta: inicial });
   const descriptorDisponible = resuelto.nombre;
   const visorDescriptor =
@@ -87,6 +90,39 @@ export default function FormularioOferta({
     }
     setDescriptor(archivo);
     setErrores((actual) => ({ ...actual, descriptor: undefined }));
+  };
+
+  /** Pide a la IA un borrador de título, descripción y requisitos a partir del descriptor del cargo. */
+  const redactarConIa = async () => {
+    if (!campos.cargo.trim()) {
+      setErrores((actual) => ({ ...actual, cargo: 'Indica el cargo para redactar la oferta con IA.' }));
+      return;
+    }
+    const hayTexto = campos.descripcion.trim() || campos.requisitos.trim();
+    if (hayTexto && !window.confirm('La IA reemplazará la descripción y los requisitos que escribiste. ¿Continuar?')) return;
+    setAvisoIa(null);
+    setRedactando(true);
+    try {
+      const borrador = await alRedactar({
+        cargo: campos.cargo,
+        familiaCargo: campos.familiaCargo,
+        area: campos.area,
+        ubicacion: campos.ubicacion,
+        jornada: campos.jornada,
+      });
+      setCampos((actual) => ({
+        ...actual,
+        titulo: actual.titulo.trim() ? actual.titulo : borrador.titulo,
+        descripcion: borrador.descripcion,
+        requisitos: borrador.requisitos.join('\n'),
+      }));
+      setErrores((actual) => ({ ...actual, titulo: undefined, descripcion: undefined }));
+      setAvisoIa({ tipo: 'success', texto: 'Borrador redactado con IA. Revísalo y ajústalo antes de publicar.' });
+    } catch (excepcion) {
+      setAvisoIa({ tipo: 'danger', texto: excepcion.message });
+    } finally {
+      setRedactando(false);
+    }
   };
 
   const guardar = async ({ publicar }) => {
@@ -187,6 +223,28 @@ export default function FormularioOferta({
         </div>
         {texto('ubicacion', 'Ubicación *', 'col-12 col-md-4', 'Ej: Planta Calbuco')}
         {texto('region', 'Región *', 'col-12 col-md-4', 'Ej: Los Lagos')}
+        {alRedactar ? (
+          <div className="col-12">
+            <button type="button" className="btn btn-sm btn-outline-primary" onClick={redactarConIa} disabled={redactando}>
+              {redactando ? (
+                <span className="spinner-border spinner-border-sm me-1" aria-hidden="true" />
+              ) : (
+                <i className="bi bi-stars me-1" aria-hidden="true" />
+              )}
+              {redactando ? 'Redactando…' : 'Redactar con IA'}
+            </button>
+            {avisoIa ? (
+              <div
+                className={`form-text ${avisoIa.tipo === 'danger' ? 'text-danger' : 'text-success'}`}
+                role={avisoIa.tipo === 'danger' ? 'alert' : 'status'}
+              >
+                {avisoIa.texto}
+              </div>
+            ) : (
+              <div className="form-text">Propone título, descripción y requisitos a partir del descriptor del cargo.</div>
+            )}
+          </div>
+        ) : null}
         <div className="col-12">
           <label className="form-label" htmlFor="oferta-descripcion">
             Descripción del cargo *

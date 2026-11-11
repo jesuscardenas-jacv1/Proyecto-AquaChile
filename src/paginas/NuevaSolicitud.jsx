@@ -2,6 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { useAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+import { apiIa, useIaDisponible } from '../servicios/apiIa';
 import { resolverDescriptor } from '../datos/catalogos';
 import FormularioSolicitud from '../componentes/solicitudes/FormularioSolicitud';
 import Mensaje from '../componentes/comunes/Mensaje';
@@ -25,6 +26,7 @@ export default function NuevaSolicitud() {
     actualizarPostulacion,
   } = useDatos();
   const { usuarioActual, esAdmin } = useAuth();
+  const iaDisponible = useIaDisponible();
   const navegar = useNavigate();
   const [parametros] = useSearchParams();
   // Quien pide la evaluación es el analista con sesión; el administrador puede pedirla por otro.
@@ -178,6 +180,7 @@ export default function NuevaSolicitud() {
             cargosGuardados={cargos}
             oferta={oferta}
             documentosOrigen={documentosOrigen}
+            alExtraerCv={iaDisponible ? apiIa.extraerDatosCv : null}
             alGuardar={guardar}
             alCancelar={() => navegar(postulacionPendiente ? '/postulaciones' : '/solicitudes')}
           />

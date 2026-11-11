@@ -94,6 +94,10 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
 - **Descriptor de cargo:** se guarda por cargo (tabla `cargos`, carpeta `C0001 - Cargo`): se sube una vez y lo reutilizan
   sus ofertas y solicitudes, cada solicitud con su copia. Los cargos del catálogo traen un PDF ficticio en `public/descriptores`.
+- **IA (fase 1):** análisis del CV contra el descriptor en Postulaciones, "Completar con IA desde el CV" en Nueva
+  solicitud y "Redactar con IA" en ofertas. Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
+  salida con esquema JSON). Solo con `ANTHROPIC_API_KEY`; sin clave la app oculta estas opciones. La IA sugiere y no
+  decide: sin puntajes ni recomendaciones de descarte. Las pruebas usan un cliente simulado (`establecerClienteIa`).
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).
@@ -119,6 +123,7 @@ npm --prefix backend run test:almacenamiento   # pruebas backend (node:test)
 npm --prefix backend run test:auth             # clave de sesiones (JWT_SECRETO)
 npm --prefix backend run test:roles            # permisos de los 4 roles (BD sembrada)
 npm --prefix backend run test:integracion      # API usada por el frontend integrado (Hito 2)
+npm --prefix backend run test:ia               # ayudas de IA con un cliente simulado
 ```
 
 Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).

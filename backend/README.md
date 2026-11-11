@@ -37,6 +37,7 @@ npm run test:almacenamiento  # documentos
 npm run test:auth            # clave de sesiones (JWT_SECRETO)
 npm run test:roles           # permisos de los 4 roles (requiere BD sembrada)
 npm run test:integracion     # API usada por el frontend (requiere BD sembrada)
+npm run test:ia              # ayudas de IA con un cliente simulado (sin costo)
 ```
 
 ---
@@ -125,6 +126,14 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 * `DELETE /api/admin/usuarios/:id`: Elimina un usuario. No permite eliminarse a sí mismo, quitarse el rol de administrador ni dejar el sistema sin administrador.
 * `POST /api/admin/reiniciar`: Restablece los datos de demostración, incluidos los 4 usuarios de prueba originales.
 
+### Ayudas de IA (`/api/ia`)
+Requieren `ANTHROPIC_API_KEY` en el servidor; sin ella, `estado` responde `disponible: false` y las demás `503`. Son sugerencias: no cambian ningún dato del proceso. Limitadas por IP (20 cada 10 minutos).
+* `GET /api/ia/estado`: Si la IA está disponible y con qué modelo.
+* `GET /api/ia/postulaciones/:id/analisis`: Último análisis guardado del CV (**Analista y Jefatura**).
+* `POST /api/ia/postulaciones/:id/analisis`: Analiza el CV del portal contra el descriptor del cargo (guardado, de la oferta o de demostración) y guarda el resultado: resumen, coincidencias, brechas, preguntas sugeridas y datos a confirmar. Sin puntaje ni recomendación (**Exclusivo Analista**).
+* `POST /api/ia/extraer-cv?nombre=cv.pdf`: Devuelve nombre, correo, teléfono, ciudad y un resumen del CV en binario (PDF o Word); no lo guarda (**Exclusivo Analista**).
+* `POST /api/ia/redactar-oferta`: Borrador `{ titulo, descripcion, requisitos }` a partir del descriptor del cargo `{ cargo, familiaCargo, area, ubicacion, jornada, ofertaId? }` (**Exclusivo Analista**).
+
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
 Cada solicitud tiene su carpeta (`S0001 - Nombre Candidato`) con el CV, el descriptor de cargo, el informe psicolaboral y la pauta de entrevista. Los archivos llevan un prefijo según su categoría (`CV - `, `Descriptor - `, `Informe - `, `Pauta - `), así la carpeta se entiende igual al abrirla directo en Google Drive u OneDrive.
 * `GET /api/solicitudes/:id/documentos`: Carpeta, archivos y categorías que el usuario puede gestionar.
@@ -180,7 +189,7 @@ npm run test:almacenamiento
 
 Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api** (grupo `rg-aquachile-chile`, plan **B1 Linux**, Node 22, región East US 2: la única que permiten las políticas de la suscripción Azure for Students de Duoc). El frontend de GitHub Pages se compila con `VITE_API_URL` apuntando ahí (`.github/workflows/pages.yml`).
 
-**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`, `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)` y `SCM_DO_BUILD_DURING_DEPLOYMENT=true`. Comando de inicio: `node src/servidor.js`.
+**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`, `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY`. Comando de inicio: `node src/servidor.js`.
 
 Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
 

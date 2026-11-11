@@ -45,7 +45,7 @@ async function sembrar({ silencioso = false } = {}) {
   db.exec('BEGIN TRANSACTION;');
   try {
     // Orden inverso por claves foráneas.
-    ['postulaciones', 'evaluaciones', 'solicitudes', 'ofertas', 'candidatos', 'fotos_usuario', 'notificaciones', 'cargos', 'usuarios'].forEach((tabla) =>
+    ['analisis_cv', 'postulaciones', 'evaluaciones', 'solicitudes', 'ofertas', 'candidatos', 'fotos_usuario', 'notificaciones', 'cargos', 'usuarios'].forEach((tabla) =>
       db.exec(`DELETE FROM ${tabla};`),
     );
 

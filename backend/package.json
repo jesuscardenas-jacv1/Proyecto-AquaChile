@@ -15,7 +15,8 @@
     "test:auth": "node --test src/middlewares/auth.test.js",
     "test:roles": "node --test src/roles.test.js",
     "test:integracion": "node --test src/integracion.test.js",
-    "drive:autorizar": "node --env-file-if-exists=.env src/almacenamiento/autorizarDrive.js"
+    "drive:autorizar": "node --env-file-if-exists=.env src/almacenamiento/autorizarDrive.js",
+    "test:ia": "node --test src/ia/ia.test.js"
   },
   "keywords": [
     "aquachile",
@@ -27,10 +28,12 @@
   "author": "AquaChile - Reclutamiento y Selección",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.13.0",
     "pdfkit": "^0.15.2"
   }
 }
