@@ -68,16 +68,18 @@ function traducirError(error) {
 /**
  * Pide a Claude una respuesta que cumpla un esquema JSON y la devuelve ya interpretada.
  * Cada respuesta queda en el registro de consumo (uso_ia) con el nombre de la `tarea`.
- * @param {{ tarea: string, sistema: string, contenido: Array, esquema: object, esfuerzo?: string }} opciones
+ * `modelo` reemplaza al del servidor (lo elige el administrador por tarea).
+ * @param {{ tarea: string, sistema: string, contenido: Array, esquema: object, esfuerzo?: string, modelo?: string }} opciones
  */
-async function generarJson({ tarea = 'otra', sistema, contenido, esquema, esfuerzo = 'medium' }) {
+async function generarJson({ tarea = 'otra', sistema, contenido, esquema, esfuerzo = 'medium', modelo = modeloIa() }) {
+  // Haiku no tiene modelo de respaldo: enviarle `fallbacks` es un error 400.
+  const respaldo = modelo.startsWith('claude-haiku') ? {} : { betas: [BETA_RESPALDO], fallbacks: 'default' };
   let respuesta;
   try {
     respuesta = await obtenerCliente().beta.messages.create({
-      model: modeloIa(),
+      model: modelo,
       max_tokens: 16000,
-      betas: [BETA_RESPALDO],
-      fallbacks: 'default',
+      ...respaldo,
       system: sistema,
       messages: [{ role: 'user', content: contenido }],
       output_config: { effort: esfuerzo, format: { type: 'json_schema', schema: esquema } },

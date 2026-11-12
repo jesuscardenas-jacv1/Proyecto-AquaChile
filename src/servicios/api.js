@@ -227,4 +227,10 @@ export const apiAdmin = {
   /** Consumo de IA entre dos fechas YYYY-MM-DD (por defecto, el mes actual). */
   usoIa: async ({ desde, hasta } = {}) =>
     (await solicitar(`/admin/uso-ia?${new URLSearchParams({ ...(desde && { desde }), ...(hasta && { hasta }) })}`)).uso,
+  /** Configuración de las ayudas de IA: partes fijas, editables, originales e historial. */
+  configIa: async () => (await solicitar('/admin/config-ia')).configuracion,
+  guardarConfigIa: async (tarea, datos) =>
+    (await solicitar(`/admin/config-ia/${tarea}`, { metodo: 'PUT', cuerpo: datos })).vigente,
+  restablecerConfigIa: async (tarea) =>
+    (await solicitar(`/admin/config-ia/${tarea}/restablecer`, { metodo: 'POST' })).vigente,
 };

@@ -252,6 +252,28 @@ function migrar() {
     );
     CREATE INDEX IF NOT EXISTS idx_uso_ia_fecha ON uso_ia (creado_en);
   `);
+  // Ajustes del administrador a las ayudas de IA (indicaciones, modelo y esfuerzo) y su historial.
+  // Lo que no está aquí usa los valores originales de backend/src/ia/catalogo.js.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS config_ia (
+      tarea           TEXT PRIMARY KEY,
+      indicaciones    TEXT NOT NULL,
+      modelo          TEXT NOT NULL DEFAULT '',
+      esfuerzo        TEXT NOT NULL,
+      actualizado_por TEXT NOT NULL DEFAULT '',
+      actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS config_ia_historial (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      tarea        TEXT NOT NULL,
+      accion       TEXT NOT NULL,
+      indicaciones TEXT NOT NULL,
+      modelo       TEXT NOT NULL DEFAULT '',
+      esfuerzo     TEXT NOT NULL,
+      usuario      TEXT NOT NULL DEFAULT '',
+      creado_en    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 
