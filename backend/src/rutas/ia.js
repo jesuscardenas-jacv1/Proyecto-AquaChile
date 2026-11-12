@@ -232,6 +232,38 @@ function solicitudParaEntrevista(req) {
   return solicitud;
 }
 
+const TITULO_NOTAS = 'NOTAS POR COMPETENCIA (propuesta de la IA, revisar)';
+const TITULO_TEMAS = 'Temas pendientes:';
+const TITULO_TRANSCRIPCION = 'TRANSCRIPCIÓN';
+const PREFIJO_PAUTA_TRANSCRIPCION = 'Transcripción entrevista';
+
+/**
+ * Lee una pauta de transcripción guardada (el texto que arma `textoPauta`): devuelve la
+ * transcripción y, si la pauta las trae, las notas y los temas pendientes que propuso la IA.
+ */
+function leerPauta(texto) {
+  const marca = `\n${TITULO_TRANSCRIPCION}\n\n`;
+  const inicioTranscripcion = texto.indexOf(marca);
+  if (inicioTranscripcion < 0) return null;
+  const transcripcion = texto.slice(inicioTranscripcion + marca.length).trim();
+  const encabezado = texto.slice(0, inicioTranscripcion);
+  const inicioNotas = encabezado.indexOf(`${TITULO_NOTAS}\n\n`);
+  if (inicioNotas < 0) return { transcripcion, notas: null };
+
+  const bloque = encabezado.slice(inicioNotas + TITULO_NOTAS.length + 2);
+  const inicioTemas = bloque.indexOf(`\n${TITULO_TEMAS}\n`);
+  const notas = (inicioTemas < 0 ? bloque : bloque.slice(0, inicioTemas)).trim();
+  const temasPendientes =
+    inicioTemas < 0
+      ? []
+      : bloque
+          .slice(inicioTemas + TITULO_TEMAS.length + 2)
+          .split('\n')
+          .filter((linea) => linea.startsWith('- '))
+          .map((linea) => linea.slice(2).trim());
+  return { transcripcion, notas: notas ? { competencias: [], temasPendientes, notas } : null };
+}
+
 function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha, transcripcion, notas }) {
   const lineas = [
     'PAUTA DE ENTREVISTA · TRANSCRIPCIÓN',
@@ -248,12 +280,12 @@ function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha,
     '',
   ];
   if (notas) {
-    lineas.push('NOTAS POR COMPETENCIA (propuesta de la IA, revisar)', '', notas.notas, '');
+    lineas.push(TITULO_NOTAS, '', notas.notas, '');
     if (notas.temasPendientes.length) {
-      lineas.push('Temas pendientes:', ...notas.temasPendientes.map((tema) => `- ${tema}`), '');
+      lineas.push(TITULO_TEMAS, ...notas.temasPendientes.map((tema) => `- ${tema}`), '');
     }
   }
-  lineas.push('TRANSCRIPCIÓN', '', transcripcion, '');
+  lineas.push(TITULO_TRANSCRIPCION, '', transcripcion, '');
   return lineas.join('\n');
 }
 
@@ -299,7 +331,7 @@ async function guardarYResponder(req, res, { solicitud, origen, nombreOriginal =
   );
   const archivo = await almacenamiento.subirArchivo(
     carpeta,
-    nombreArchivo('pauta', `Transcripción entrevista ${marcaArchivo(fecha)}.txt`),
+    nombreArchivo('pauta', `${PREFIJO_PAUTA_TRANSCRIPCION} ${marcaArchivo(fecha)}.txt`),
     Buffer.from(textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario: req.usuario, fecha, transcripcion, notas }), 'utf8'),
   );
 
@@ -375,4 +407,38 @@ router.post(
   }),
 );
 
+/**
+ * GET /api/ia/solicitudes/:id/transcripcion/ultima
+ * Última transcripción guardada como pauta, con las notas que propuso la IA si las trae.
+ * Permite pasarlas al borrador después de marcar la entrevista como realizada, sin volver a
+ * grabar ni llamar a la IA. Solo lectura; exclusivo de la psicóloga (y del administrador).
+ */
+router.get(
+  '/solicitudes/:id/transcripcion/ultima',
+  requerirRol('evaluador'),
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!db.prepare('SELECT id FROM solicitudes WHERE id = ?').get(id)) {
+      throw new ErrorIa(`Solicitud #${id} no encontrada.`, 404);
+    }
+    const almacenamiento = obtenerAlmacenamiento();
+    const carpeta = await almacenamiento.obtenerCarpeta(claveCarpeta(id), null);
+    const pautas = carpeta
+      ? (await almacenamiento.listarArchivos(carpeta)).filter(
+          (archivo) => archivo.categoria === 'pauta' && archivo.nombre.includes(PREFIJO_PAUTA_TRANSCRIPCION),
+        )
+      : [];
+    if (!pautas.length) throw new ErrorIa('Esta solicitud aún no tiene una transcripción guardada.', 404);
+
+    // El nombre lleva la fecha y hora ("2026-11-12 00.08"): el mayor es el más reciente.
+    const ultima = pautas.sort((a, b) => b.nombre.localeCompare(a.nombre))[0];
+    const { contenido } = await almacenamiento.descargarArchivo(carpeta, ultima.id);
+    const pauta = leerPauta(contenido.toString('utf8'));
+    if (!pauta) throw new ErrorIa('La pauta guardada no tiene el formato esperado.', 422);
+
+    res.json({ ok: true, ...pauta, archivo: { id: ultima.id, nombre: ultima.nombre, modificado: ultima.modificado } });
+  }),
+);
+
 module.exports = router;
+module.exports.leerPauta = leerPauta;

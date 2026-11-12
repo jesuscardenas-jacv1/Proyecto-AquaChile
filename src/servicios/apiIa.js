@@ -75,6 +75,9 @@ export const apiIa = {
     }),
 
   /** Transcripción exportada de Teams o de Meet (.vtt, .docx o .txt) o el texto pegado (string). */
+  /** Última transcripción guardada como pauta, con sus notas si las trae (solo lectura). */
+  ultimaTranscripcion: (solicitudId) => llamar(`/ia/solicitudes/${solicitudId}/transcripcion/ultima`),
+
   subirTranscripcion(solicitudId, archivoOTexto) {
     const pegado = typeof archivoOTexto === 'string';
     const parametros = pegado

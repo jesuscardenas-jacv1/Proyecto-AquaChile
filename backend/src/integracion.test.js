@@ -300,6 +300,24 @@ describe('API integrada (Hito 2)', () => {
         assert.match(resultado.datos.errorNotas, /no puede procesar/);
         assert.ok((await pautas('evaluador')).length >= 1);
       });
+
+      it('entrega la última transcripción guardada para usarla en el borrador, sin llamar a la IA', async () => {
+        const llamadas = [];
+        establecerClienteIa({ beta: { messages: { create: async (s) => llamadas.push(s) } } });
+        const ruta = '/ia/solicitudes/2/transcripcion/ultima';
+        assert.equal((await pedir(ruta)).status, 401);
+        assert.equal((await pedir(ruta, { rol: 'analista' })).status, 403);
+        assert.equal((await pedir('/ia/solicitudes/3/transcripcion/ultima', { rol: 'evaluador' })).status, 404);
+        assert.equal((await pedir('/ia/solicitudes/99999/transcripcion/ultima', { rol: 'evaluador' })).status, 404);
+
+        const ultima = await pedir(ruta, { rol: 'evaluador' });
+        assert.equal(ultima.status, 200);
+        // La última es la del .vtt, cuyas notas fallaron: trae la transcripción y no notas.
+        assert.match(ultima.datos.transcripcion, /Me organizo con mi jefatura/);
+        assert.equal(ultima.datos.notas, null);
+        assert.match(ultima.datos.archivo.nombre, /^Pauta - Transcripción entrevista/);
+        assert.equal(llamadas.length, 0, 'leer la pauta no llama a la IA');
+      });
     });
   });
 

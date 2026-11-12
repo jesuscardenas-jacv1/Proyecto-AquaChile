@@ -24,6 +24,13 @@ const resultado = {
 const crearApi = (respuesta = resultado) => ({
   transcribirAudio: vi.fn().mockResolvedValue(respuesta),
   subirTranscripcion: vi.fn().mockResolvedValue(respuesta),
+  ultimaTranscripcion: vi.fn().mockResolvedValue({
+    transcripcion: respuesta.transcripcion,
+    notas: respuesta.notas
+      ? { competencias: [], temasPendientes: respuesta.notas.temasPendientes, notas: respuesta.notas.notas }
+      : null,
+    archivo: respuesta.archivo,
+  }),
 });
 
 const renderPanel = (props = {}) => {
@@ -212,5 +219,46 @@ describe('EntrevistaIa', () => {
       new File(['x'], 'a.txt', { type: 'text/plain' }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(/debe ser un archivo/i);
+  });
+
+  describe('usar la última transcripción guardada', () => {
+    it('con la entrevista realizada carga la pauta y sus notas sin pedir consentimiento ni grabar', async () => {
+      const { usuario, api, alUsarNotas } = renderPanel();
+      await usuario.click(screen.getByRole('button', { name: /usar la última transcripción guardada/i }));
+
+      expect(api.ultimaTranscripcion).toHaveBeenCalledWith(7);
+      expect(api.transcribirAudio).not.toHaveBeenCalled();
+      expect(await screen.findByText(/transcripción cargada desde la pauta: pauta - transcripción entrevista/i)).toBeInTheDocument();
+      expect(screen.getByText(resultado.notas.notas)).toBeInTheDocument();
+      expect(screen.getByText('Liderazgo: sin ejemplos.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /usar la última transcripción guardada/i })).toBeNull();
+
+      await usuario.click(screen.getByRole('button', { name: /usar en el borrador/i }));
+      expect(alUsarNotas).toHaveBeenCalledWith(resultado.notas.notas);
+    });
+
+    it('si la pauta no trae notas, usa la transcripción en el borrador', async () => {
+      const api = crearApi();
+      api.ultimaTranscripcion.mockResolvedValue({ transcripcion: resultado.transcripcion, notas: null, archivo: resultado.archivo });
+      const { usuario, alUsarNotas } = renderPanel({ api });
+      await usuario.click(screen.getByRole('button', { name: /usar la última transcripción guardada/i }));
+
+      expect(await screen.findByText(/esa pauta no trae notas/i)).toBeInTheDocument();
+      await usuario.click(screen.getByRole('button', { name: /usar en el borrador/i }));
+      expect(alUsarNotas).toHaveBeenCalledWith(resultado.transcripcion);
+    });
+
+    it('muestra el error si aún no hay transcripción guardada', async () => {
+      const api = crearApi();
+      api.ultimaTranscripcion.mockRejectedValue(new Error('Esta solicitud aún no tiene una transcripción guardada.'));
+      const { usuario } = renderPanel({ api });
+      await usuario.click(screen.getByRole('button', { name: /usar la última transcripción guardada/i }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('aún no tiene una transcripción guardada');
+    });
+
+    it('con la entrevista solo agendada, o sin IA, no ofrece la opción', () => {
+      renderPanel({ puedeUsarEnBorrador: false });
+      expect(screen.queryByRole('button', { name: /usar la última transcripción guardada/i })).toBeNull();
+    });
   });
 });
