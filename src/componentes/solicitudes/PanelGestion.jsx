@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { EVALUADORES } from '../../datos/constantes';
 import { etapaDeSolicitud, obtenerEtapa, textoEntrevista } from '../../dominio/planner';
 import EtiquetaEstado from '../comunes/EtiquetaEstado';
+import BotonReunion from '../comunes/BotonReunion';
 
 /** Texto de la etapa actual; la entrevista solo se menciona mientras está por realizarse. */
 function textoEtapa(solicitud) {
@@ -36,6 +37,14 @@ export default function PanelGestion({
             <EtiquetaEstado valor={solicitud.estado} />
             <span className="form-label d-block mt-3">Etapa en el Planner</span>
             <p className="mb-0">{textoEtapa(solicitud)}</p>
+            {etapaDeSolicitud(solicitud) === 'agendada' && solicitud.enlaceReunion ? (
+              <BotonReunion
+                enlace={solicitud.enlaceReunion}
+                modalidad={solicitud.modalidadEntrevista}
+                soloLectura={soloLectura}
+                className="mt-2"
+              />
+            ) : null}
           </div>
 
           <div className="col-12 col-md-6">

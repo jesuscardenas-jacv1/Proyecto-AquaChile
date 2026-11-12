@@ -78,6 +78,37 @@ describe('Planner', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/entrevista agendada: maría gonzález/i);
   });
 
+  it('al reagendar con el enlace de Teams muestra "Unirse a la reunión"; sin servidor, Meet avisa', async () => {
+    const usuario = userEvent.setup();
+    renderPlanner();
+
+    await usuario.click(screen.getByRole('button', { name: /reagendar entrevista de juan pérez/i }));
+    let ventana = screen.getByRole('dialog', { name: 'Reagendar entrevista' });
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Año' }), '2026');
+    await usuario.click(within(within(ventana).getByRole('listbox', { name: 'Mes' })).getAllByRole('option', { name: 'Diciembre' })[0]);
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Día' }), '15');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Hora' }), '11');
+    await elegirOpcion(usuario, within(ventana).getByRole('listbox', { name: 'Minuto' }), '00');
+    await usuario.selectOptions(within(ventana).getByLabelText(/modalidad/i), 'Teams');
+    await usuario.type(
+      within(ventana).getByLabelText(/enlace de la reunión de teams/i),
+      'https://teams.microsoft.com/l/meetup-join/demo',
+    );
+    await usuario.click(within(ventana).getByRole('button', { name: /guardar cambios/i }));
+
+    expect(within(columna('Entrevista Agendada')).getByRole('link', { name: /unirse a la reunión/i })).toHaveAttribute(
+      'href',
+      'https://teams.microsoft.com/l/meetup-join/demo',
+    );
+
+    await usuario.click(screen.getByRole('button', { name: /reagendar entrevista de juan pérez/i }));
+    ventana = screen.getByRole('dialog', { name: 'Reagendar entrevista' });
+    await usuario.selectOptions(within(ventana).getByLabelText(/modalidad/i), 'Google Meet');
+    await usuario.click(within(ventana).getByRole('button', { name: /guardar cambios/i }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/no se crea el enlace de google meet/i);
+    expect(within(columna('Entrevista Agendada')).queryByRole('link', { name: /unirse/i })).toBeNull();
+  });
+
   it('cierra la ventana de agenda con Escape sin guardar', async () => {
     const usuario = userEvent.setup();
     renderPlanner();

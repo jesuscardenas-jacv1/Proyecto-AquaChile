@@ -264,6 +264,38 @@ describe('DatosContext refresca los datos del servidor', () => {
     await waitFor(() => expect(result.current.datos.solicitudes).toHaveLength(total + 1));
   });
 
+  it('al agendar con Meet guarda el enlace del servidor y entrega su aviso sin guardarlo', async () => {
+    sessionStorage.setItem('aquachile_token_api', 'jwt');
+    const original = datosPortal.solicitudes[0];
+    const conEnlace = { ...original, etapa: 'agendada', modalidadEntrevista: 'Google Meet', enlaceReunion: 'https://meet.google.com/x' };
+    const api = crearApi({
+      moverEtapa: vi.fn().mockResolvedValue({ solicitud: conEnlace, avisoReunion: null }),
+      cerrarSolicitud: vi.fn().mockResolvedValue({ solicitud: { ...conEnlace, enlaceReunion: '' }, avisoReunion: 'No se pudo cancelar.' }),
+    });
+    const { result } = montar({ api, usuario: { id: 3, nombre: 'Psicóloga', rol: 'evaluador' } });
+    await waitFor(() => expect(result.current.datos.cargando).toBe(false));
+
+    let movida;
+    await act(async () => {
+      movida = await result.current.datos.moverEtapa(original.id, 'agendada', { modalidadEntrevista: 'Google Meet' });
+    });
+    expect(movida.enlaceReunion).toBe('https://meet.google.com/x');
+    expect(movida.avisoReunion).toBeUndefined();
+    expect(result.current.datos.obtenerSolicitud(original.id).enlaceReunion).toBe('https://meet.google.com/x');
+
+    let cerrada;
+    await act(async () => {
+      cerrada = await result.current.datos.cerrarSolicitud(original.id, { motivo: 'Desistió del proceso', cancelarReunion: true });
+    });
+    expect(api.cerrarSolicitud).toHaveBeenCalledWith(original.id, {
+      motivo: 'Desistió del proceso',
+      comentario: '',
+      cancelarReunion: true,
+    });
+    expect(cerrada.avisoReunion).toBe('No se pudo cancelar.');
+    expect(result.current.datos.obtenerSolicitud(original.id)).not.toHaveProperty('avisoReunion');
+  });
+
   it('si falla la conexión conserva los datos y sigue con el servidor', async () => {
     const api = crearApi();
     const { result } = montarConApi(api);

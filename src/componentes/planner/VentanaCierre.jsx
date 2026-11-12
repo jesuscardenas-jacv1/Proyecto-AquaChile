@@ -13,6 +13,8 @@ const SELECTOR_ENFOCABLES =
  */
 export default function VentanaCierre({ solicitud, candidato, alConfirmar, alReagendar, alCerrar }) {
   const [cierre, setCierre] = useState({ motivo: '', comentario: '' });
+  // Si la app creó el evento en el calendario, se ofrece cancelarlo (marcado por defecto).
+  const [cancelarReunion, setCancelarReunion] = useState(true);
   const [errores, setErrores] = useState({});
   const refDialogo = useRef(null);
   const refPrimerCampo = useRef(null);
@@ -63,7 +65,11 @@ export default function VentanaCierre({ solicitud, candidato, alConfirmar, alRea
       setErrores(nuevosErrores);
       return;
     }
-    alConfirmar({ motivo: cierre.motivo, comentario: cierre.comentario.trim() });
+    alConfirmar({
+      motivo: cierre.motivo,
+      comentario: cierre.comentario.trim(),
+      ...(solicitud.reunionEnCalendario ? { cancelarReunion } : {}),
+    });
   };
 
   const noSePresento = cierre.motivo === 'No se presentó a la entrevista';
@@ -143,6 +149,21 @@ export default function VentanaCierre({ solicitud, candidato, alConfirmar, alRea
                 />
                 {errores.comentario ? <div className="invalid-feedback">{errores.comentario}</div> : null}
               </div>
+
+              {solicitud.reunionEnCalendario ? (
+                <div className="form-check">
+                  <input
+                    id="cierre-cancelar-reunion"
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={cancelarReunion}
+                    onChange={(evento) => setCancelarReunion(evento.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="cierre-cancelar-reunion">
+                    Cancelar también la reunión de {solicitud.modalidadEntrevista || 'la entrevista'} en el calendario
+                  </label>
+                </div>
+              ) : null}
 
               <p className="small text-secondary mb-0">
                 La solicitud queda <strong>Finalizada sin evaluación</strong> y sale del flujo del Planner. Se

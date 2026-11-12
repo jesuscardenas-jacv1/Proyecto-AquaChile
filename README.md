@@ -28,6 +28,11 @@ Reglas importantes:
   el Planner**: el detalle de la solicitud lo muestra, y el backend rechaza cambios por fuera de ese flujo.
 - Una solicitud se puede **cerrar sin evaluación**, por ejemplo si la persona desiste, y reabrir en la etapa
   en que estaba.
+- **Reuniones online:** al agendar la entrevista, la psicóloga elige Teams, Google Meet, Presencial o Telefónica.
+  Con **Google Meet** el backend crea el evento en Google Calendar, con su enlace de Meet; al reagendar lo
+  actualiza y, al cerrar sin evaluación, puede cancelarlo. Con **Teams** la psicóloga pega el enlace de la
+  reunión. La tarjeta del Planner y el detalle de la solicitud muestran **Unirse a la reunión**; la jefatura solo
+  ve la modalidad. Si el calendario falla o no está autorizado, la entrevista se agenda igual y se muestra un aviso.
 - **El descriptor se guarda por cargo:** se sube una vez y lo reutilizan sus ofertas y solicitudes. Cada
   solicitud guarda su propia copia, que cambia si se corrige el cargo.
 - La **pauta de entrevista** y las notas clínicas son confidenciales: en la app solo las ven la psicóloga y
@@ -68,6 +73,7 @@ flowchart TD
     F <-->|"API REST por HTTPS, JWT y tiempo real"| B["Backend · Azure App Service<br/>Node + Express"]
     B <--> D[("SQLite")]
     B <--> G["Google Drive<br/>documentos"]
+    B <--> C["Google Calendar<br/>entrevistas con Meet"]
 ```
 
 Es una aplicación monolítica, sin microservicios. El frontend tiene dos modos:
@@ -226,19 +232,20 @@ npm --prefix backend run test:auth               # clave de sesiones
 npm --prefix backend run test:roles              # permisos de los 4 roles (requiere BD sembrada)
 npm --prefix backend run test:integracion        # API usada por el frontend (requiere BD sembrada)
 npm --prefix backend run test:ia                 # ayudas de IA con un cliente simulado (sin costo)
+npm --prefix backend run test:reuniones          # Google Calendar y Teams con respuestas simuladas
 ```
 
 Resultados a noviembre de 2026:
 
-- **Frontend:** 540 pruebas en 68 archivos.
-- **Backend:** 100 pruebas entre almacenamiento, autenticación, roles, integración e IA.
+- **Frontend:** 563 pruebas en 71 archivos.
+- **Backend:** 129 pruebas entre almacenamiento, autenticación, roles, integración, IA y reuniones.
 
 | Cobertura del frontend (v8) | Actual | Mínimo |
 | --- | --- | --- |
-| Sentencias | 94,69 % | 80 % |
-| Ramas | 87,78 % | 75 % |
-| Funciones | 81,59 % | 80 % |
-| Líneas | 94,69 % | 80 % |
+| Sentencias | 94,75 % | 80 % |
+| Ramas | 88,09 % | 75 % |
+| Funciones | 81,84 % | 80 % |
+| Líneas | 94,75 % | 80 % |
 
 `npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
@@ -246,3 +253,5 @@ Resultados a noviembre de 2026:
 
 Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la redacción del informe completo con IA y las transcripciones automáticas de Teams o Meet (requieren licencias y permisos de administrador; la app transcribe por su cuenta). El Planner de esta
 app es propio. OneDrive/SharePoint está disponible como proveedor de documentos, pero producción usa Google Drive.
+Crear la reunión de Teams automáticamente (Microsoft Graph) queda preparado pero desactivado: requiere que la TI de
+AquaChile registre la aplicación en Entra ID (ver `backend/README.md`).

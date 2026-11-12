@@ -38,6 +38,7 @@ npm run test:auth            # clave de sesiones (JWT_SECRETO)
 npm run test:roles           # permisos de los 4 roles (requiere BD sembrada)
 npm run test:integracion     # API usada por el frontend (requiere BD sembrada)
 npm run test:ia              # ayudas de IA con un cliente simulado (sin costo)
+npm run test:reuniones       # Google Calendar y Teams con respuestas simuladas
 ```
 
 ---
@@ -80,8 +81,9 @@ El administrador puede usar también lo indicado para los demás perfiles.
   * **Regla de confidencialidad:** Si el usuario es Analista, las observaciones clínicas se ocultan y el campo `confidencial: true`.
 * `POST /api/solicitudes`: Crear solicitud (**Exclusivo Analista**).
 * `PATCH /api/solicitudes/:id/estado`: Asigna la psicóloga responsable `{ profesionalResponsable }` (**Exclusivo Analista**). **No cambia el estado:** responde `409` si se intenta.
-* `PATCH /api/solicitudes/:id/etapa`: Mueve la solicitud en el Planner `{ etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista }` y ajusta su estado (**Exclusivo Evaluador**). Etapas: `recibida`, `agendada`, `realizada`, `informe`.
-* `POST /api/solicitudes/:id/cierre`: Cierra sin evaluación `{ motivo, comentario }` (**Analista y Evaluador**).
+* `PATCH /api/solicitudes/:id/etapa`: Mueve la solicitud en el Planner `{ etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista, enlaceReunion }` y ajusta su estado (**Exclusivo Evaluador**). Etapas: `recibida`, `agendada`, `realizada`, `informe`. Modalidades: `Teams`, `Google Meet`, `Presencial`, `Telefónica`. Con `Google Meet` se crea o actualiza el evento en Google Calendar; con `Teams` se acepta `enlaceReunion` (solo `https://` de Teams o Meet; otro valor responde `400`). Si el calendario falla, la agenda se guarda y la respuesta trae `avisoReunion`. Volver a `recibida` cancela el evento.
+* `POST /api/solicitudes/:id/cierre`: Cierra sin evaluación `{ motivo, comentario, cancelarReunion }` (**Analista y Evaluador**). Con `cancelarReunion: true` también cancela el evento del calendario.
+* Cada solicitud devuelve `enlaceReunion` (`''` si no hay) y `reunionEnCalendario` (la app creó un evento que puede cancelar).
 * `DELETE /api/solicitudes/:id/cierre`: Reabre en la etapa en que estaba (**Analista y Evaluador**).
 * `PATCH /api/solicitudes/:id`: Corrige los datos de la solicitud (cargo, familia, descriptor, ubicación, CECO, referencias, reclutador, fecha y aspectos a indagar); solo cambia los campos enviados (**Analista y Evaluador**).
 
@@ -188,11 +190,42 @@ npm run test:almacenamiento
 
 ---
 
+## 🎥 Reuniones online de la entrevista (Google Meet y Teams)
+
+Código en `src/reuniones/`: `google.js` (Google Calendar), `graph.js` (Teams vía Microsoft Graph) e `index.js`, que decide qué hacer al agendar, reagendar, devolver a "recibida" o cerrar sin evaluación. Guarda en la solicitud `enlace_reunion`, `evento_reunion_id` y `proveedor_reunion`.
+
+| Modalidad | Qué pasa al agendar |
+|---|---|
+| Google Meet | Se crea un evento en Google Calendar con enlace de Meet (zona `America/Santiago`, 60 min, **sin invitados**). Reagendar actualiza el mismo evento. |
+| Teams | La psicóloga pega el enlace de la reunión. Con `REUNIONES_TEAMS=graph`, la reunión se crea con Microsoft Graph. |
+| Presencial / Telefónica | Sin enlace; si había un evento de Meet, se cancela. |
+
+Si el proveedor no está configurado, no tiene permiso o no responde, **la entrevista se agenda igual** y la respuesta trae `avisoReunion`, que el Planner muestra.
+
+### Google Meet (Google Calendar)
+Usa el mismo cliente OAuth y la misma cuenta de Google que Google Drive, con el alcance `calendar.events` (crear, cambiar y cancelar eventos; no lee el resto del calendario). Para activarlo:
+1. En Google Cloud Console, en el mismo proyecto de Drive, habilite la **Google Calendar API** y agregue el alcance `.../auth/calendar.events` en la pantalla de consentimiento.
+2. Vuelva a autorizar la cuenta: `npm --prefix backend run drive:autorizar` (ahora pide Drive y Calendar; marque las dos casillas). Se reescribe `backend/.gdrive-token.json`.
+3. **Producción:** reemplace la variable `GDRIVE_REFRESH_TOKEN` del App Service por el `refresh_token` nuevo de ese archivo y reinicie la app. Sin este paso, en Azure Meet sigue mostrando el aviso "no autorizó Google Calendar" (lo demás funciona igual).
+
+Opcionales: `REUNIONES_CALENDARIO_ID` (otro calendario de la cuenta; por defecto `primary`) y `REUNIONES_GOOGLE=no` para desactivarlo.
+
+### Teams con Microsoft Graph (opcional, para la TI de AquaChile)
+Desactivado por defecto: sin él, la psicóloga pega el enlace de Teams. Para crear la reunión automáticamente, la TI debe:
+1. Registrar una aplicación en **Microsoft Entra ID** con un secreto de cliente (`GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET`; pueden ser los mismos de OneDrive/SharePoint).
+2. Otorgar el permiso de aplicación **`Calendars.ReadWrite`** de Microsoft Graph, con **consentimiento de un administrador** del tenant.
+3. Limitar ese permiso al buzón de Reclutamiento con una **directiva de acceso de aplicación** de Exchange Online (`New-ApplicationAccessPolicy -AccessRight RestrictAccess ...`), para que la app no pueda tocar otros calendarios.
+4. Definir `REUNIONES_TEAMS=graph` y `GRAPH_REUNIONES_USUARIO` (el buzón que organiza las reuniones, con licencia de Teams).
+
+La reunión se crea como evento del calendario de ese buzón con `isOnlineMeeting: true` y `onlineMeetingProvider: teamsForBusiness`; el enlace es `onlineMeeting.joinUrl`. Este proveedor está probado solo con respuestas simuladas (`npm run test:reuniones`).
+
+---
+
 ## ☁️ Despliegue en Azure App Service (Hito 3)
 
 Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api** (grupo `rg-aquachile-chile`, plan **B1 Linux**, Node 22, región East US 2: la única que permiten las políticas de la suscripción Azure for Students de Duoc). El frontend de GitHub Pages se compila con `VITE_API_URL` apuntando ahí (`.github/workflows/pages.yml`).
 
-**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`, `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY` (y `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` para grabar y transcribir la entrevista). Comando de inicio: `node src/servidor.js`.
+**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN` (con los alcances de Drive y Calendar), `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY` (y `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` para grabar y transcribir la entrevista). Comando de inicio: `node src/servidor.js`.
 
 Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
 

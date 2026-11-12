@@ -31,7 +31,7 @@ import ListaCerradas from '../componentes/planner/ListaCerradas';
 export default function Planner() {
   const navegar = useNavigate();
   const ubicacion = useLocation();
-  const { esEvaluador } = useAuth();
+  const { esEvaluador, soloLectura } = useAuth();
   const { solicitudes, candidatos, evaluaciones, moverEtapa, cerrarSolicitud, reabrirSolicitud } = useDatos();
   const [texto, setTexto] = useState('');
   const [solicitante, setSolicitante] = useState('');
@@ -80,13 +80,18 @@ export default function Planner() {
   const guardarAgenda = async (agenda) => {
     const { solicitud, reagendar } = ventana;
     setVentana(null);
-    if (!(await moverEtapa(solicitud.id, 'agendada', agenda))) return;
-    setAviso({
-      tipo: 'success',
-      texto: `${reagendar ? 'Entrevista reagendada' : 'Entrevista agendada'}: ${nombreDe(solicitud)}. ${textoEntrevista(
-        { ...solicitud, ...agenda },
-      )} (${agenda.modalidadEntrevista}).`,
-    });
+    const agendada = await moverEtapa(solicitud.id, 'agendada', agenda);
+    if (!agendada) return;
+    const texto = `${reagendar ? 'Entrevista reagendada' : 'Entrevista agendada'}: ${nombreDe(solicitud)}. ${textoEntrevista(
+      { ...solicitud, ...agenda },
+    )} (${agenda.modalidadEntrevista}).`;
+    const conMeet = agenda.modalidadEntrevista === 'Google Meet' && agendada.enlaceReunion;
+    // Si el calendario falló, la agenda quedó guardada igual: se avisa el motivo.
+    setAviso(
+      agendada.avisoReunion
+        ? { tipo: 'warning', texto: `${texto} ${agendada.avisoReunion}` }
+        : { tipo: 'success', texto: conMeet ? `${texto} Se creó el evento en Google Calendar con su enlace de Meet.` : texto },
+    );
   };
 
   const marcarRealizada = async (solicitud) => {
@@ -109,11 +114,14 @@ export default function Planner() {
   const cerrarSinEvaluacion = async (cierre) => {
     const solicitud = ventanaCierre;
     setVentanaCierre(null);
-    if (!(await cerrarSolicitud(solicitud.id, cierre))) return;
-    setAviso({
-      tipo: 'info',
-      texto: `Solicitud de ${nombreDe(solicitud)} cerrada sin evaluación (${cierre.motivo}). Queda en "Cerradas sin informe".`,
-    });
+    const cerrada = await cerrarSolicitud(solicitud.id, cierre);
+    if (!cerrada) return;
+    const texto = `Solicitud de ${nombreDe(solicitud)} cerrada sin evaluación (${cierre.motivo}). Queda en "Cerradas sin informe".`;
+    setAviso(
+      cerrada.avisoReunion
+        ? { tipo: 'warning', texto: `${texto} ${cerrada.avisoReunion}` }
+        : { tipo: 'info', texto: cierre.cancelarReunion ? `${texto} La reunión se canceló en el calendario.` : texto },
+    );
   };
 
   const reabrir = async (solicitud) => {
@@ -225,6 +233,7 @@ export default function Planner() {
                   etapa={etapa.id}
                   hoy={hoy}
                   editable={esEvaluador}
+                  soloLectura={soloLectura}
                   alAgendar={() => setVentana({ solicitud, reagendar: false })}
                   alReagendar={() => setVentana({ solicitud, reagendar: true })}
                   alMarcarRealizada={() => marcarRealizada(solicitud)}

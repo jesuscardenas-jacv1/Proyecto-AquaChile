@@ -1,16 +1,26 @@
 /**
- * Autoriza una vez la cuenta de Google donde se guardarán las carpetas (modo "oauth").
+ * Autoriza una vez la cuenta de Google de la app (modo "oauth"): Google Drive para las
+ * carpetas de documentos y Google Calendar para crear las entrevistas con enlace de Meet.
  * Ejecutar con: npm run drive:autorizar   (requiere GDRIVE_CLIENT_ID y GDRIVE_CLIENT_SECRET en .env)
  *
  * Abre un servidor local temporal, muestra el enlace de consentimiento de Google y guarda
  * el refresh token en backend/.gdrive-token.json (o en GDRIVE_TOKEN_ARCHIVO). Ese archivo es
  * una credencial: no se versiona y no se comparte.
+ *
+ * Alcances pedidos (los dos limitados a lo que crea la app):
+ *   - drive.file       → solo las carpetas y archivos que crea la app.
+ *   - calendar.events  → crear, cambiar y cancelar los eventos de las entrevistas.
+ * Si la cuenta se autorizó antes solo con Drive, vuelva a ejecutar este comando y, en el
+ * servidor, reemplace GDRIVE_REFRESH_TOKEN por el nuevo refresh token.
  */
 const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { ALCANCE_OAUTH, URL_TOKEN } = require('./drive');
+const { ALCANCE_CALENDAR } = require('../reuniones/google');
+
+const ALCANCES = [ALCANCE_OAUTH, ALCANCE_CALENDAR].join(' ');
 
 const clientId = process.env.GDRIVE_CLIENT_ID;
 const clientSecret = process.env.GDRIVE_CLIENT_SECRET;
@@ -32,7 +42,7 @@ const enlace = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchPara
   client_id: clientId,
   redirect_uri: redireccion,
   response_type: 'code',
-  scope: ALCANCE_OAUTH,
+  scope: ALCANCES,
   access_type: 'offline',
   prompt: 'consent',
   code_challenge: desafio,
@@ -79,9 +89,21 @@ const servidor = http.createServer(async (req, res) => {
     fs.writeFileSync(archivoToken, JSON.stringify({ refresh_token: datos.refresh_token, scope: datos.scope }, null, 2), {
       mode: 0o600,
     });
-    responder('Listo: Google Drive quedó autorizado. Ya puedes cerrar esta pestaña.');
+    const concedidos = (datos.scope || '').split(' ');
+    const conCalendar = concedidos.includes(ALCANCE_CALENDAR);
+    responder(
+      conCalendar
+        ? 'Listo: Google Drive y Google Calendar quedaron autorizados. Ya puedes cerrar esta pestaña.'
+        : 'Google Drive quedó autorizado, pero no Google Calendar. Vuelve a la terminal.',
+    );
     console.log(`✅ Google Drive autorizado. Token guardado en ${archivoToken}`);
+    if (conCalendar) {
+      console.log('✅ Google Calendar autorizado: las entrevistas con Google Meet crearán su evento y enlace.');
+    } else {
+      console.log('⚠️  No se concedió Google Calendar (casilla sin marcar): vuelva a ejecutar el comando si quiere Meet.');
+    }
     console.log('   Configure ALMACENAMIENTO=drive en backend/.env y reinicie el backend.');
+    console.log('   En Azure, reemplace la variable GDRIVE_REFRESH_TOKEN por el refresh_token de ese archivo.');
   } catch (error) {
     responder('No se pudo completar la autorización. Revisa la terminal.');
     console.error('❌', error.message);
@@ -92,7 +114,7 @@ const servidor = http.createServer(async (req, res) => {
 });
 
 servidor.listen(PUERTO, '127.0.0.1', () => {
-  console.log('Abra este enlace con la cuenta de Google donde se guardarán las carpetas:\n');
+  console.log('Abra este enlace con la cuenta de Google de la app (carpetas de Drive y calendario de entrevistas):\n');
   console.log(enlace);
   console.log('\nEsperando la autorización…');
 });

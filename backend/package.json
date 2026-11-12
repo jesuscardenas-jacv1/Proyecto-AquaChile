@@ -16,7 +16,8 @@
     "test:roles": "node --test src/roles.test.js",
     "test:integracion": "node --test src/integracion.test.js",
     "drive:autorizar": "node --env-file-if-exists=.env src/almacenamiento/autorizarDrive.js",
-    "test:ia": "node --test src/ia/ia.test.js"
+    "test:ia": "node --test src/ia/ia.test.js",
+    "test:reuniones": "node --test src/reuniones/reuniones.test.js"
   },
   "keywords": [
     "aquachile",

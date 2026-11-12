@@ -244,6 +244,18 @@ export function ProveedorDatos({
     return item;
   }, []);
 
+  /**
+   * Guarda la solicitud que devolvió el servidor y, si el calendario no se pudo actualizar,
+   * la entrega con `avisoReunion` (el aviso no se guarda en los datos).
+   */
+  const conAviso = useCallback(
+    ({ solicitud, avisoReunion }) => {
+      const guardada = guardarEn('solicitudes', solicitud);
+      return avisoReunion ? { ...guardada, avisoReunion } : guardada;
+    },
+    [guardarEn],
+  );
+
   /* ------------------------------- Candidatos ------------------------------ */
 
   const agregarCandidato = useCallback(
@@ -359,23 +371,31 @@ export function ProveedorDatos({
   const moverEtapa = useCallback(
     async (id, etapa, agenda = {}) => {
       if (conApi) {
-        return ejecutar(async () => guardarEn('solicitudes', await api.moverEtapa(id, etapa, agenda)));
+        return ejecutar(async () => conAviso(await api.moverEtapa(id, etapa, agenda)));
       }
-      return cambiarSolicitudLocal(id, (solicitud) => {
+      // Sin servidor no hay calendario: el enlace de Teams pegado se guarda; Meet queda sin enlace.
+      const sinMeet = agenda.modalidadEntrevista === 'Google Meet';
+      const movida = cambiarSolicitudLocal(id, (solicitud) => {
         const datosAgenda =
           etapa === 'recibida'
-            ? { fechaEntrevista: '', horaEntrevista: '', modalidadEntrevista: '' }
+            ? { fechaEntrevista: '', horaEntrevista: '', modalidadEntrevista: '', enlaceReunion: '' }
             : {
                 ...(agenda.fechaEntrevista ? { fechaEntrevista: agenda.fechaEntrevista } : {}),
                 ...(agenda.horaEntrevista ? { horaEntrevista: agenda.horaEntrevista } : {}),
                 ...(agenda.modalidadEntrevista ? { modalidadEntrevista: agenda.modalidadEntrevista } : {}),
+                ...(agenda.modalidadEntrevista
+                  ? { enlaceReunion: agenda.modalidadEntrevista === 'Teams' ? agenda.enlaceReunion?.trim() ?? solicitud.enlaceReunion ?? '' : '' }
+                  : {}),
               };
         const ahora = new Date().toISOString().replace('T', ' ').slice(0, 19);
         const cambioEtapa = solicitud.etapa !== etapa ? { etapaCambiadaEn: ahora } : {};
         return { ...solicitud, ...datosAgenda, ...cambioEtapa, etapa, estado: estadoDeEtapa(etapa) };
       });
+      return movida && sinMeet && etapa !== 'recibida'
+        ? { ...movida, avisoReunion: 'Sin conexión al servidor no se crea el enlace de Google Meet.' }
+        : movida;
     },
-    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal],
+    [conApi, api, ejecutar, conAviso, cambiarSolicitudLocal],
   );
 
   /**
@@ -383,9 +403,9 @@ export function ProveedorDatos({
    * motivo, la fecha y quién la cerró. Reabrir la devuelve a la etapa en que estaba.
    */
   const cerrarSolicitud = useCallback(
-    async (id, { motivo, comentario = '' }) => {
+    async (id, { motivo, comentario = '', cancelarReunion = false }) => {
       if (conApi) {
-        return ejecutar(async () => guardarEn('solicitudes', await api.cerrarSolicitud(id, { motivo, comentario })));
+        return ejecutar(async () => conAviso(await api.cerrarSolicitud(id, { motivo, comentario, cancelarReunion })));
       }
       return cambiarSolicitudLocal(id, (solicitud) => ({
         ...solicitud,
@@ -400,7 +420,7 @@ export function ProveedorDatos({
         },
       }));
     },
-    [conApi, api, ejecutar, guardarEn, cambiarSolicitudLocal, usuarioActual],
+    [conApi, api, ejecutar, conAviso, cambiarSolicitudLocal, usuarioActual],
   );
 
   const reabrirSolicitud = useCallback(
