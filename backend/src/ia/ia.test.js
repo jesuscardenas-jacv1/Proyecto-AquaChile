@@ -2,13 +2,17 @@
  * Pruebas del módulo de IA con un cliente simulado: no llaman a la API real ni tienen costo.
  * Ejecutar con: npm run test:ia
  */
-const { describe, it, afterEach } = require('node:test');
+const { describe, it, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const Anthropic = require('@anthropic-ai/sdk');
 const { establecerClienteIa, generarJson, iaDisponible } = require('./cliente');
 const { bloqueDocumento, descriptorDelCatalogo, textoDeTranscripcion } = require('./documentos');
 const { analizarCv, notasEntrevista } = require('./tareas');
 const { establecerTranscriptor, marcaDeTiempo, transcribirAudio, vozDisponible } = require('./voz');
+const { costoClaude, costoVoz } = require('./uso');
+
+// El registro de consumo escribe en la tabla uso_ia: debe existir.
+require('../bd/migrar').migrar();
 
 /** Cliente simulado: guarda la solicitud y responde lo que se le indique. */
 function clienteSimulado(respuesta) {
@@ -31,6 +35,8 @@ const pdf = { nombre: 'cv.pdf', contenido: Buffer.from('%PDF-1.4 cv') };
 
 describe('IA', () => {
   afterEach(() => establecerClienteIa(null));
+  // Las llamadas simuladas de estas pruebas no tienen usuario: se borran del registro de consumo.
+  after(() => require('../bd/conexion').prepare(`DELETE FROM uso_ia WHERE usuario = ''`).run());
 
   it('sin clave ni cliente la IA no está disponible', () => {
     const clave = process.env.ANTHROPIC_API_KEY;
@@ -197,5 +203,23 @@ describe('IA', () => {
     });
     assert.deepEqual(leerPauta('PAUTA\n\nTRANSCRIPCIÓN\n\nSolo texto.'), { transcripcion: 'Solo texto.', notas: null });
     assert.equal(leerPauta('sin formato'), null);
+  });
+  it('estima el costo de Claude por modelo, incluida la caché', () => {
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', entrada: 1_000_000, salida: 0 }), 4);
+    assert.equal(costoClaude({ modelo: 'claude-sonnet-5-5', entrada: 0, salida: 1_000_000 }), 10);
+    // Caché leída: 0,1× la entrada; escrita: 1,25×.
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', cacheLectura: 1_000_000 }), 0.4);
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', cacheEscritura: 1_000_000 }), 5);
+    assert.equal(costoClaude({ modelo: 'otro-modelo', entrada: 1_000_000 }), 4, 'sin precio conocido usa el de Opus');
+  });
+
+  it('la voz no tiene costo en el plan gratis y usa AZURE_SPEECH_USD_HORA en el pagado', () => {
+    const previo = process.env.AZURE_SPEECH_USD_HORA;
+    delete process.env.AZURE_SPEECH_USD_HORA;
+    assert.equal(costoVoz(3600), 0);
+    process.env.AZURE_SPEECH_USD_HORA = '1';
+    assert.equal(costoVoz(1800), 0.5);
+    if (previo === undefined) delete process.env.AZURE_SPEECH_USD_HORA;
+    else process.env.AZURE_SPEECH_USD_HORA = previo;
   });
 });

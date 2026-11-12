@@ -231,6 +231,27 @@ function migrar() {
       creado_en      TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  // Consumo de IA (tokens de Claude y audio de Azure Speech) para el panel del administrador.
+  // No se borra al restablecer los datos de demostración: es el registro de costos.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS uso_ia (
+      id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+      proveedor              TEXT    NOT NULL,
+      tarea                  TEXT    NOT NULL,
+      modelo                 TEXT    NOT NULL DEFAULT '',
+      usuario                TEXT    NOT NULL DEFAULT '',
+      rol                    TEXT    NOT NULL DEFAULT '',
+      tokens_entrada         INTEGER NOT NULL DEFAULT 0,
+      tokens_salida          INTEGER NOT NULL DEFAULT 0,
+      tokens_cache_escritura INTEGER NOT NULL DEFAULT 0,
+      tokens_cache_lectura   INTEGER NOT NULL DEFAULT 0,
+      segundos_audio         REAL    NOT NULL DEFAULT 0,
+      costo_usd              REAL    NOT NULL DEFAULT 0,
+      resultado              TEXT    NOT NULL DEFAULT 'ok',
+      creado_en              TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_uso_ia_fecha ON uso_ia (creado_en);
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

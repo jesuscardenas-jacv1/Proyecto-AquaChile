@@ -224,4 +224,7 @@ export const apiAdmin = {
   actualizarUsuario: async (id, datos) =>
     (await solicitar(`/admin/usuarios/${id}`, { metodo: 'PUT', cuerpo: datos })).usuario,
   eliminarUsuario: (id) => solicitar(`/admin/usuarios/${id}`, { metodo: 'DELETE' }),
+  /** Consumo de IA entre dos fechas YYYY-MM-DD (por defecto, el mes actual). */
+  usoIa: async ({ desde, hasta } = {}) =>
+    (await solicitar(`/admin/uso-ia?${new URLSearchParams({ ...(desde && { desde }), ...(hasta && { hasta }) })}`)).uso,
 };

@@ -127,6 +127,7 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 * `PUT /api/admin/usuarios/:id`: Edita un usuario; si viene `contrasena`, la cambia.
 * `DELETE /api/admin/usuarios/:id`: Elimina un usuario. No permite eliminarse a sí mismo, quitarse el rol de administrador ni dejar el sistema sin administrador.
 * `POST /api/admin/reiniciar`: Restablece los datos de demostración, incluidos los 4 usuarios de prueba originales.
+* `GET /api/admin/uso-ia?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`: Consumo de IA del período (por defecto, el mes actual): totales, tokens de Claude y minutos de Azure Speech, costo estimado en USD por día, ayuda, modelo y usuario, y las últimas 50 llamadas. El registro (`uso_ia`) no se borra al restablecer los datos de demostración.
 
 ### Ayudas de IA (`/api/ia`)
 Requieren `ANTHROPIC_API_KEY` en el servidor; sin ella, `estado` responde `disponible: false` y las demás `503`. Son sugerencias: no cambian ningún dato del proceso. Limitadas por IP (20 cada 10 minutos).

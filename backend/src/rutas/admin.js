@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { sembrar } = require('../bd/semilla');
+const { resumenUso } = require('../ia/uso');
 
 /** Herramientas del Administrador académico. */
 const router = express.Router();
@@ -155,6 +156,19 @@ router.post('/reiniciar', ...soloAdmin, async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * GET /api/admin/uso-ia?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+ * Consumo de IA (tokens de Claude, audio de Azure Speech y costo estimado). Por defecto, el mes actual.
+ */
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+router.get('/uso-ia', ...soloAdmin, (req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const desde = FECHA.test(req.query.desde ?? '') ? req.query.desde : `${hoy.slice(0, 7)}-01`;
+  const hasta = FECHA.test(req.query.hasta ?? '') ? req.query.hasta : hoy;
+  if (desde > hasta) return res.status(400).json({ error: 'La fecha "desde" debe ser anterior o igual a "hasta".' });
+  return res.json({ ok: true, uso: resumenUso({ desde, hasta }) });
 });
 
 module.exports = router;

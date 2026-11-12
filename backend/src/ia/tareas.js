@@ -96,6 +96,7 @@ No recomiendes contratar ni descartar: eso lo deciden las personas.`,
   });
 
   return generarJson({
+    tarea: 'analizarCv',
     sistema: `Ayudas al equipo de Reclutamiento y Selección de una empresa acuícola a revisar postulaciones.\n${REGLAS_COMUNES}`,
     contenido,
     esquema: ESQUEMA_ANALISIS,
@@ -106,6 +107,7 @@ No recomiendes contratar ni descartar: eso lo deciden las personas.`,
 /** Extrae los datos de contacto del CV para completar el formulario del candidato. */
 async function extraerDatosCv({ cv }) {
   return generarJson({
+    tarea: 'extraerDatosCv',
     sistema: `Extraes datos de contacto de un CV para completar un formulario.\n${REGLAS_COMUNES}`,
     contenido: [
       await bloqueDocumento(cv, 'CV'),
@@ -138,6 +140,7 @@ No menciones sueldo ni beneficios, ni requisitos de edad, género, apariencia u 
   });
 
   return generarJson({
+    tarea: 'redactarOferta',
     sistema: `Redactas ofertas de empleo para una empresa acuícola chilena.\n${REGLAS_COMUNES}`,
     contenido,
     esquema: ESQUEMA_OFERTA,
@@ -168,6 +171,7 @@ No inventes conductas ni datos que no estén en las notas.`,
   });
 
   return generarJson({
+    tarea: 'borradorEvaluacion',
     sistema: `Asistes a una psicóloga laboral a redactar el borrador de su evaluación por competencias. Ella revisa y decide todo.\n${REGLAS_COMUNES}`,
     contenido,
     esquema: ESQUEMA_BORRADOR,
@@ -183,6 +187,7 @@ No inventes conductas ni datos que no estén en las notas.`,
  */
 async function notasEntrevista({ transcripcion, solicitud }) {
   return generarJson({
+    tarea: 'notasEntrevista',
     sistema: `Asistes a una psicóloga laboral a ordenar sus notas de una entrevista por competencias. Ella revisa y decide todo.
 La transcripción es automática: puede tener errores de reconocimiento y los hablantes pueden venir como "Hablante 1", "Hablante 2" o con su nombre.
 ${REGLAS_COMUNES}`,

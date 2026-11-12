@@ -9,6 +9,7 @@
  * La IA solo sugiere: nada de lo que devuelve se guarda como decisión del proceso.
  */
 const Anthropic = require('@anthropic-ai/sdk');
+const { registrarClaude } = require('./uso');
 
 const Cliente = Anthropic.default ?? Anthropic;
 const MODELO_POR_DEFECTO = 'claude-opus-5-5';
@@ -66,9 +67,10 @@ function traducirError(error) {
 
 /**
  * Pide a Claude una respuesta que cumpla un esquema JSON y la devuelve ya interpretada.
- * @param {{ sistema: string, contenido: Array, esquema: object, esfuerzo?: string }} opciones
+ * Cada respuesta queda en el registro de consumo (uso_ia) con el nombre de la `tarea`.
+ * @param {{ tarea: string, sistema: string, contenido: Array, esquema: object, esfuerzo?: string }} opciones
  */
-async function generarJson({ sistema, contenido, esquema, esfuerzo = 'medium' }) {
+async function generarJson({ tarea = 'otra', sistema, contenido, esquema, esfuerzo = 'medium' }) {
   let respuesta;
   try {
     respuesta = await obtenerCliente().beta.messages.create({
@@ -83,6 +85,7 @@ async function generarJson({ sistema, contenido, esquema, esfuerzo = 'medium' })
   } catch (error) {
     throw traducirError(error);
   }
+  registrarClaude({ tarea, respuesta });
 
   if (respuesta.stop_reason === 'refusal') {
     throw new ErrorIa('La IA no puede procesar este contenido.', 422);
