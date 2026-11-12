@@ -41,6 +41,10 @@ function formatearSolicitud(s) {
     fechaEntrevista: s.fecha_entrevista ?? '',
     horaEntrevista: s.hora_entrevista ?? '',
     modalidadEntrevista: s.modalidad_entrevista ?? '',
+    // Enlace para unirse a la reunión online (Google Meet o Teams); '' si es presencial o telefónica.
+    enlaceReunion: s.enlace_reunion ?? '',
+    // Hay un evento creado por la app en Google Calendar o en Microsoft 365 (se puede cancelar).
+    reunionEnCalendario: Boolean(s.evento_reunion_id),
     // Solicitud cerrada sin evaluación: queda Finalizada con el motivo (null si no aplica).
     cierre: s.motivo_cierre
       ? {

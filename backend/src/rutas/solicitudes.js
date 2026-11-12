@@ -5,6 +5,7 @@ const { formatearCandidato, formatearEvaluacion, formatearSolicitud } = require(
 const { notificarPsicologa, notificarRol, resumenSolicitud } = require('../bd/notificaciones');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
+const { cancelarReunion, sincronizarReunion, validarEnlaceReunion } = require('../reuniones');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ const ESTADO_DE_ETAPA = {
   informe: 'Finalizada',
 };
 const FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** Motivos para cerrar una solicitud sin evaluación (mismo catálogo que el frontend). */
 const MOTIVOS_CIERRE = [
   'No se presentó a la entrevista',
@@ -326,83 +328,150 @@ router.patch('/:id', autenticar, requerirRol('analista', 'evaluador'), (req, res
 /**
  * PATCH /api/solicitudes/:id/etapa
  * Mueve la solicitud en el Planner (evaluador) y sincroniza su estado oficial.
- * Volver a "recibida" deja la entrevista nuevamente por coordinar.
+ * Volver a "recibida" deja la entrevista nuevamente por coordinar (y cancela su evento).
+ *
+ * Reunión online: con la modalidad "Google Meet" se crea o actualiza el evento en Google
+ * Calendar con su enlace de Meet; con "Teams" se acepta `enlaceReunion` pegado a mano (o se
+ * crea con Microsoft Graph si REUNIONES_TEAMS=graph). Si el calendario falla, la agenda se
+ * guarda igual y la respuesta trae `avisoReunion`.
  */
-router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), (req, res) => {
-  const id = Number(req.params.id);
-  const actual = obtener(id);
-  if (!actual) {
-    return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
-  }
-  if (actual.motivo_cierre) {
-    return res.status(409).json({ error: 'La solicitud se cerró sin evaluación: reábrala para moverla en el Planner.' });
-  }
+router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const actual = obtener(id);
+    if (!actual) {
+      return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
+    }
+    if (actual.motivo_cierre) {
+      return res.status(409).json({ error: 'La solicitud se cerró sin evaluación: reábrala para moverla en el Planner.' });
+    }
 
-  const { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista } = req.body;
-  if (!ESTADO_DE_ETAPA[etapa]) {
-    return res.status(400).json({
-      error: `Etapa inválida. Debe ser una de: ${Object.keys(ESTADO_DE_ETAPA).join(', ')}.`,
+    const { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista, enlaceReunion } = req.body;
+    if (!ESTADO_DE_ETAPA[etapa]) {
+      return res.status(400).json({
+        error: `Etapa inválida. Debe ser una de: ${Object.keys(ESTADO_DE_ETAPA).join(', ')}.`,
+      });
+    }
+    if (fechaEntrevista && !FECHA_ISO.test(fechaEntrevista)) {
+      return res.status(400).json({ error: 'La fecha de la entrevista debe tener el formato yyyy-mm-dd.' });
+    }
+    if (horaEntrevista && !HORA.test(horaEntrevista)) {
+      return res.status(400).json({ error: 'La hora de la entrevista debe tener el formato HH:MM.' });
+    }
+    // Enlace pegado a mano (Teams): '' lo borra; si viene, debe ser https:// de Meet o de Teams.
+    let enlacePegado;
+    if (enlaceReunion !== undefined && enlaceReunion !== null) {
+      enlacePegado = texto(enlaceReunion);
+      if (enlacePegado && !(enlacePegado = validarEnlaceReunion(enlacePegado))) {
+        return res.status(400).json({
+          error: 'El enlace de la reunión debe ser una dirección https:// de Google Meet o de Microsoft Teams.',
+        });
+      }
+    }
+
+    const agenda =
+      etapa === 'recibida'
+        ? { fecha: '', hora: '', modalidad: '' }
+        : {
+            fecha: texto(fechaEntrevista) || actual.fecha_entrevista,
+            hora: texto(horaEntrevista) || actual.hora_entrevista,
+            modalidad: texto(modalidadEntrevista) || actual.modalidad_entrevista,
+          };
+    const agendando =
+      etapa !== 'recibida' &&
+      Boolean(fechaEntrevista || horaEntrevista || modalidadEntrevista || enlacePegado !== undefined) &&
+      Boolean(agenda.fecha && agenda.hora);
+
+    const nombre = db.prepare('SELECT nombre FROM candidatos WHERE id = ?').get(actual.candidato_id)?.nombre;
+    const reunion = await sincronizarReunion({
+      actual,
+      etapa,
+      agenda,
+      agendando,
+      enlacePegado,
+      titulo: `Entrevista psicolaboral: ${nombre ?? 'candidato'} · ${actual.cargo}`,
+      descripcion: `Solicitud ${claveCarpeta(id)} · ${actual.cargo}. Creada desde el Planner de Gestión Psicolaboral (prototipo académico).`,
     });
+
+    // La fecha de cambio de etapa solo se renueva cuando la etapa realmente cambia.
+    db.prepare(
+      `UPDATE solicitudes
+       SET etapa = ?, estado = ?, fecha_entrevista = ?, hora_entrevista = ?, modalidad_entrevista = ?,
+           enlace_reunion = ?, evento_reunion_id = ?, proveedor_reunion = ?,
+           etapa_cambiada_en = CASE WHEN etapa = ? THEN etapa_cambiada_en ELSE datetime('now') END,
+           actualizado_en = datetime('now')
+       WHERE id = ?`,
+    ).run(
+      etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad,
+      reunion.enlace, reunion.eventoId, reunion.proveedor, etapa, id,
+    );
+
+    res.json({
+      ok: true,
+      mensaje: 'Etapa actualizada.',
+      solicitud: formatearSolicitud(obtener(id)),
+      avisoReunion: reunion.aviso,
+    });
+  } catch (error) {
+    next(error);
   }
-  if (fechaEntrevista && !FECHA_ISO.test(fechaEntrevista)) {
-    return res.status(400).json({ error: 'La fecha de la entrevista debe tener el formato yyyy-mm-dd.' });
-  }
-
-  const agenda =
-    etapa === 'recibida'
-      ? { fecha: '', hora: '', modalidad: '' }
-      : {
-          fecha: texto(fechaEntrevista) || actual.fecha_entrevista,
-          hora: texto(horaEntrevista) || actual.hora_entrevista,
-          modalidad: texto(modalidadEntrevista) || actual.modalidad_entrevista,
-        };
-
-  // La fecha de cambio de etapa solo se renueva cuando la etapa realmente cambia.
-  db.prepare(
-    `UPDATE solicitudes
-     SET etapa = ?, estado = ?, fecha_entrevista = ?, hora_entrevista = ?, modalidad_entrevista = ?,
-         etapa_cambiada_en = CASE WHEN etapa = ? THEN etapa_cambiada_en ELSE datetime('now') END,
-         actualizado_en = datetime('now')
-     WHERE id = ?`,
-  ).run(etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad, etapa, id);
-
-  res.json({ ok: true, mensaje: 'Etapa actualizada.', solicitud: formatearSolicitud(obtener(id)) });
 });
 
 /**
  * POST /api/solicitudes/:id/cierre
  * Cierra la solicitud sin evaluación: { motivo, comentario }. Queda Finalizada con el
  * motivo, la fecha y quién la cerró. Solo antes de registrar la evaluación.
+ * Con `cancelarReunion: true` también se cancela el evento de Google Calendar o de Teams.
  */
-router.post('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), (req, res) => {
-  const id = Number(req.params.id);
-  const actual = obtener(id);
-  if (!actual) return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
+router.post('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const actual = obtener(id);
+    if (!actual) return res.status(404).json({ error: `Solicitud #${id} no encontrada.` });
 
-  const motivo = texto(req.body?.motivo);
-  const comentario = texto(req.body?.comentario).slice(0, 500);
-  if (!MOTIVOS_CIERRE.includes(motivo)) {
-    return res.status(400).json({ error: `Motivo inválido. Debe ser uno de: ${MOTIVOS_CIERRE.join(', ')}.` });
-  }
-  if (motivo === 'Otro' && !comentario) {
-    return res.status(400).json({ error: 'Explique el motivo en el comentario.' });
-  }
-  if (actual.motivo_cierre) return res.status(409).json({ error: 'La solicitud ya está cerrada.' });
-  if (actual.estado === 'Finalizada' || db.prepare('SELECT id FROM evaluaciones WHERE solicitud_id = ?').get(id)) {
-    return res.status(409).json({ error: 'La solicitud ya tiene evaluación: no se puede cerrar sin evaluación.' });
-  }
+    const motivo = texto(req.body?.motivo);
+    const comentario = texto(req.body?.comentario).slice(0, 500);
+    if (!MOTIVOS_CIERRE.includes(motivo)) {
+      return res.status(400).json({ error: `Motivo inválido. Debe ser uno de: ${MOTIVOS_CIERRE.join(', ')}.` });
+    }
+    if (motivo === 'Otro' && !comentario) {
+      return res.status(400).json({ error: 'Explique el motivo en el comentario.' });
+    }
+    if (actual.motivo_cierre) return res.status(409).json({ error: 'La solicitud ya está cerrada.' });
+    if (actual.estado === 'Finalizada' || db.prepare('SELECT id FROM evaluaciones WHERE solicitud_id = ?').get(id)) {
+      return res.status(409).json({ error: 'La solicitud ya tiene evaluación: no se puede cerrar sin evaluación.' });
+    }
 
-  // Se guarda la etapa del Planner en que estaba (deducida del estado si no hay), para reabrirla ahí.
-  const etapa =
-    ESTADO_DE_ETAPA[actual.etapa] === actual.estado ? actual.etapa : actual.estado === 'En proceso' ? 'agendada' : 'recibida';
-  db.prepare(
-    `UPDATE solicitudes
-     SET estado = 'Finalizada', etapa = ?, motivo_cierre = ?, comentario_cierre = ?, fecha_cierre = ?, cerrada_por = ?,
-         actualizado_en = datetime('now')
-     WHERE id = ?`,
-  ).run(etapa, motivo, comentario, new Date().toISOString().slice(0, 10), req.usuario.nombre ?? '', id);
+    // Se guarda la etapa del Planner en que estaba (deducida del estado si no hay), para reabrirla ahí.
+    const etapa =
+      ESTADO_DE_ETAPA[actual.etapa] === actual.estado ? actual.etapa : actual.estado === 'En proceso' ? 'agendada' : 'recibida';
+    db.prepare(
+      `UPDATE solicitudes
+       SET estado = 'Finalizada', etapa = ?, motivo_cierre = ?, comentario_cierre = ?, fecha_cierre = ?, cerrada_por = ?,
+           actualizado_en = datetime('now')
+       WHERE id = ?`,
+    ).run(etapa, motivo, comentario, new Date().toISOString().slice(0, 10), req.usuario.nombre ?? '', id);
 
-  res.json({ ok: true, mensaje: 'Solicitud cerrada sin evaluación.', solicitud: formatearSolicitud(obtener(id)) });
+    // Cancelar la reunión es opcional: la entrevista puede reabrirse con el mismo enlace.
+    let avisoReunion = null;
+    if (req.body?.cancelarReunion === true && actual.evento_reunion_id) {
+      avisoReunion = await cancelarReunion(actual);
+      if (!avisoReunion) {
+        db.prepare(
+          "UPDATE solicitudes SET enlace_reunion = '', evento_reunion_id = '', proveedor_reunion = '' WHERE id = ?",
+        ).run(id);
+      }
+    }
+
+    res.json({
+      ok: true,
+      mensaje: 'Solicitud cerrada sin evaluación.',
+      solicitud: formatearSolicitud(obtener(id)),
+      avisoReunion,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**

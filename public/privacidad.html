@@ -63,7 +63,17 @@
         de la cuenta autorizada, no comparte esos archivos con terceros y no los usa para ningún otro fin.
       </p>
 
-      <h2>4. Ayudas de inteligencia artificial</h2>
+      <h2>4. Uso de Google Calendar</h2>
+      <p>
+        Cuando la psicóloga agenda una entrevista con la modalidad Google Meet, el servidor usa la API de Google
+        Calendar con el permiso <code>calendar.events</code> para crear el evento de la entrevista en el calendario de
+        la cuenta autorizada, con su enlace de Google Meet. El evento lleva el nombre de prueba de la persona
+        candidata, el cargo, la fecha y la hora, y no incluye invitados. Al reagendar se actualiza ese mismo evento y,
+        si la solicitud se cierra o vuelve a "por coordinar", se cancela. La aplicación no lee ni modifica otros
+        eventos del calendario.
+      </p>
+
+      <h2>5. Ayudas de inteligencia artificial</h2>
       <p>
         Si el servidor tiene la IA activada, el CV del postulante, el descriptor del cargo y los datos de una oferta se
         envían a la API de Claude, de Anthropic, para obtener un análisis del CV, completar formularios o redactar una
@@ -72,21 +82,21 @@
         análisis del CV se guarda solo el resultado; los archivos no se guardan en otro lugar.
       </p>
 
-      <h2>5. Conservación y eliminación</h2>
+      <h2>6. Conservación y eliminación</h2>
       <p>
         Los datos de demostración pueden restablecerse en cualquier momento desde la administración de la aplicación.
-        La autorización de Google Drive puede revocarse desde
+        La autorización de Google Drive y Google Calendar puede revocarse desde
         <a href="https://myaccount.google.com/permissions" rel="noopener">la configuración de permisos de la cuenta de Google</a>.
       </p>
 
-      <h2>5. Seguridad</h2>
+      <h2>7. Seguridad</h2>
       <p>
         El acceso requiere inicio de sesión con roles (analista, psicóloga, jefatura y administrador). Las notas
         clínicas y la pauta de entrevista solo son visibles para el perfil de psicóloga. La comunicación con el
         servidor usa HTTPS.
       </p>
 
-      <h2>6. Contacto</h2>
+      <h2>8. Contacto</h2>
       <p>
         Consultas sobre este proyecto académico: a través del
         <a href="https://github.com/jesuscardenas-jacv1/Proyecto-AquaChile" rel="noopener">repositorio del proyecto</a>.

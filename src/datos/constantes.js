@@ -84,7 +84,11 @@ export const ETAPAS_PLANNER = [
   { id: 'informe', titulo: 'Informe enviado', estado: 'Finalizada', icono: 'bi-send-check' },
 ];
 
-export const MODALIDADES_ENTREVISTA = ['Teams', 'Presencial', 'Telefónica'];
+/**
+ * Modalidades de la entrevista. Con "Google Meet" el backend crea el evento en Google Calendar
+ * con su enlace; con "Teams" la psicóloga pega el enlace de la reunión.
+ */
+export const MODALIDADES_ENTREVISTA = ['Teams', 'Google Meet', 'Presencial', 'Telefónica'];
 
 /**
  * Motivos para cerrar una solicitud sin evaluación (mismo catálogo que el backend).

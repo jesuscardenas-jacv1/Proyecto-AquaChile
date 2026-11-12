@@ -99,6 +99,11 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   (el resultado solo se sugiere; lo marca ella y las notas no se guardan). Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
   salida con esquema JSON). Solo con `ANTHROPIC_API_KEY`; sin clave la app oculta estas opciones. La IA sugiere y no
   decide: sin puntajes ni recomendaciones de descarte. Las pruebas usan un cliente simulado (`establecerClienteIa`).
+- **Reuniones online** (`backend/src/reuniones/`): con la modalidad "Google Meet" el backend crea o actualiza un evento
+  en Google Calendar con enlace de Meet (misma cuenta OAuth que Drive, alcance `calendar.events`, sin invitados); con
+  "Teams" la psicóloga pega el enlace (proveedor `graph` opcional con `REUNIONES_TEAMS=graph`). Si el calendario falla,
+  la agenda se guarda igual con `avisoReunion`. Tras agregar el alcance de Calendar hay que volver a correr
+  `npm --prefix backend run drive:autorizar` y actualizar `GDRIVE_REFRESH_TOKEN` en Azure.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).
@@ -124,6 +129,7 @@ npm --prefix backend run test:almacenamiento   # pruebas backend (node:test)
 npm --prefix backend run test:auth             # clave de sesiones (JWT_SECRETO)
 npm --prefix backend run test:roles            # permisos de los 4 roles (BD sembrada)
 npm --prefix backend run test:integracion      # API usada por el frontend integrado (Hito 2)
+npm --prefix backend run test:reuniones        # Google Calendar (Meet) y Teams con respuestas simuladas
 npm --prefix backend run test:ia               # ayudas de IA con un cliente simulado
 ```
 

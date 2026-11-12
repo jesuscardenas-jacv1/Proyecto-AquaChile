@@ -175,10 +175,22 @@ export const apiDatos = {
   /** Corrige los datos de la solicitud (cargo, familia, ubicación, CECO, etc.). */
   editarSolicitud: async (id, cambios) =>
     (await solicitar(`/solicitudes/${id}`, { metodo: 'PATCH', cuerpo: cambios })).solicitud,
-  moverEtapa: async (id, etapa, agenda = {}) =>
-    (await solicitar(`/solicitudes/${id}/etapa`, { metodo: 'PATCH', cuerpo: { etapa, ...agenda } })).solicitud,
-  cerrarSolicitud: async (id, cierre) =>
-    (await solicitar(`/solicitudes/${id}/cierre`, { metodo: 'POST', cuerpo: cierre })).solicitud,
+  /** Devuelve la solicitud y, si el calendario no se pudo actualizar, `avisoReunion`. */
+  moverEtapa: async (id, etapa, agenda = {}) => {
+    const { solicitud, avisoReunion = null } = await solicitar(`/solicitudes/${id}/etapa`, {
+      metodo: 'PATCH',
+      cuerpo: { etapa, ...agenda },
+    });
+    return { solicitud, avisoReunion };
+  },
+  /** Cierre sin evaluación; con `cancelarReunion` también cancela el evento del calendario. */
+  cerrarSolicitud: async (id, cierre) => {
+    const { solicitud, avisoReunion = null } = await solicitar(`/solicitudes/${id}/cierre`, {
+      metodo: 'POST',
+      cuerpo: cierre,
+    });
+    return { solicitud, avisoReunion };
+  },
   reabrirSolicitud: async (id) => (await solicitar(`/solicitudes/${id}/cierre`, { metodo: 'DELETE' })).solicitud,
 
   /** Crea la evaluación o, si la solicitud ya tiene una, la actualiza. */

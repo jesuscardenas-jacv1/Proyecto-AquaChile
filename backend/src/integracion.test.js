@@ -15,6 +15,7 @@ const { JWT_SECRETO } = require('./middlewares/auth');
 const { establecerAlmacenamiento } = require('./almacenamiento');
 const { AlmacenamientoLocal } = require('./almacenamiento/local');
 const { establecerClienteIa } = require('./ia/cliente');
+const { establecerReuniones } = require('./reuniones');
 
 describe('API integrada (Hito 2)', () => {
   let servidor;
@@ -37,6 +38,8 @@ describe('API integrada (Hito 2)', () => {
     // Las carpetas de documentos se crean en una carpeta temporal, no en backend/documentos.
     raizDocumentos = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-integracion-'));
     establecerAlmacenamiento(new AlmacenamientoLocal({ raiz: raizDocumentos }));
+    // Nunca se llama al Google Calendar real: sin proveedor salvo en las pruebas de reuniones.
+    establecerReuniones({ motivos: { google: 'Google Meet no está configurado en las pruebas.' } });
     servidor = app.listen(0);
     base = `http://localhost:${servidor.address().port}/api`;
   });
@@ -45,6 +48,7 @@ describe('API integrada (Hito 2)', () => {
     await pedir('/admin/reiniciar', { rol: 'admin', metodo: 'POST' });
     servidor.close();
     establecerAlmacenamiento(null);
+    establecerReuniones(null);
     await fs.rm(raizDocumentos, { recursive: true, force: true });
   });
 
@@ -412,6 +416,83 @@ describe('API integrada (Hito 2)', () => {
 
     assert.equal((await pedir('/solicitudes/101/etapa', { rol: 'analista', metodo: 'PATCH', cuerpo: { etapa: 'agendada' } })).status, 403);
     assert.equal((await pedir('/solicitudes/101/etapa', { rol: 'evaluador', metodo: 'PATCH', cuerpo: { etapa: 'otra' } })).status, 400);
+  });
+
+  describe('reuniones online (Google Calendar simulado)', () => {
+    const registro = { guardados: [], cancelados: [] };
+    const google = {
+      proveedor: 'google',
+      guardarEvento: async (datos) => {
+        registro.guardados.push(datos);
+        return { eventoId: datos.eventoId ?? 'evento-simulado', enlace: 'https://meet.google.com/abc-defg-hij' };
+      },
+      cancelarEvento: async (id) => registro.cancelados.push(id),
+    };
+    before(() => establecerReuniones({ google }));
+    after(() => establecerReuniones({ motivos: { google: 'Google Meet no está configurado en las pruebas.' } }));
+    const agendar = (cuerpo, rol = 'evaluador') =>
+      pedir('/solicitudes/101/etapa', {
+        rol,
+        metodo: 'PATCH',
+        cuerpo: { etapa: 'agendada', fechaEntrevista: '2026-12-03', horaEntrevista: '11:00', ...cuerpo },
+      });
+
+    it('con Google Meet crea el evento y devuelve enlaceReunion; al reagendar lo actualiza', async () => {
+      const creada = await agendar({ modalidadEntrevista: 'Google Meet' });
+      assert.equal(creada.status, 200);
+      assert.equal(creada.datos.solicitud.enlaceReunion, 'https://meet.google.com/abc-defg-hij');
+      assert.equal(creada.datos.solicitud.reunionEnCalendario, true);
+      assert.equal(creada.datos.avisoReunion, null);
+      assert.match(registro.guardados[0].titulo, /^Entrevista psicolaboral: /);
+      assert.deepEqual([registro.guardados[0].fecha, registro.guardados[0].hora], ['2026-12-03', '11:00']);
+
+      await agendar({ modalidadEntrevista: 'Google Meet', horaEntrevista: '12:30' });
+      assert.equal(registro.guardados[1].eventoId, 'evento-simulado');
+
+      // El detalle (que ve también la jefatura) trae el enlace.
+      const detalle = await pedir('/solicitudes/101', { rol: 'jefatura' });
+      assert.equal(detalle.datos.solicitud.enlaceReunion, 'https://meet.google.com/abc-defg-hij');
+    });
+
+    it('con Teams acepta el enlace pegado y rechaza enlaces que no son de Meet o Teams', async () => {
+      const malo = await agendar({ modalidadEntrevista: 'Teams', enlaceReunion: 'http://teams.microsoft.com/l/1' });
+      assert.equal(malo.status, 400);
+      assert.match(malo.datos.error, /https:\/\//);
+      assert.equal((await agendar({ modalidadEntrevista: 'Teams', enlaceReunion: 'https://zoom.us/j/1' })).status, 400);
+
+      const teams = await agendar({ modalidadEntrevista: 'Teams', enlaceReunion: 'https://teams.microsoft.com/l/meetup-join/1' });
+      assert.equal(teams.status, 200);
+      assert.equal(teams.datos.solicitud.enlaceReunion, 'https://teams.microsoft.com/l/meetup-join/1');
+      assert.equal(teams.datos.solicitud.reunionEnCalendario, false);
+      // Al pasar de Meet a Teams se cancela el evento de Google.
+      assert.deepEqual(registro.cancelados, ['evento-simulado']);
+    });
+
+    it('sin permiso de Calendar la agenda se guarda igual con un aviso', async () => {
+      establecerReuniones({ motivos: { google: 'Falta autorizar Google Calendar.' } });
+      const r = await agendar({ modalidadEntrevista: 'Google Meet' });
+      establecerReuniones({ google });
+      assert.equal(r.status, 200);
+      assert.equal(r.datos.solicitud.etapa, 'agendada');
+      assert.equal(r.datos.solicitud.enlaceReunion, '');
+      assert.match(r.datos.avisoReunion, /Falta autorizar Google Calendar/);
+    });
+
+    it('al cerrar sin evaluación se puede cancelar el evento', async () => {
+      await agendar({ modalidadEntrevista: 'Google Meet' });
+      const cierre = await pedir('/solicitudes/101/cierre', {
+        rol: 'evaluador',
+        metodo: 'POST',
+        cuerpo: { motivo: 'Desistió del proceso', cancelarReunion: true },
+      });
+      assert.equal(cierre.status, 200);
+      assert.equal(cierre.datos.solicitud.enlaceReunion, '');
+      assert.equal(registro.cancelados.at(-1), 'evento-simulado');
+
+      await pedir('/solicitudes/101/cierre', { rol: 'evaluador', metodo: 'DELETE' });
+      const recibida = await pedir('/solicitudes/101/etapa', { rol: 'evaluador', metodo: 'PATCH', cuerpo: { etapa: 'recibida' } });
+      assert.equal(recibida.datos.solicitud.enlaceReunion, '');
+    });
   });
 
   it('filtra solicitudes por fecha y por psicóloga responsable (RF07)', async () => {

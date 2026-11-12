@@ -44,6 +44,27 @@ describe('PanelGestion', () => {
     expect(screen.getByText(/entrevista agendada · entrevista coordinada para 9\/09 a las 12:30/i)).toBeInTheDocument();
   });
 
+  it('con una entrevista online agendada muestra "Unirse a la reunión"; la jefatura solo ve la modalidad', () => {
+    const agendada = {
+      ...solicitud,
+      estado: 'En proceso',
+      etapa: 'agendada',
+      fechaEntrevista: '2026-12-09',
+      horaEntrevista: '12:30',
+      modalidadEntrevista: 'Teams',
+      enlaceReunion: 'https://teams.microsoft.com/l/meetup-join/1',
+    };
+    const { unmount } = renderPanel({ solicitud: agendada });
+    expect(screen.getByRole('link', { name: /unirse a la reunión/i })).toHaveAttribute(
+      'href',
+      'https://teams.microsoft.com/l/meetup-join/1',
+    );
+    unmount();
+    renderPanel({ solicitud: agendada, soloLectura: true });
+    expect(screen.queryByRole('link', { name: /unirse/i })).toBeNull();
+    expect(screen.getByText('Reunión online por Teams')).toBeInTheDocument();
+  });
+
   it('indica cuando la solicitud se cerró sin informe', () => {
     renderPanel({ solicitud: { ...solicitud, estado: 'Finalizada', cierre: { motivo: 'Desistió del proceso' } } });
     expect(screen.getByText('Cerrada sin informe')).toBeInTheDocument();

@@ -4,6 +4,7 @@ import {
   accionesDisponibles,
   agruparPorEtapa,
   diasEntre,
+  enlaceReunionValido,
   estadoDeEtapa,
   etapaAnterior,
   etapaDeSolicitud,
@@ -177,6 +178,12 @@ describe('validarAgenda', () => {
     );
   });
 
+  it('acepta Google Meet y valida el enlace de Teams pegado', () => {
+    expect(validarAgenda({ ...valida, modalidadEntrevista: 'Google Meet' }, solicitud)).toEqual({});
+    expect(validarAgenda({ ...valida, enlaceReunion: 'https://teams.microsoft.com/l/1' }, solicitud)).toEqual({});
+    expect(validarAgenda({ ...valida, enlaceReunion: 'https://zoom.us/j/1' }, solicitud)).toHaveProperty('enlaceReunion');
+  });
+
   it('rechaza una modalidad fuera del catálogo', () => {
     expect(validarAgenda({ ...valida, modalidadEntrevista: 'Zoom' }, solicitud)).toHaveProperty(
       'modalidadEntrevista',
@@ -244,5 +251,18 @@ describe('validarCierre', () => {
     expect(validarCierre({ motivo: 'Otro', comentario: '  ' })).toEqual({ comentario: 'Explique el motivo en el comentario.' });
     expect(validarCierre({ motivo: 'Desistió del proceso' })).toEqual({});
     expect(validarCierre({ motivo: 'Otro', comentario: 'x'.repeat(501) }).comentario).toMatch(/500/);
+  });
+});
+
+describe('enlaceReunionValido', () => {
+  it('acepta solo enlaces https de Google Meet o Microsoft Teams', () => {
+    expect(enlaceReunionValido(' https://meet.google.com/abc-defg-hij ')).toBe('https://meet.google.com/abc-defg-hij');
+    expect(enlaceReunionValido('https://teams.microsoft.com/l/meetup-join/1')).toBeTruthy();
+    expect(enlaceReunionValido('https://teams.live.com/meet/1')).toBeTruthy();
+    expect(enlaceReunionValido('http://meet.google.com/abc')).toBeNull();
+    expect(enlaceReunionValido('https://meet.google.com.falso.cl/abc')).toBeNull();
+    expect(enlaceReunionValido('https://usuario:clave@meet.google.com/abc')).toBeNull();
+    expect(enlaceReunionValido('no es un enlace')).toBeNull();
+    expect(enlaceReunionValido(undefined)).toBeNull();
   });
 });

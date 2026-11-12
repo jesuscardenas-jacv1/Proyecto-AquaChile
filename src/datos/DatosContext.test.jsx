@@ -187,6 +187,30 @@ describe('DatosContext', () => {
     });
   });
 
+  it('sin servidor guarda el enlace de Teams pegado y avisa que Meet necesita el servidor', async () => {
+    const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
+    const agenda = { fechaEntrevista: '2026-12-05', horaEntrevista: '10:00' };
+
+    let movida;
+    await act(async () => {
+      movida = await result.current.moverEtapa(3, 'agendada', {
+        ...agenda,
+        modalidadEntrevista: 'Teams',
+        enlaceReunion: ' https://teams.microsoft.com/l/1 ',
+      });
+    });
+    expect(movida.avisoReunion).toBeUndefined();
+    expect(result.current.obtenerSolicitud(3).enlaceReunion).toBe('https://teams.microsoft.com/l/1');
+
+    await act(async () => {
+      movida = await result.current.moverEtapa(3, 'agendada', { ...agenda, modalidadEntrevista: 'Google Meet' });
+    });
+    expect(movida.avisoReunion).toMatch(/google meet/i);
+    expect(result.current.obtenerSolicitud(3).enlaceReunion).toBe('');
+    // El aviso no se guarda en los datos.
+    expect(result.current.obtenerSolicitud(3)).not.toHaveProperty('avisoReunion');
+  });
+
   it('crea las solicitudes nuevas en la etapa Evaluación Recibida', async () => {
     const { result } = renderHook(() => useDatos(), { wrapper: crearWrapper(structuredClone(datosDemo)) });
 

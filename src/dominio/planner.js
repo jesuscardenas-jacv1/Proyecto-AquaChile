@@ -1,4 +1,24 @@
 import { ETAPAS_PLANNER, MODALIDADES_ENTREVISTA, MOTIVOS_CIERRE } from '../datos/constantes';
+
+/** Dominios de reunión aceptados (mismo criterio que el backend). */
+const DOMINIOS_REUNION = ['meet.google.com', 'teams.microsoft.com', 'teams.live.com'];
+
+/**
+ * Devuelve el enlace si es una dirección https:// de Google Meet o de Microsoft Teams; si no, null.
+ * Se usa al validar el enlace pegado y antes de mostrar el botón "Unirse a la reunión".
+ */
+export function enlaceReunionValido(valor) {
+  if (typeof valor !== 'string' || !valor.trim()) return null;
+  let url;
+  try {
+    url = new URL(valor.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) return null;
+  const host = url.hostname.toLowerCase();
+  return DOMINIOS_REUNION.some((dominio) => host === dominio || host.endsWith(`.${dominio}`)) ? url.toString() : null;
+}
 import { normalizar as normalizarTexto } from './texto';
 
 /**
@@ -162,6 +182,12 @@ export function validarAgenda(agenda = {}, solicitud = {}) {
 
   if (!MODALIDADES_ENTREVISTA.includes(agenda.modalidadEntrevista)) {
     errores.modalidadEntrevista = 'Debe seleccionar la modalidad de la entrevista.';
+  }
+
+  // El enlace de Teams es opcional, pero si se pega debe ser de Teams o Meet y por https.
+  const enlace = agenda.enlaceReunion?.trim?.() ?? '';
+  if (agenda.modalidadEntrevista === 'Teams' && enlace && !enlaceReunionValido(enlace)) {
+    errores.enlaceReunion = 'Pegue el enlace https:// de la reunión de Teams (teams.microsoft.com).';
   }
 
   return errores;

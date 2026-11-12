@@ -9,7 +9,8 @@ const SELECTOR_ENFOCABLES =
 
 /**
  * Ventana emergente para agendar o reagendar la entrevista psicolaboral de una solicitud.
- * Valida fecha, hora y modalidad antes de guardar. Se cierra con Cancelar, Escape o
+ * Valida fecha, hora y modalidad antes de guardar. Con Google Meet el enlace lo crea el
+ * servidor en Google Calendar; con Teams la psicóloga pega el enlace de la reunión. Se cierra con Cancelar, Escape o
  * un clic fuera del contenido, igual que la ventana de detalle del dashboard.
  */
 export default function VentanaAgenda({ solicitud, candidato, reagendar = false, alGuardar, alCerrar }) {
@@ -17,6 +18,7 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
     fechaEntrevista: solicitud.fechaEntrevista || '',
     horaEntrevista: solicitud.horaEntrevista || '',
     modalidadEntrevista: solicitud.modalidadEntrevista || 'Teams',
+    enlaceReunion: solicitud.modalidadEntrevista === 'Teams' ? solicitud.enlaceReunion || '' : '',
   });
   const [errores, setErrores] = useState({});
   const refDialogo = useRef(null);
@@ -68,7 +70,9 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
       setErrores(nuevosErrores);
       return;
     }
-    alGuardar(agenda);
+    // El enlace solo se envía con Teams (pegado a mano); con Meet lo crea el servidor.
+    const { enlaceReunion, ...datos } = agenda;
+    alGuardar(agenda.modalidadEntrevista === 'Teams' ? { ...datos, enlaceReunion: enlaceReunion.trim() } : datos);
   };
 
   const titulo = reagendar ? 'Reagendar entrevista' : 'Agendar entrevista';
@@ -141,6 +145,41 @@ export default function VentanaAgenda({ solicitud, candidato, reagendar = false,
                     {errores.modalidadEntrevista}
                   </div>
                 </div>
+
+                {agenda.modalidadEntrevista === 'Google Meet' ? (
+                  <div className="col-12">
+                    <p className="form-text mb-0" id="agenda-meet-ayuda">
+                      <i className="bi bi-camera-video me-1 text-primary" aria-hidden="true" />
+                      {solicitud.enlaceReunion && solicitud.modalidadEntrevista === 'Google Meet'
+                        ? 'Se actualizará el evento de Google Calendar; el enlace de Meet se mantiene.'
+                        : 'El enlace de Google Meet se crea solo al guardar, con un evento en Google Calendar (sin invitados).'}
+                    </p>
+                  </div>
+                ) : null}
+
+                {agenda.modalidadEntrevista === 'Teams' ? (
+                  <div className="col-12">
+                    <label className="form-label" htmlFor="agenda-enlace">
+                      Enlace de la reunión de Teams (opcional)
+                    </label>
+                    <input
+                      id="agenda-enlace"
+                      type="url"
+                      inputMode="url"
+                      className={claseCampo('enlaceReunion', 'form-control')}
+                      placeholder="https://teams.microsoft.com/l/meetup-join/…"
+                      value={agenda.enlaceReunion}
+                      onChange={(evento) => cambiar('enlaceReunion')(evento.target.value)}
+                      aria-describedby="agenda-enlace-ayuda agenda-enlace-error"
+                    />
+                    <div id="agenda-enlace-error" className="invalid-feedback">
+                      {errores.enlaceReunion}
+                    </div>
+                    <div id="agenda-enlace-ayuda" className="form-text">
+                      Crea la reunión en Teams y pega aquí su enlace para que aparezca &quot;Unirse a la reunión&quot;.
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {agenda.fechaEntrevista && agenda.fechaEntrevista < hoyIso() && !errores.fechaEntrevista ? (

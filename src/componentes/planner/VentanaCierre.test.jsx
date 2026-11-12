@@ -29,6 +29,30 @@ describe('VentanaCierre', () => {
     expect(screen.queryByRole('button', { name: 'Reagendar' })).toBeNull();
   });
 
+  it('si la app creó el evento en el calendario ofrece cancelarlo (marcado por defecto)', async () => {
+    const usuario = userEvent.setup();
+    const alConfirmar = vi.fn();
+    render(
+      <VentanaCierre
+        solicitud={{ ...solicitud, reunionEnCalendario: true, modalidadEntrevista: 'Google Meet' }}
+        candidato={candidato}
+        alConfirmar={alConfirmar}
+        alCerrar={vi.fn()}
+      />,
+    );
+    const casilla = screen.getByRole('checkbox', { name: /cancelar también la reunión de google meet/i });
+    expect(casilla).toBeChecked();
+    await usuario.click(screen.getByRole('radio', { name: 'Desistió del proceso' }));
+    await usuario.click(casilla);
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar solicitud' }));
+    expect(alConfirmar).toHaveBeenCalledWith({ motivo: 'Desistió del proceso', comentario: '', cancelarReunion: false });
+  });
+
+  it('sin evento en el calendario no muestra la opción de cancelarlo', () => {
+    abrir();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
   it('se cierra con Escape sin confirmar', async () => {
     const usuario = userEvent.setup();
     const { alConfirmar, alCerrar } = abrir();

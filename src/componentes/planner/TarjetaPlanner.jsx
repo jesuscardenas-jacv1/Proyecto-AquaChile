@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import EtiquetaEstado from '../comunes/EtiquetaEstado';
+import BotonReunion from '../comunes/BotonReunion';
 import { formatearFecha } from '../../dominio/formateo';
 import { accionesDisponibles, diasEntre, textoEntrevista } from '../../dominio/planner';
 
@@ -43,7 +44,8 @@ function avisoTarjeta(etapa, solicitud, hoy) {
 /**
  * Tarjeta de una solicitud en el Planner. Muestra candidato, cargo, la entrevista
  * ("Entrevista coordinada para 9/09 a las 12:30") y el analista que la solicitó.
- * Las acciones solo aparecen si `editable` es verdadero (perfil evaluador).
+ * Las acciones solo aparecen si `editable` es verdadero (perfil evaluador). Con una entrevista
+ * online agendada muestra "Unirse a la reunión" (la jefatura, `soloLectura`, solo ve la modalidad).
  */
 export default function TarjetaPlanner({
   solicitud,
@@ -52,6 +54,7 @@ export default function TarjetaPlanner({
   etapa,
   hoy,
   editable,
+  soloLectura = false,
   alAgendar,
   alReagendar,
   alMarcarRealizada,
@@ -100,6 +103,16 @@ export default function TarjetaPlanner({
             ) : null}
           </p>
         )}
+
+        {etapa === 'agendada' && solicitud.enlaceReunion ? (
+          <div className="mb-1">
+            <BotonReunion
+              enlace={solicitud.enlaceReunion}
+              modalidad={solicitud.modalidadEntrevista}
+              soloLectura={soloLectura}
+            />
+          </div>
+        ) : null}
 
         {aviso?.texto ? (
           <p

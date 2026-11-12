@@ -167,6 +167,10 @@ function migrar() {
   agregarColumna('solicitudes', 'fecha_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'hora_entrevista', "TEXT NOT NULL DEFAULT ''");
   agregarColumna('solicitudes', 'modalidad_entrevista', "TEXT NOT NULL DEFAULT ''");
+  // Reunión online de la entrevista: enlace (Meet o Teams), id del evento en el calendario y su proveedor.
+  agregarColumna('solicitudes', 'enlace_reunion', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'evento_reunion_id', "TEXT NOT NULL DEFAULT ''");
+  agregarColumna('solicitudes', 'proveedor_reunion', "TEXT NOT NULL DEFAULT ''");
   // Cuándo cambió por última vez de etapa en el Planner (la entrevista realizada más reciente va primero).
   agregarColumna('solicitudes', 'etapa_cambiada_en', "TEXT NOT NULL DEFAULT ''");
   // Evaluación por competencias (lista JSON: competencia, nivel, fortalezas, oportunidades).
