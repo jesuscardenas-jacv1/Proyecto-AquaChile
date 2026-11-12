@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { guardarToken, obtenerToken, URL_API } from './api';
-import { apiIa, useIaDisponible } from './apiIa';
+import { apiIa, useEstadoIa, useIaDisponible } from './apiIa';
 
 const respuestaJson = (datos, status = 200) => Promise.resolve(new Response(JSON.stringify(datos), { status }));
 
@@ -91,5 +91,37 @@ describe('apiIa', () => {
     const otro = renderHook(() => useIaDisponible(caido));
     await waitFor(() => expect(caido.estado).toHaveBeenCalled());
     expect(otro.result.current).toBe(false);
+  });
+
+  it('envía el audio de la entrevista con el consentimiento y el origen', async () => {
+    fetch.mockReturnValue(respuestaJson({ transcripcion: 't', notas: null }, 201));
+    const audio = new Blob(['a'], { type: 'audio/webm;codecs=opus' });
+    expect(await apiIa.transcribirAudio(4, audio, 'reunion')).toMatchObject({ transcripcion: 't' });
+    const [url, opciones] = fetch.mock.calls[0];
+    expect(url).toBe(`${URL_API}/ia/solicitudes/4/transcripcion/audio?consentimiento=si&origen=reunion`);
+    expect(opciones.body).toBe(audio);
+    expect(opciones.headers['Content-Type']).toBe('audio/webm;codecs=opus');
+  });
+
+  it('sube una transcripción exportada o el texto pegado', async () => {
+    fetch.mockReturnValue(respuestaJson({ transcripcion: 't' }, 201));
+    const archivo = new File(['WEBVTT'], 'reunion.vtt', { type: 'text/vtt' });
+    await apiIa.subirTranscripcion(4, archivo);
+    expect(fetch.mock.calls[0][0]).toBe(`${URL_API}/ia/solicitudes/4/transcripcion?consentimiento=si&nombre=reunion.vtt`);
+    expect(fetch.mock.calls[0][1].body).toBe(archivo);
+
+    await apiIa.subirTranscripcion(4, 'Entrevistadora: hola');
+    const [url, opciones] = fetch.mock.calls[1];
+    expect(url).toBe(`${URL_API}/ia/solicitudes/4/transcripcion?consentimiento=si&nombre=transcripcion.txt&origen=texto`);
+    expect(opciones.body).toBeInstanceOf(Blob);
+    expect(opciones.body.size).toBe('Entrevistadora: hola'.length);
+    expect(opciones.headers['Content-Type']).toMatch(/^text\/plain/);
+  });
+
+  it('useEstadoIa informa si la voz está disponible', async () => {
+    const conVoz = { conectado: () => true, estado: vi.fn().mockResolvedValue({ disponible: true, voz: true }) };
+    const { result } = renderHook(() => useEstadoIa(conVoz));
+    expect(result.current).toEqual({ disponible: false, voz: false });
+    await waitFor(() => expect(result.current).toEqual({ disponible: true, voz: true }));
   });
 });

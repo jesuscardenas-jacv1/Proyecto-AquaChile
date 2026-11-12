@@ -61,6 +61,18 @@ const ESQUEMA_BORRADOR = objeto({
   faltantes: lista(texto),
 });
 
+const ESQUEMA_NOTAS = objeto({
+  competencias: lista(
+    objeto({
+      competencia: { type: 'string', enum: COMPETENCIAS },
+      observacion: texto,
+      citas: lista(texto),
+    }),
+  ),
+  temasPendientes: lista(texto),
+  notas: texto,
+});
+
 /**
  * Compara el CV con el descriptor del cargo. No entrega puntaje ni recomendación: muestra
  * evidencia, brechas y preguntas para que el analista y la psicóloga decidan.
@@ -163,8 +175,44 @@ No inventes conductas ni datos que no estén en las notas.`,
   });
 }
 
+/**
+ * Notas estructuradas de la entrevista a partir de su transcripción: lo que dijo el postulante
+ * agrupado por competencia del catálogo, con citas breves, y un texto de notas listo para el
+ * borrador de la evaluación. No evalúa ni asigna niveles: eso lo hace el borrador, con la
+ * revisión de la psicóloga.
+ */
+async function notasEntrevista({ transcripcion, solicitud }) {
+  return generarJson({
+    sistema: `Asistes a una psicóloga laboral a ordenar sus notas de una entrevista por competencias. Ella revisa y decide todo.
+La transcripción es automática: puede tener errores de reconocimiento y los hablantes pueden venir como "Hablante 1", "Hablante 2" o con su nombre.
+${REGLAS_COMUNES}`,
+    contenido: [
+      {
+        type: 'text',
+        text: `Cargo evaluado: ${solicitud.cargo} (${solicitud.familia_cargo || 'familia no indicada'}).
+${solicitud.observaciones ? `Aspectos que el reclutador pidió indagar: ${solicitud.observaciones}\n` : ''}
+<transcripcion_de_la_entrevista>
+${transcripcion}
+</transcripcion_de_la_entrevista>
+
+Primero identifica quién es la entrevistadora (hace las preguntas) y quién el postulante (relata su experiencia). Usa solo lo que dice el postulante como evidencia.
+
+Entrega:
+- competencias: solo las de este catálogo con evidencia en la entrevista (${COMPETENCIAS.join(', ')}). Por cada una, una observación de 1 a 2 frases en tercera persona sobre la conducta que relata, y 1 a 3 citas textuales breves del postulante (máximo 25 palabras cada una, tal como aparecen en la transcripción).
+- temasPendientes: competencias sin evidencia o temas que conviene profundizar en otra instancia. Lista vacía si no hay.
+- notas: las notas de la entrevista en texto corrido, ordenadas por competencia ("Competencia: …"), con las citas entre comillas, listas para pegarse en el borrador de la evaluación. Máximo 4.000 caracteres.
+No asignes niveles ni resultados, no hagas diagnósticos clínicos y no inventes conductas que no estén en la transcripción.`,
+      },
+    ],
+    esquema: ESQUEMA_NOTAS,
+    esfuerzo: 'medium',
+  });
+}
+
 module.exports = {
   analizarCv,
+  notasEntrevista,
+  ESQUEMA_NOTAS,
   borradorEvaluacion,
   extraerDatosCv,
   redactarOferta,

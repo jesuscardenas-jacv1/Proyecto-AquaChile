@@ -7,6 +7,7 @@ import { datosDePrueba } from '../pruebas/utilidades';
 import { ProveedorDatos } from '../datos/DatosContext';
 import { ProveedorAuth } from '../datos/AuthContext';
 import { apiDocumentos } from '../servicios/apiDocumentos';
+import { apiIa } from '../servicios/apiIa';
 
 /** Destino tras guardar la evaluación: muestra el aviso que viaja en el estado de navegación. */
 function DestinoPlanner() {
@@ -118,6 +119,44 @@ describe('DetalleSolicitud', () => {
     expect(
       screen.getByText(/evaluación registrada: juan pérez\. la solicitud quedó finalizada/i),
     ).toBeInTheDocument();
+  });
+
+  describe('entrevista con IA', () => {
+    afterEach(() => vi.restoreAllMocks());
+    const conServidor = (estado) => {
+      vi.spyOn(apiIa, 'conectado').mockReturnValue(true);
+      vi.spyOn(apiIa, 'estado').mockResolvedValue(estado);
+    };
+
+    it('con la entrevista realizada transcribe y lleva las notas al borrador', async () => {
+      conServidor({ disponible: true, voz: true });
+      vi.spyOn(apiDocumentos, 'conectado').mockReturnValue(false);
+      const notas = 'Trabajo en equipo: coordina el turno ("yo coordino el turno con mi equipo").';
+      vi.spyOn(apiIa, 'subirTranscripcion').mockResolvedValue({
+        transcripcion: 'Postulante: yo coordino el turno con mi equipo.',
+        notas: { competencias: [], temasPendientes: [], notas },
+        archivo: { nombre: 'Pauta - Transcripción.txt' },
+      });
+      const usuario = userEvent.setup();
+      renderDetalle('2', conEntrevistaRealizada());
+
+      expect(await screen.findByRole('heading', { name: /entrevista con ia/i })).toBeInTheDocument();
+      await usuario.click(screen.getByLabelText(/el postulante aceptó que se grabe/i));
+      await usuario.click(screen.getByRole('button', { name: /subir transcripción/i }));
+      await usuario.upload(screen.getByLabelText(/archivo de transcripción/i), new File(['x'], 'reunion.vtt'));
+      await usuario.click(await screen.findByRole('button', { name: /usar en el borrador/i }));
+      expect(screen.getByLabelText(/^notas de la entrevista/i)).toHaveValue(notas);
+    });
+
+    it('con la entrevista agendada muestra el panel, sin IA ni voz no', async () => {
+      conServidor({ disponible: false, voz: true });
+      const { unmount } = renderDetalle('2', datosCon(2, { etapa: 'agendada' }));
+      expect(await screen.findByRole('heading', { name: /entrevista con ia/i })).toBeInTheDocument();
+      unmount();
+
+      renderDetalle('3');
+      expect(screen.queryByRole('heading', { name: /entrevista con ia/i })).toBeNull();
+    });
   });
 
   it('permite volver al listado de solicitudes', async () => {

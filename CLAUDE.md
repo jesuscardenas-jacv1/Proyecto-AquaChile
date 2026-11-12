@@ -99,6 +99,12 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   (el resultado solo se sugiere; lo marca ella y las notas no se guardan). Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
   salida con esquema JSON). Solo con `ANTHROPIC_API_KEY`; sin clave la app oculta estas opciones. La IA sugiere y no
   decide: sin puntajes ni recomendaciones de descarte. Las pruebas usan un cliente simulado (`establecerClienteIa`).
+- **Entrevista con IA** (`src/componentes/evaluacion/EntrevistaIa.jsx`, solo psicóloga, entrevista agendada o realizada):
+  consentimiento obligatorio (Ley 21.719), graba micrófono o micrófono + pestaña de Meet/Teams web
+  (`src/servicios/grabadora.js`, `getDisplayMedia` + Web Audio) o recibe un `.vtt`/`.docx`/`.txt` exportado. Transcribe con
+  Azure AI Speech (`backend/src/ia/voz.js`, `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`; `establecerTranscriptor` en
+  pruebas), guarda el texto como **Pauta** (confidencial) y la tarea `notasEntrevista` propone notas por competencia que
+  pasan al borrador. **El audio nunca se guarda.** No depender de las transcripciones de Teams/Meet (piden licencias).
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).

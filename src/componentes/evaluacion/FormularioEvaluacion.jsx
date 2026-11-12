@@ -28,9 +28,16 @@ const construirEstadoInicial = (evaluacion) => ({
 
 /**
  * Formulario para registrar o actualizar la evaluación psicolaboral. Con `alGenerarBorrador`
- * (IA disponible), la psicóloga puede partir de un borrador hecho desde sus notas.
+ * (IA disponible), la psicóloga puede partir de un borrador hecho desde sus notas;
+ * `notasEntrevista` las trae ya escritas desde la transcripción de la entrevista.
  */
-export default function FormularioEvaluacion({ evaluacion = null, alGuardar, guardando = false, alGenerarBorrador = null }) {
+export default function FormularioEvaluacion({
+  evaluacion = null,
+  alGuardar,
+  guardando = false,
+  alGenerarBorrador = null,
+  notasEntrevista = '',
+}) {
   const [formulario, setFormulario] = useState(() => construirEstadoInicial(evaluacion));
   const [errores, setErrores] = useState({});
   const [intentoEnvio, setIntentoEnvio] = useState(false);
@@ -92,7 +99,12 @@ export default function FormularioEvaluacion({ evaluacion = null, alGuardar, gua
         ) : null}
 
         {alGenerarBorrador ? (
-          <BorradorIa alGenerar={alGenerarBorrador} alAplicar={aplicarBorrador} hayContenido={tieneContenido} />
+          <BorradorIa
+            alGenerar={alGenerarBorrador}
+            alAplicar={aplicarBorrador}
+            hayContenido={tieneContenido}
+            notasIniciales={notasEntrevista}
+          />
         ) : null}
 
         <div className="row g-3">
