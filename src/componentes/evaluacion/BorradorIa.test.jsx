@@ -97,4 +97,17 @@ describe('FormularioEvaluacion: borrador con IA', () => {
     await usuario.click(screen.getByRole('button', { name: /generar borrador/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('El servicio de IA no respondió.');
   });
+
+  it('recibe las notas de la entrevista con IA y las deja listas para generar', async () => {
+    const usuario = userEvent.setup();
+    const alGenerarBorrador = vi.fn().mockResolvedValue(borrador);
+    const { rerender } = render(<FormularioEvaluacion alGuardar={vi.fn()} alGenerarBorrador={alGenerarBorrador} />);
+    expect(screen.getByLabelText(/notas de la entrevista/i)).toHaveValue('');
+
+    rerender(<FormularioEvaluacion alGuardar={vi.fn()} alGenerarBorrador={alGenerarBorrador} notasEntrevista={notas} />);
+    expect(screen.getByLabelText(/notas de la entrevista/i)).toHaveValue(notas);
+    expect(screen.getByLabelText(/notas de la entrevista/i)).toHaveFocus();
+    await usuario.click(screen.getByRole('button', { name: /generar borrador/i }));
+    expect(alGenerarBorrador).toHaveBeenCalledWith(notas);
+  });
 });

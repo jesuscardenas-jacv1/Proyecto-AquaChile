@@ -48,6 +48,14 @@ Para la psicóloga:
 - **Borrador de la evaluación** en Registrar evaluación: a partir de sus notas de la entrevista, propone nivel,
   fortalezas y oportunidades por competencia, las observaciones y un resultado sugerido con su fundamento. El
   resultado no queda marcado: lo elige ella. Las notas no se guardan.
+- **Entrevista con IA** en el detalle de la solicitud, con la entrevista agendada o realizada: tras marcar que el
+  postulante aceptó la grabación (Ley 21.719), graba el micrófono (entrevista presencial) o el micrófono más el audio
+  de la pestaña de Meet o Teams web, o recibe la transcripción exportada (`.vtt`, `.docx` o `.txt`). Transcribe con
+  **Azure AI Speech** (español de Chile, o México / España si la región no lo admite, con separación de voces), guarda
+  el texto como **pauta de entrevista** (confidencial, con quién confirmó el consentimiento y cuándo) y propone notas
+  por competencia con citas breves. «Usar en el borrador» las lleva al borrador de la evaluación. **El audio no se
+  guarda.** La grabación necesita `AZURE_SPEECH_KEY` y `AZURE_SPEECH_REGION`; sin ellas solo se ofrece subir la
+  transcripción.
 
 Todo es una sugerencia que el equipo revisa. Usa Claude Opus 5.5 con respuestas en un formato JSON fijo, y las
 instrucciones le indican tratar el contenido de los documentos como datos, no como órdenes.
@@ -75,7 +83,7 @@ El pie de página indica el modo activo.
 | --- | --- | --- |
 | **Frontend** | JavaScript (JSX) y CSS | React 18.3, Vite 5.4, Bootstrap 5.3, Bootstrap Icons 1.13, React Router 6.26, Mammoth 1.8 |
 | **Backend** | JavaScript (Node 22) | Express 4.19, `jsonwebtoken` 9, `bcryptjs` 2.4, PDFKit 0.15, CORS, Mammoth |
-| **IA** | — | SDK de Anthropic (`@anthropic-ai/sdk`), modelo Claude Opus 5.5 |
+| **IA** | — | SDK de Anthropic (`@anthropic-ai/sdk`), modelo Claude Opus 5.5; Azure AI Speech (transcripción rápida, nivel gratuito F0) |
 | **Base de datos** | SQL | SQLite con el módulo nativo `node:sqlite` |
 | **Documentos** | — | Disco local, Google Drive (producción) u OneDrive/SharePoint, según `backend/.env` |
 | **Pruebas** | JavaScript | Vitest 2.1, Testing Library 16 y cobertura v8; `node:test` en el backend |
@@ -222,19 +230,19 @@ npm --prefix backend run test:ia                 # ayudas de IA con un cliente s
 
 Resultados a noviembre de 2026:
 
-- **Frontend:** 519 pruebas en 66 archivos.
-- **Backend:** 92 pruebas entre almacenamiento, autenticación, roles, integración e IA.
+- **Frontend:** 540 pruebas en 68 archivos.
+- **Backend:** 100 pruebas entre almacenamiento, autenticación, roles, integración e IA.
 
 | Cobertura del frontend (v8) | Actual | Mínimo |
 | --- | --- | --- |
-| Sentencias | 94,52 % | 80 % |
-| Ramas | 87,50 % | 75 % |
-| Funciones | 80,71 % | 80 % |
-| Líneas | 94,52 % | 80 % |
+| Sentencias | 94,69 % | 80 % |
+| Ramas | 87,78 % | 75 % |
+| Funciones | 81,59 % | 80 % |
+| Líneas | 94,69 % | 80 % |
 
 `npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
 ## Fuera de alcance
 
-Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la grabación y transcripción de la entrevista y la redacción del informe con IA. El Planner de esta
+Copilot, Power Automate y Microsoft Planner quedan como evolución futura, igual que la redacción del informe completo con IA y las transcripciones automáticas de Teams o Meet (requieren licencias y permisos de administrador; la app transcribe por su cuenta). El Planner de esta
 app es propio. OneDrive/SharePoint está disponible como proveedor de documentos, pero producción usa Google Drive.

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const LARGO_MINIMO = 30;
 
@@ -6,12 +6,22 @@ const LARGO_MINIMO = 30;
  * Borrador de la evaluación con IA: la psicóloga pega sus notas de la entrevista y recibe una
  * propuesta de competencias y observaciones, que se carga en el formulario para que la edite.
  * El resultado solo se sugiere (con su fundamento): ella lo marca. Las notas no se guardan.
+ * `notasIniciales` (las notas de "Entrevista con IA") reemplaza el texto cada vez que cambia.
  */
-export default function BorradorIa({ alGenerar, alAplicar, hayContenido = false }) {
-  const [notas, setNotas] = useState('');
+export default function BorradorIa({ alGenerar, alAplicar, hayContenido = false, notasIniciales = '' }) {
+  const [notas, setNotas] = useState(notasIniciales);
+  const area = useRef(null);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState(null);
   const [sugerencia, setSugerencia] = useState(null);
+
+  useEffect(() => {
+    if (!notasIniciales) return;
+    setNotas(notasIniciales);
+    setError(null);
+    area.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    area.current?.focus();
+  }, [notasIniciales]);
 
   const generar = async () => {
     if (notas.trim().length < LARGO_MINIMO) {
@@ -49,6 +59,7 @@ export default function BorradorIa({ alGenerar, alAplicar, hayContenido = false 
       </label>
       <textarea
         id="notas-entrevista"
+        ref={area}
         className="form-control"
         rows={5}
         value={notas}

@@ -15,6 +15,7 @@ const {
   extensionDe,
 } = require('../almacenamiento/comun');
 const { ErrorIa } = require('./cliente');
+const { textoDeTurnos } = require('./voz');
 
 const MEGABYTE = 1024 * 1024;
 const TAMANO_MAXIMO = 10 * MEGABYTE;
@@ -96,4 +97,71 @@ async function buscarDescriptor({ cargo, ofertaId } = {}) {
   );
 }
 
-module.exports = { bloqueDocumento, buscarDescriptor, descriptorDelCatalogo };
+const TRANSCRIPCION_MAXIMA = 2 * MEGABYTE;
+const EXTENSIONES_TRANSCRIPCION = ['vtt', 'txt', 'docx'];
+
+/** "00:01:05.120" o "01:05.120" a milisegundos. */
+function milisegundosVtt(marca) {
+  const partes = marca.trim().split(':').map(Number);
+  const [h, m, s] = partes.length === 3 ? partes : [0, ...partes];
+  return Math.round(((h || 0) * 3600 + (m || 0) * 60 + (s || 0)) * 1000);
+}
+
+/**
+ * Convierte un WebVTT (Teams y Meet lo exportan así) en turnos { hablante, inicioMs, texto }.
+ * Teams marca a quien habla con <v Nombre>…</v>; si no hay marca, el turno queda sin hablante.
+ */
+function turnosDeVtt(contenido) {
+  const bloques = contenido.replace(/\r/g, '').split(/\n{2,}/);
+  const turnos = [];
+  for (const bloque of bloques) {
+    const lineas = bloque.split('\n').filter((linea) => linea.trim());
+    const indiceTiempo = lineas.findIndex((linea) => linea.includes('-->'));
+    if (indiceTiempo < 0) continue; // cabecera WEBVTT, NOTE, STYLE
+    const inicioMs = milisegundosVtt(lineas[indiceTiempo].split('-->')[0]);
+    const cuerpo = lineas.slice(indiceTiempo + 1).join(' ');
+    const voz = cuerpo.match(/<v(?:\.[^\s>]+)?\s+([^>]+)>/);
+    const texto = cuerpo.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (!texto) continue;
+    const hablante = voz ? voz[1].trim() : null;
+    const ultimo = turnos.at(-1);
+    if (ultimo && ultimo.hablante === hablante) ultimo.texto += ` ${texto}`;
+    else turnos.push({ hablante, inicioMs, texto });
+  }
+  return turnos;
+}
+
+/**
+ * Texto de una transcripción exportada de Teams o de Meet (.vtt, .docx o .txt).
+ * @param {{ nombre: string, contenido: Buffer }} archivo
+ * @returns {Promise<string>}
+ */
+async function textoDeTranscripcion(archivo) {
+  const extension = extensionDe(archivo.nombre);
+  if (!EXTENSIONES_TRANSCRIPCION.includes(extension)) {
+    throw new ErrorIa('La transcripción debe ser un archivo .vtt, .docx o .txt.', 415);
+  }
+  if (!archivo.contenido?.length) throw new ErrorIa('El archivo de transcripción está vacío.', 400);
+  if (archivo.contenido.length > TRANSCRIPCION_MAXIMA) {
+    throw new ErrorIa('La transcripción supera los 2 MB.', 413);
+  }
+
+  let texto;
+  if (extension === 'docx') {
+    try {
+      ({ value: texto } = await mammoth.extractRawText({ buffer: archivo.contenido }));
+    } catch {
+      throw new ErrorIa(`No se pudo leer "${archivo.nombre}". Verifica que sea un Word válido.`, 422);
+    }
+  } else {
+    texto = archivo.contenido.toString('utf8').replace(/^\uFEFF/, '');
+    if (extension === 'vtt' || /^WEBVTT/.test(texto)) {
+      texto = textoDeTurnos(turnosDeVtt(texto));
+    }
+  }
+  texto = String(texto ?? '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  if (!texto) throw new ErrorIa('La transcripción no tiene texto.', 422);
+  return texto;
+}
+
+module.exports = { bloqueDocumento, buscarDescriptor, descriptorDelCatalogo, textoDeTranscripcion, turnosDeVtt };
