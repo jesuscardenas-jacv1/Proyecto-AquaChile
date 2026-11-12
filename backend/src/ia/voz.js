@@ -8,6 +8,7 @@
  * lo que queda en la carpeta de la solicitud es el texto (pauta de entrevista).
  */
 const { ErrorIa } = require('./cliente');
+const { registrarVoz } = require('./uso');
 
 const VERSION_API = '2024-11-15';
 // Español de Chile primero; si el servicio no lo admite en la región, se prueba el siguiente.
@@ -139,13 +140,16 @@ async function transcribirAudio({ contenido, nombre, tipo }) {
   }
   if (!datos) throw new ErrorIa('El servicio de transcripción no admite español en esta región.', 502);
 
+  const duracionMs = datos.durationMilliseconds ?? 0;
+  // Azure cobra por audio procesado, aunque no reconozca voz.
+  registrarVoz({ segundos: duracionMs / 1000, idioma });
   const turnos = agruparTurnos(frasesDeAzure(datos));
   if (!turnos.length) throw new ErrorIa('No se reconoció voz en el audio. Revisa el micrófono e intenta de nuevo.', 422);
   return {
     texto: textoDeTurnos(turnos),
     turnos,
     idioma,
-    duracionMs: datos.durationMilliseconds ?? 0,
+    duracionMs,
     hablantes: new Set(turnos.map((turno) => turno.hablante).filter(Boolean)).size,
   };
 }

@@ -2,13 +2,18 @@
  * Pruebas del módulo de IA con un cliente simulado: no llaman a la API real ni tienen costo.
  * Ejecutar con: npm run test:ia
  */
-const { describe, it, afterEach } = require('node:test');
+const { describe, it, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const Anthropic = require('@anthropic-ai/sdk');
 const { establecerClienteIa, generarJson, iaDisponible } = require('./cliente');
 const { bloqueDocumento, descriptorDelCatalogo, textoDeTranscripcion } = require('./documentos');
 const { analizarCv, notasEntrevista } = require('./tareas');
 const { establecerTranscriptor, marcaDeTiempo, transcribirAudio, vozDisponible } = require('./voz');
+const { costoClaude, costoVoz } = require('./uso');
+const { guardarConfiguracion, restablecerConfiguracion, configuracionDe } = require('./configuracion');
+
+// El registro de consumo escribe en la tabla uso_ia: debe existir.
+require('../bd/migrar').migrar();
 
 /** Cliente simulado: guarda la solicitud y responde lo que se le indique. */
 function clienteSimulado(respuesta) {
@@ -31,6 +36,8 @@ const pdf = { nombre: 'cv.pdf', contenido: Buffer.from('%PDF-1.4 cv') };
 
 describe('IA', () => {
   afterEach(() => establecerClienteIa(null));
+  // Las llamadas simuladas de estas pruebas no tienen usuario: se borran del registro de consumo.
+  after(() => require('../bd/conexion').prepare(`DELETE FROM uso_ia WHERE usuario = ''`).run());
 
   it('sin clave ni cliente la IA no está disponible', () => {
     const clave = process.env.ANTHROPIC_API_KEY;
@@ -99,6 +106,56 @@ describe('IA', () => {
     const titulos = messages[0].content.filter((b) => b.type === 'document').map((b) => b.title);
     assert.deepEqual(titulos, ['CV del postulante', 'Descriptor del cargo']);
     assert.match(messages[0].content.at(-1).text, /Jefe de Centro/);
+  });
+
+  describe('configuración editable por el administrador', () => {
+    const resultado = { resumen: 'r', coincidencias: [], brechas: [], preguntasSugeridas: [], alertas: [] };
+    after(() => {
+      restablecerConfiguracion('analizarCv', 'prueba');
+      require('../bd/conexion').prepare(`DELETE FROM config_ia_historial WHERE usuario = 'prueba'`).run();
+    });
+
+    it('usa las indicaciones, el modelo y el esfuerzo guardados, sin tocar las reglas fijas', async () => {
+      guardarConfiguracion(
+        'analizarCv',
+        { indicaciones: 'Entrega un resumen de 2 frases y hasta 3 brechas. Enfatiza la experiencia en terreno.', modelo: 'claude-sonnet-5-5', esfuerzo: 'high' },
+        'prueba',
+      );
+      const cliente = clienteSimulado(respuestaJson(resultado));
+      establecerClienteIa(cliente);
+      await analizarCv({ cv: pdf, oferta: { cargo: 'Gruero' } });
+
+      const [{ model, system, messages, output_config: salida, fallbacks }] = cliente.llamadas;
+      const instruccion = messages[0].content.at(-1).text;
+      assert.deepEqual([model, salida.effort, fallbacks], ['claude-sonnet-5-5', 'high', 'default']);
+      assert.match(instruccion, /experiencia en terreno/);
+      assert.doesNotMatch(instruccion, /hasta 6 requisitos/, 'reemplaza las indicaciones originales');
+      assert.match(instruccion, /No recomiendes contratar ni descartar/, 'los límites siguen');
+      assert.match(system, /datos personales sensibles/, 'las reglas comunes siguen');
+      assert.equal(salida.format.type, 'json_schema');
+    });
+
+    it('con Haiku no envía modelo de respaldo', async () => {
+      guardarConfiguracion('analizarCv', { indicaciones: configuracionDe('analizarCv').indicaciones, modelo: 'claude-haiku-5-5', esfuerzo: 'low' }, 'prueba');
+      const cliente = clienteSimulado(respuestaJson(resultado));
+      establecerClienteIa(cliente);
+      await analizarCv({ cv: pdf, oferta: { cargo: 'Gruero' } });
+      const [solicitud] = cliente.llamadas;
+      assert.equal(solicitud.model, 'claude-haiku-5-5');
+      assert.equal(solicitud.fallbacks, undefined);
+      assert.equal(solicitud.betas, undefined);
+    });
+
+    it('valida los cambios y restablece los valores originales', () => {
+      assert.throws(() => guardarConfiguracion('analizarCv', { indicaciones: 'corto', esfuerzo: 'low' }), /al menos 20/);
+      assert.throws(() => guardarConfiguracion('analizarCv', { indicaciones: 'x'.repeat(30), modelo: 'gpt-5', esfuerzo: 'low' }), /Modelo no permitido/);
+      assert.throws(() => guardarConfiguracion('analizarCv', { indicaciones: 'x'.repeat(30), esfuerzo: 'max' }), /esfuerzo no permitido/);
+      assert.throws(() => guardarConfiguracion('otraTarea', {}), /desconocida/);
+
+      const vigente = restablecerConfiguracion('analizarCv', 'prueba');
+      assert.deepEqual([vigente.personalizada, vigente.modelo, vigente.esfuerzo], [false, '', 'medium']);
+      assert.match(vigente.indicaciones, /hasta 6 requisitos/);
+    });
   });
 
   describe('voz y transcripciones', () => {
@@ -197,5 +254,23 @@ describe('IA', () => {
     });
     assert.deepEqual(leerPauta('PAUTA\n\nTRANSCRIPCIÓN\n\nSolo texto.'), { transcripcion: 'Solo texto.', notas: null });
     assert.equal(leerPauta('sin formato'), null);
+  });
+  it('estima el costo de Claude por modelo, incluida la caché', () => {
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', entrada: 1_000_000, salida: 0 }), 4);
+    assert.equal(costoClaude({ modelo: 'claude-sonnet-5-5', entrada: 0, salida: 1_000_000 }), 10);
+    // Caché leída: 0,1× la entrada; escrita: 1,25×.
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', cacheLectura: 1_000_000 }), 0.4);
+    assert.equal(costoClaude({ modelo: 'claude-opus-5-5', cacheEscritura: 1_000_000 }), 5);
+    assert.equal(costoClaude({ modelo: 'otro-modelo', entrada: 1_000_000 }), 4, 'sin precio conocido usa el de Opus');
+  });
+
+  it('la voz no tiene costo en el plan gratis y usa AZURE_SPEECH_USD_HORA en el pagado', () => {
+    const previo = process.env.AZURE_SPEECH_USD_HORA;
+    delete process.env.AZURE_SPEECH_USD_HORA;
+    assert.equal(costoVoz(3600), 0);
+    process.env.AZURE_SPEECH_USD_HORA = '1';
+    assert.equal(costoVoz(1800), 0.5);
+    if (previo === undefined) delete process.env.AZURE_SPEECH_USD_HORA;
+    else process.env.AZURE_SPEECH_USD_HORA = previo;
   });
 });

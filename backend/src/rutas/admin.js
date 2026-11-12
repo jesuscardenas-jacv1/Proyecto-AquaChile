@@ -3,6 +3,14 @@ const bcrypt = require('bcryptjs');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { sembrar } = require('../bd/semilla');
+const { resumenUso } = require('../ia/uso');
+const { modeloIa } = require('../ia/cliente');
+const {
+  ErrorConfiguracion,
+  guardarConfiguracion,
+  listarConfiguracion,
+  restablecerConfiguracion,
+} = require('../ia/configuracion');
 
 /** Herramientas del Administrador académico. */
 const router = express.Router();
@@ -156,5 +164,47 @@ router.post('/reiniciar', ...soloAdmin, async (req, res, next) => {
     next(error);
   }
 });
+
+/**
+ * GET /api/admin/uso-ia?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+ * Consumo de IA (tokens de Claude, audio de Azure Speech y costo estimado). Por defecto, el mes actual.
+ */
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+router.get('/uso-ia', ...soloAdmin, (req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const desde = FECHA.test(req.query.desde ?? '') ? req.query.desde : `${hoy.slice(0, 7)}-01`;
+  const hasta = FECHA.test(req.query.hasta ?? '') ? req.query.hasta : hoy;
+  if (desde > hasta) return res.status(400).json({ error: 'La fecha "desde" debe ser anterior o igual a "hasta".' });
+  return res.json({ ok: true, uso: resumenUso({ desde, hasta }) });
+});
+
+/**
+ * GET /api/admin/config-ia
+ * Configuración de cada ayuda de IA: partes fijas (rol, reglas, límites, campos de salida),
+ * partes editables (indicaciones, modelo, esfuerzo), valores originales e historial de cambios.
+ */
+router.get('/config-ia', ...soloAdmin, (req, res) => {
+  res.json({ ok: true, configuracion: listarConfiguracion({ modeloServidor: modeloIa() }) });
+});
+
+const responderConfiguracion = (accion) => (req, res, next) => {
+  try {
+    const vigente = accion(req.params.tarea, req.body ?? {}, req.usuario?.nombre ?? '');
+    return res.json({ ok: true, vigente });
+  } catch (error) {
+    if (error instanceof ErrorConfiguracion) return res.status(error.status).json({ error: error.message });
+    return next(error);
+  }
+};
+
+/** PUT /api/admin/config-ia/:tarea — { indicaciones, modelo ('' = el del servidor), esfuerzo: low|medium|high }. */
+router.put('/config-ia/:tarea', ...soloAdmin, responderConfiguracion(guardarConfiguracion));
+
+/** POST /api/admin/config-ia/:tarea/restablecer — vuelve a los valores originales. */
+router.post(
+  '/config-ia/:tarea/restablecer',
+  ...soloAdmin,
+  responderConfiguracion((tarea, cuerpo, usuario) => restablecerConfiguracion(tarea, usuario)),
+);
 
 module.exports = router;

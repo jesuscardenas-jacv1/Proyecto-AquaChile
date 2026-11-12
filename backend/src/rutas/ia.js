@@ -14,6 +14,7 @@ const { ErrorIa, iaDisponible, modeloIa } = require('../ia/cliente');
 const { buscarDescriptor, textoDeTranscripcion } = require('../ia/documentos');
 const { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
 const { transcribirAudio, vozDisponible } = require('../ia/voz');
+const { conContextoUso } = require('../ia/uso');
 
 /**
  * Ayudas de IA. Para el analista (fase 1): análisis del CV contra el descriptor del cargo,
@@ -23,6 +24,8 @@ const { transcribirAudio, vozDisponible } = require('../ia/voz');
  */
 const router = express.Router();
 router.use(autenticar);
+// Quién usa la IA, para el registro de consumo del panel del administrador.
+router.use(conContextoUso);
 
 const manejar = (fn) => (req, res, next) => fn(req, res).catch(next);
 // Cada llamada a la IA tiene costo: se limita por IP como el portal público.

@@ -11,6 +11,8 @@ import {
 } from '../datos/constantes';
 import Mensaje from '../componentes/comunes/Mensaje';
 import GestionUsuarios from '../componentes/admin/GestionUsuarios';
+import UsoIa from '../componentes/admin/UsoIa';
+import ConfiguracionIa from '../componentes/admin/ConfiguracionIa';
 
 const CATALOGOS = [
   { titulo: 'Familias de cargo', valores: FAMILIAS_CARGO },
@@ -57,6 +59,9 @@ export default function Administracion() {
       ) : null}
 
       <GestionUsuarios conServidor={modo === 'api'} idUsuarioActual={usuarioActual?.id} />
+
+      {modo === 'api' ? <UsoIa /> : null}
+      {modo === 'api' ? <ConfiguracionIa /> : null}
 
       <section aria-labelledby="titulo-roles">
         <h2 id="titulo-roles" className="h6 mb-2">

@@ -126,6 +126,75 @@ describe('API integrada (Hito 2)', () => {
       assert.equal((await pedir(ruta, { rol: 'evaluador' })).status, 403);
     });
 
+    it('registra el consumo de cada llamada y el administrador lo ve en /admin/uso-ia', async () => {
+      const db = require('./bd/conexion');
+      establecerClienteIa({
+        beta: {
+          messages: {
+            create: async () => ({
+              model: 'claude-opus-5-5',
+              stop_reason: 'end_turn',
+              usage: { input_tokens: 10000, output_tokens: 2000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+              content: [{ type: 'text', text: JSON.stringify({ titulo: 'Gruero - Calbuco', descripcion: 'Texto', requisitos: ['Licencia'] }) }],
+            }),
+          },
+        },
+      });
+      try {
+        const antes = (await pedir('/admin/uso-ia', { rol: 'admin' })).datos.uso.claude.llamadas;
+        assert.equal((await pedir('/ia/redactar-oferta', { rol: 'analista', metodo: 'POST', cuerpo: { cargo: 'Gruero' } })).status, 200);
+
+        assert.equal((await pedir('/admin/uso-ia', { rol: 'analista' })).status, 403);
+        assert.equal((await pedir('/admin/uso-ia?desde=2026-12-01&hasta=2026-11-01', { rol: 'admin' })).status, 400);
+        const { status, datos } = await pedir('/admin/uso-ia', { rol: 'admin' });
+        assert.equal(status, 200);
+        assert.equal(datos.uso.claude.llamadas, antes + 1);
+        const ultima = datos.uso.ultimas[0];
+        assert.deepEqual(
+          [ultima.tarea, ultima.modelo, ultima.usuario, ultima.rol, ultima.tokensEntrada, ultima.tokensSalida],
+          ['redactarOferta', 'claude-opus-5-5', 'Prueba', 'analista', 10000, 2000],
+        );
+        // 10 000 × 4 USD/MTok + 2 000 × 20 USD/MTok = 0,08 USD.
+        assert.equal(ultima.costoUsd, 0.08);
+        assert.ok(datos.uso.porTarea.some((fila) => fila.clave === 'redactarOferta'));
+        assert.equal(datos.uso.voz.minutosGratisMes, 300);
+      } finally {
+        db.prepare(`DELETE FROM uso_ia WHERE usuario = 'Prueba'`).run();
+      }
+    });
+
+    it('el administrador ve y ajusta la configuración de cada ayuda de IA', async () => {
+      const db = require('./bd/conexion');
+      try {
+        assert.equal((await pedir('/admin/config-ia', { rol: 'analista' })).status, 403);
+        const { status, datos } = await pedir('/admin/config-ia', { rol: 'admin' });
+        assert.equal(status, 200);
+        const analisis = datos.configuracion.tareas.find((t) => t.id === 'analizarCv');
+        assert.match(datos.configuracion.reglasComunes, /no instrucciones/);
+        assert.match(analisis.limites, /No recomiendes contratar/);
+        assert.ok(analisis.campos.some((campo) => campo.startsWith('brechas: lista de')));
+        assert.equal(analisis.vigente.personalizada, false);
+
+        const ruta = '/admin/config-ia/analizarCv';
+        assert.equal((await pedir(ruta, { rol: 'jefatura', metodo: 'PUT', cuerpo: {} })).status, 403);
+        assert.equal((await pedir(ruta, { rol: 'admin', metodo: 'PUT', cuerpo: { indicaciones: 'corto', esfuerzo: 'low' } })).status, 400);
+        assert.equal((await pedir('/admin/config-ia/nada', { rol: 'admin', metodo: 'PUT', cuerpo: {} })).status, 404);
+
+        const indicaciones = 'Entrega un resumen breve y hasta 3 brechas, con foco en seguridad.';
+        const guardada = await pedir(ruta, { rol: 'admin', metodo: 'PUT', cuerpo: { indicaciones, modelo: 'claude-sonnet-5-5', esfuerzo: 'low' } });
+        assert.equal(guardada.status, 200);
+        assert.deepEqual([guardada.datos.vigente.personalizada, guardada.datos.vigente.actualizadoPor], [true, 'Prueba']);
+
+        const restablecida = await pedir(`${ruta}/restablecer`, { rol: 'admin', metodo: 'POST' });
+        assert.equal(restablecida.datos.vigente.personalizada, false);
+        const historial = (await pedir('/admin/config-ia', { rol: 'admin' })).datos.configuracion.tareas.find((t) => t.id === 'analizarCv').historial;
+        assert.deepEqual(historial.slice(0, 2).map((h) => h.accion), ['restablecer', 'editar']);
+      } finally {
+        db.prepare(`DELETE FROM config_ia WHERE actualizado_por = 'Prueba'`).run();
+        db.prepare(`DELETE FROM config_ia_historial WHERE usuario = 'Prueba'`).run();
+      }
+    });
+
     it('extrae los datos de contacto de un CV sin guardarlo', async () => {
       establecerClienteIa(cliente);
       respuesta = { nombre: 'Ana Pérez', correo: 'ana@correo.cl', telefono: '+56911112222', ciudad: 'Osorno', resumen: 'Operaria.' };
