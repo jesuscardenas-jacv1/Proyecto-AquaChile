@@ -36,6 +36,8 @@ const TIPOS_MIME = {
   jpeg: 'image/jpeg',
   gif: 'image/gif',
   webp: 'image/webp',
+  // Transcripción de la entrevista (pauta) que genera la app.
+  txt: 'text/plain; charset=utf-8',
 };
 
 /** Error con código HTTP para que las rutas respondan con el estado correcto. */

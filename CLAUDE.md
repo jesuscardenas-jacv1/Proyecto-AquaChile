@@ -104,6 +104,12 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   "Teams" la psicóloga pega el enlace (proveedor `graph` opcional con `REUNIONES_TEAMS=graph`). Si el calendario falla,
   la agenda se guarda igual con `avisoReunion`. Tras agregar el alcance de Calendar hay que volver a correr
   `npm --prefix backend run drive:autorizar` y actualizar `GDRIVE_REFRESH_TOKEN` en Azure.
+- **Entrevista con IA** (`src/componentes/evaluacion/EntrevistaIa.jsx`, solo psicóloga, entrevista agendada o realizada):
+  consentimiento obligatorio (Ley 21.719), graba micrófono o micrófono + pestaña de Meet/Teams web
+  (`src/servicios/grabadora.js`, `getDisplayMedia` + Web Audio) o recibe un `.vtt`/`.docx`/`.txt` exportado. Transcribe con
+  Azure AI Speech (`backend/src/ia/voz.js`, `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`; `establecerTranscriptor` en
+  pruebas), guarda el texto como **Pauta** (confidencial) y la tarea `notasEntrevista` propone notas por competencia que
+  pasan al borrador. **El audio nunca se guarda.** No depender de las transcripciones de Teams/Meet (piden licencias).
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).

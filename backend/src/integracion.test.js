@@ -16,6 +16,7 @@ const { establecerAlmacenamiento } = require('./almacenamiento');
 const { AlmacenamientoLocal } = require('./almacenamiento/local');
 const { establecerClienteIa } = require('./ia/cliente');
 const { establecerReuniones } = require('./reuniones');
+const { establecerTranscriptor } = require('./ia/voz');
 
 describe('API integrada (Hito 2)', () => {
   let servidor;
@@ -191,6 +192,114 @@ describe('API integrada (Hito 2)', () => {
       assert.equal(redactada.status, 200);
       assert.deepEqual(redactada.datos.oferta, respuesta);
       assert.equal(redactada.datos.descriptor, 'DC_Gruero.pdf');
+    });
+
+    describe('entrevista con IA: transcripción y notas', () => {
+      const notas = {
+        competencias: [
+          { competencia: 'Trabajo en equipo', observacion: 'Coordina el turno con su equipo.', citas: ['yo coordino el turno con mi equipo'] },
+          { competencia: 'Trabajo en equipo', observacion: 'Repetida', citas: [] },
+        ],
+        temasPendientes: ['Liderazgo: sin ejemplos.'],
+        notas: 'Trabajo en equipo: coordina el turno ("yo coordino el turno con mi equipo").',
+      };
+      const azure = {
+        durationMilliseconds: 9000,
+        phrases: [
+          { speaker: 1, offsetMilliseconds: 0, text: '¿Cómo trabaja con su equipo?' },
+          { speaker: 2, offsetMilliseconds: 3000, text: 'Yo coordino el turno con mi equipo.' },
+          { speaker: 2, offsetMilliseconds: 6000, text: 'Y reviso la seguridad cada mañana.' },
+        ],
+      };
+      const subir = (ruta, rol, cuerpo, tipo) =>
+        fetch(`${base}${ruta}`, {
+          method: 'POST',
+          headers: { Authorization: cabeceras(rol).Authorization, 'Content-Type': tipo },
+          body: cuerpo,
+        }).then(async (r) => ({ status: r.status, datos: await r.json().catch(() => ({})) }));
+      const pautas = async (rol) =>
+        (await pedir('/solicitudes/2/documentos', { rol })).datos.archivos?.filter((a) => a.categoria === 'pauta') ?? [];
+
+      afterEach(() => establecerTranscriptor(null));
+
+      it('el estado informa si la voz está disponible y sin ella el audio responde 503', async () => {
+        const estado = await pedir('/ia/estado', { rol: 'evaluador' });
+        assert.equal(estado.datos.voz, Boolean(process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION));
+        if (!estado.datos.voz) {
+          const sinVoz = await subir('/ia/solicitudes/2/transcripcion/audio?consentimiento=si', 'evaluador', Buffer.from('a'), 'audio/webm');
+          assert.equal(sinVoz.status, 503);
+        }
+        establecerTranscriptor(async () => azure);
+        assert.equal((await pedir('/ia/estado', { rol: 'evaluador' })).datos.voz, true);
+      });
+
+      it('transcribe el audio con consentimiento, guarda la pauta confidencial y devuelve las notas', async () => {
+        const recibidos = [];
+        establecerTranscriptor(async (audio) => {
+          recibidos.push(audio);
+          if (audio.idioma === 'es-CL') throw Object.assign(new Error('locale'), { idiomaNoAdmitido: true });
+          return azure;
+        });
+        establecerClienteIa(cliente);
+        respuesta = notas;
+        const ruta = '/ia/solicitudes/2/transcripcion/audio';
+        const audio = Buffer.from('audio-ficticio');
+
+        assert.equal((await subir(`${ruta}?consentimiento=si`, 'analista', audio, 'audio/webm')).status, 403);
+        assert.equal((await subir(ruta, 'evaluador', audio, 'audio/webm')).status, 400, 'sin consentimiento no se transcribe');
+        assert.equal((await subir(`${ruta}?consentimiento=si`, 'evaluador', audio, 'text/plain')).status, 415);
+        assert.equal((await subir('/ia/solicitudes/99999/transcripcion/audio?consentimiento=si', 'evaluador', audio, 'audio/webm')).status, 404);
+
+        llamadas.length = 0;
+        const resultado = await subir(`${ruta}?consentimiento=si&origen=reunion`, 'evaluador', audio, 'audio/webm;codecs=opus');
+        assert.equal(resultado.status, 201);
+        assert.equal(resultado.datos.idioma, 'es-MX', 'si es-CL no está, prueba es-MX');
+        assert.deepEqual(recibidos.map((r) => r.idioma), ['es-CL', 'es-MX']);
+        assert.equal(recibidos.at(-1).contenido.toString(), 'audio-ficticio');
+        assert.equal(resultado.datos.hablantes, 2);
+        assert.match(resultado.datos.transcripcion, /\[00:00:03\] Hablante 2: Yo coordino el turno con mi equipo\. Y reviso/);
+        assert.equal(resultado.datos.notas.competencias.length, 1, 'sin competencias repetidas');
+        assert.deepEqual(resultado.datos.notas.temasPendientes, ['Liderazgo: sin ejemplos.']);
+        assert.equal(resultado.datos.consentimiento.confirmadoPor, 'Prueba');
+        assert.match(llamadas[0].messages[0].content[0].text, /<transcripcion_de_la_entrevista>[\s\S]*coordino el turno/);
+
+        // La pauta queda en la carpeta: la ve la psicóloga, no el analista.
+        const [pauta] = await pautas('evaluador');
+        assert.match(pauta.nombre, /^Pauta - Transcripción entrevista .*\.txt$/);
+        assert.equal((await pautas('analista')).length, 0);
+        const descarga = await fetch(`${base}/solicitudes/2/documentos/${encodeURIComponent(pauta.id)}/contenido`, {
+          headers: { Authorization: cabeceras('evaluador').Authorization },
+        });
+        const contenido = await descarga.text();
+        assert.match(contenido, /Consentimiento: el postulante aceptó que se grabe la entrevista\. Lo confirmó Prueba/);
+        assert.match(contenido, /El audio no se guardó/);
+        assert.match(contenido, /NOTAS POR COMPETENCIA[\s\S]*TRANSCRIPCIÓN[\s\S]*Hablante 2/);
+      });
+
+      it('recibe una transcripción .vtt de Teams y la guarda aunque las notas fallen', async () => {
+        establecerClienteIa({ beta: { messages: { create: async () => ({ stop_reason: 'refusal', content: [] }) } } });
+        const vtt = `WEBVTT
+
+1
+00:00:01.000 --> 00:00:04.000
+<v Entrevistadora>¿Cómo enfrenta un cambio de turno imprevisto?</v>
+
+2
+00:00:05.000 --> 00:00:09.500
+<v Postulante>Me organizo con mi jefatura y aviso al equipo con tiempo.</v>
+`;
+        const ruta = '/ia/solicitudes/2/transcripcion?consentimiento=si&nombre=reunion.vtt';
+        assert.equal((await subir('/ia/solicitudes/2/transcripcion?consentimiento=si&nombre=x.pdf', 'evaluador', Buffer.from('%PDF'), 'application/pdf')).status, 415);
+        const resultado = await subir(ruta, 'evaluador', Buffer.from(vtt), 'text/vtt');
+        assert.equal(resultado.status, 201);
+        assert.equal(
+          resultado.datos.transcripcion,
+          '[00:00:01] Entrevistadora: ¿Cómo enfrenta un cambio de turno imprevisto?\n\n[00:00:05] Postulante: Me organizo con mi jefatura y aviso al equipo con tiempo.',
+        );
+        assert.equal(resultado.datos.notas, null);
+        assert.match(resultado.datos.errorNotas, /no puede procesar/);
+        assert.ok((await pautas('evaluador')).length >= 1);
+      });
     });
   });
 

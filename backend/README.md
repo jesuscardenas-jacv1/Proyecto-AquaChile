@@ -130,11 +130,13 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 
 ### Ayudas de IA (`/api/ia`)
 Requieren `ANTHROPIC_API_KEY` en el servidor; sin ella, `estado` responde `disponible: false` y las demás `503`. Son sugerencias: no cambian ningún dato del proceso. Limitadas por IP (20 cada 10 minutos).
-* `GET /api/ia/estado`: Si la IA está disponible y con qué modelo.
+* `GET /api/ia/estado`: Si la IA está disponible, con qué modelo, y si la transcripción de voz (`voz`) está configurada.
 * `GET /api/ia/postulaciones/:id/analisis`: Último análisis guardado del CV (**Analista y Jefatura**).
 * `POST /api/ia/postulaciones/:id/analisis`: Analiza el CV del portal contra el descriptor del cargo (guardado, de la oferta o de demostración) y guarda el resultado: resumen, coincidencias, brechas, preguntas sugeridas y datos a confirmar. Sin puntaje ni recomendación (**Exclusivo Analista**).
 * `POST /api/ia/extraer-cv?nombre=cv.pdf`: Devuelve nombre, correo, teléfono, ciudad y un resumen del CV en binario (PDF o Word); no lo guarda (**Exclusivo Analista**).
 * `POST /api/ia/solicitudes/:id/borrador-evaluacion`: Borrador de la evaluación desde `{ notas }` de la entrevista (30 a 20.000 caracteres), con el descriptor del cargo y los aspectos a indagar: competencias con nivel, fortalezas, oportunidades y evidencia, observaciones, resultado sugerido con fundamento y temas sin evidencia. Las notas no se guardan (**Exclusivo Evaluador**).
+* `POST /api/ia/solicitudes/:id/transcripcion/audio?consentimiento=si&origen=microfono|reunion`: Cuerpo: el audio grabado en el navegador (webm, ogg, wav o mp3, hasta 50 MB). Lo transcribe con Azure AI Speech (`es-CL`, si no `es-MX` o `es-ES`, con separación de hablantes), guarda la transcripción como **pauta de entrevista** (`Pauta - Transcripción entrevista <fecha>.txt`, con el consentimiento: quién lo confirmó y cuándo) y devuelve `{ transcripcion, notas, errorNotas, archivo, consentimiento, idioma, hablantes }`. Sin `consentimiento=si` responde 400. **El audio no se guarda.** Requiere `AZURE_SPEECH_KEY` y `AZURE_SPEECH_REGION` (si no, 503) (**Exclusivo Evaluador**).
+* `POST /api/ia/solicitudes/:id/transcripcion?consentimiento=si&nombre=reunion.vtt[&origen=texto]`: Cuerpo: transcripción exportada de Teams o Meet (`.vtt`, `.docx` o `.txt`, hasta 2 MB) o el texto pegado. La guarda como pauta y devuelve lo mismo que la ruta de audio. `notas` (por competencia del catálogo, con citas breves, temas pendientes y un texto listo para el borrador) es `null` sin `ANTHROPIC_API_KEY`; si la IA falla, la pauta se guarda igual y `errorNotas` explica el motivo (**Exclusivo Evaluador**).
 * `POST /api/ia/redactar-oferta`: Borrador `{ titulo, descripcion, requisitos }` a partir del descriptor del cargo `{ cargo, familiaCargo, area, ubicacion, jornada, ofertaId? }` (**Exclusivo Analista**).
 
 ### Documentos de la solicitud (`/api/solicitudes/:id/documentos`)
@@ -223,7 +225,7 @@ La reunión se crea como evento del calendario de ese buzón con `isOnlineMeetin
 
 Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api** (grupo `rg-aquachile-chile`, plan **B1 Linux**, Node 22, región East US 2: la única que permiten las políticas de la suscripción Azure for Students de Duoc). El frontend de GitHub Pages se compila con `VITE_API_URL` apuntando ahí (`.github/workflows/pages.yml`).
 
-**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN` (con los alcances de Drive y Calendar), `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY`. Comando de inicio: `node src/servidor.js`.
+**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN` (con los alcances de Drive y Calendar), `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY` (y `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` para grabar y transcribir la entrevista). Comando de inicio: `node src/servidor.js`.
 
 Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
 

@@ -1,6 +1,7 @@
 /**
  * Cliente de las ayudas de IA del backend (/api/ia): análisis del CV de una postulación,
- * datos de un CV para autocompletar formularios y borrador de una oferta.
+ * datos de un CV para autocompletar formularios, borrador de una oferta y, en la entrevista,
+ * transcripción (Azure AI Speech) y notas por competencia.
  * Sin servidor o sin clave de IA en el servidor, la app oculta estas opciones.
  */
 import { useEffect, useState } from 'react';
@@ -61,6 +62,31 @@ export const apiIa = {
   borradorEvaluacion: async (solicitudId, notas) =>
     (await llamar(`/ia/solicitudes/${solicitudId}/borrador-evaluacion`, json({ notas }))).borrador,
 
+  /**
+   * Transcribe el audio grabado de la entrevista (no se guarda), deja la transcripción como
+   * pauta en la carpeta y devuelve { transcripcion, notas, errorNotas, archivo, ... }.
+   * @param {'microfono' | 'reunion'} origen
+   */
+  transcribirAudio: (solicitudId, audio, origen) =>
+    llamar(`/ia/solicitudes/${solicitudId}/transcripcion/audio?${new URLSearchParams({ consentimiento: 'si', origen })}`, {
+      metodo: 'POST',
+      cuerpo: audio,
+      cabeceras: { 'Content-Type': audio.type || 'audio/webm' },
+    }),
+
+  /** Transcripción exportada de Teams o de Meet (.vtt, .docx o .txt) o el texto pegado (string). */
+  subirTranscripcion(solicitudId, archivoOTexto) {
+    const pegado = typeof archivoOTexto === 'string';
+    const parametros = pegado
+      ? { consentimiento: 'si', nombre: 'transcripcion.txt', origen: 'texto' }
+      : { consentimiento: 'si', nombre: archivoOTexto.name };
+    return llamar(`/ia/solicitudes/${solicitudId}/transcripcion?${new URLSearchParams(parametros)}`, {
+      metodo: 'POST',
+      cuerpo: pegado ? new Blob([archivoOTexto], { type: 'text/plain' }) : archivoOTexto,
+      cabeceras: { 'Content-Type': pegado ? 'text/plain; charset=utf-8' : archivoOTexto.type || 'application/octet-stream' },
+    });
+  },
+
   /** Borrador { titulo, descripcion, requisitos } a partir del descriptor del cargo. */
   redactarOferta: async (oferta) => (await llamar('/ia/redactar-oferta', json(oferta))).oferta,
 };
@@ -68,9 +94,14 @@ export const apiIa = {
 // Una consulta por sesión: el estado de la IA no cambia mientras el servidor sigue arriba.
 const consultas = new Map();
 
-/** true si el servidor tiene la IA configurada; false sin servidor, sin sesión o sin clave. */
-export function useIaDisponible(api = apiIa) {
-  const [disponible, setDisponible] = useState(false);
+const SIN_IA = { disponible: false, voz: false };
+
+/**
+ * { disponible, voz }: si el servidor tiene la IA (Claude) y la transcripción de voz
+ * (Azure AI Speech) configuradas. Ambas son false sin servidor, sin sesión o sin clave.
+ */
+export function useEstadoIa(api = apiIa) {
+  const [estado, setEstado] = useState(SIN_IA);
 
   useEffect(() => {
     if (!api.conectado()) return undefined;
@@ -79,17 +110,20 @@ export function useIaDisponible(api = apiIa) {
       consultas.set(
         token,
         api.estado().then(
-          (estado) => Boolean(estado?.disponible),
-          () => false,
+          (respuesta) => ({ disponible: Boolean(respuesta?.disponible), voz: Boolean(respuesta?.voz) }),
+          () => SIN_IA,
         ),
       );
     }
     let vigente = true;
-    consultas.get(token).then((valor) => vigente && setDisponible(valor));
+    consultas.get(token).then((valor) => vigente && setEstado(valor));
     return () => {
       vigente = false;
     };
   }, [api]);
 
-  return disponible;
+  return estado;
 }
+
+/** true si el servidor tiene la IA configurada; false sin servidor, sin sesión o sin clave. */
+export const useIaDisponible = (api = apiIa) => useEstadoIa(api).disponible;

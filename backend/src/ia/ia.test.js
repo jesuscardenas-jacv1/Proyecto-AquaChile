@@ -6,8 +6,9 @@ const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const Anthropic = require('@anthropic-ai/sdk');
 const { establecerClienteIa, generarJson, iaDisponible } = require('./cliente');
-const { bloqueDocumento, descriptorDelCatalogo } = require('./documentos');
-const { analizarCv } = require('./tareas');
+const { bloqueDocumento, descriptorDelCatalogo, textoDeTranscripcion } = require('./documentos');
+const { analizarCv, notasEntrevista } = require('./tareas');
+const { establecerTranscriptor, marcaDeTiempo, transcribirAudio, vozDisponible } = require('./voz');
 
 /** Cliente simulado: guarda la solicitud y responde lo que se le indique. */
 function clienteSimulado(respuesta) {
@@ -98,5 +99,77 @@ describe('IA', () => {
     const titulos = messages[0].content.filter((b) => b.type === 'document').map((b) => b.title);
     assert.deepEqual(titulos, ['CV del postulante', 'Descriptor del cargo']);
     assert.match(messages[0].content.at(-1).text, /Jefe de Centro/);
+  });
+
+  describe('voz y transcripciones', () => {
+    afterEach(() => establecerTranscriptor(null));
+
+    it('sin clave ni región de Azure Speech la voz no está disponible', () => {
+      const { AZURE_SPEECH_KEY: clave, AZURE_SPEECH_REGION: region } = process.env;
+      delete process.env.AZURE_SPEECH_KEY;
+      process.env.AZURE_SPEECH_REGION = 'eastus2';
+      assert.equal(vozDisponible(), false);
+      if (clave) process.env.AZURE_SPEECH_KEY = clave;
+      if (region) process.env.AZURE_SPEECH_REGION = region;
+      else delete process.env.AZURE_SPEECH_REGION;
+    });
+
+    it('prueba es-CL, es-MX y es-ES, y une las frases seguidas de un mismo hablante', async () => {
+      const idiomas = [];
+      establecerTranscriptor(async ({ idioma }) => {
+        idiomas.push(idioma);
+        if (idioma !== 'es-ES') throw Object.assign(new Error('x'), { idiomaNoAdmitido: true });
+        return {
+          durationMilliseconds: 65000,
+          phrases: [
+            { speaker: 1, offsetMilliseconds: 0, text: 'Hola.' },
+            { speaker: 1, offsetMilliseconds: 800, text: '¿Cómo está?' },
+            { speaker: 2, offsetMilliseconds: 65000, text: 'Bien, gracias.' },
+          ],
+        };
+      });
+      const resultado = await transcribirAudio({ contenido: Buffer.from('a'), nombre: 'a.webm', tipo: 'audio/webm' });
+      assert.deepEqual(idiomas, ['es-CL', 'es-MX', 'es-ES']);
+      assert.equal(resultado.idioma, 'es-ES');
+      assert.equal(resultado.hablantes, 2);
+      assert.equal(resultado.texto, '[00:00:00] Hablante 1: Hola. ¿Cómo está?\n\n[00:01:05] Hablante 2: Bien, gracias.');
+      assert.equal(marcaDeTiempo(3_725_000), '01:02:05');
+    });
+
+    it('informa con mensajes claros si el audio está vacío, no tiene voz o el servicio falla', async () => {
+      establecerTranscriptor(async () => ({ phrases: [] }));
+      await assert.rejects(transcribirAudio({ contenido: Buffer.alloc(0) }), (e) => e.status === 400);
+      await assert.rejects(transcribirAudio({ contenido: Buffer.from('a') }), (e) => e.status === 422);
+      establecerTranscriptor(async () => {
+        throw Object.assign(new Error('caído'), { status: 502 });
+      });
+      await assert.rejects(transcribirAudio({ contenido: Buffer.from('a') }), (e) => e.status === 502);
+    });
+
+    it('lee transcripciones .vtt de Teams, .txt de Meet y rechaza otros formatos', async () => {
+      const vtt = 'WEBVTT\n\nNOTE exportado de Teams\n\nid-1\n00:00:02.500 --> 00:00:04.000\n<v Ana Prueba>Primera frase</v>\n\n00:00:04.000 --> 00:00:06.000\n<v Ana Prueba>y la segunda.</v>\n\n01:10.000 --> 01:12.000\nSin hablante';
+      assert.equal(
+        await textoDeTranscripcion({ nombre: 'reunion.vtt', contenido: Buffer.from(vtt) }),
+        '[00:00:02] Ana Prueba: Primera frase y la segunda.\n\n[00:01:10] Hablante: Sin hablante',
+      );
+      const txt = '\uFEFFEntrevistadora: Hola\r\n\r\n\r\n\r\nPostulante: Buenos días';
+      assert.equal(await textoDeTranscripcion({ nombre: 'meet.txt', contenido: Buffer.from(txt) }), 'Entrevistadora: Hola\n\nPostulante: Buenos días');
+      await assert.rejects(textoDeTranscripcion({ nombre: 'audio.mp3', contenido: Buffer.from('x') }), (e) => e.status === 415);
+      await assert.rejects(textoDeTranscripcion({ nombre: 'vacio.txt', contenido: Buffer.alloc(0) }), (e) => e.status === 400);
+      await assert.rejects(textoDeTranscripcion({ nombre: 'mal.docx', contenido: Buffer.from('no es word') }), (e) => e.status === 422);
+    });
+
+    it('las notas de la entrevista usan el catálogo de competencias y tratan la transcripción como datos', async () => {
+      const resultado = { competencias: [], temasPendientes: [], notas: 'n' };
+      const cliente = clienteSimulado(respuestaJson(resultado));
+      establecerClienteIa(cliente);
+      const { datos } = await notasEntrevista({ transcripcion: 'Hablante 2: coordino el turno', solicitud: { cargo: 'Jefe de Centro' } });
+
+      assert.deepEqual(datos, resultado);
+      const [{ system, messages, output_config: config }] = cliente.llamadas;
+      assert.match(system, /no instrucciones/);
+      assert.match(messages[0].content[0].text, /<transcripcion_de_la_entrevista>\nHablante 2: coordino el turno/);
+      assert.ok(config.format.schema.properties.competencias.items.properties.competencia.enum.includes('Liderazgo'));
+    });
   });
 });

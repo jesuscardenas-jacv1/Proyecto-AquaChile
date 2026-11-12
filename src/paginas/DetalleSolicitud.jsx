@@ -10,14 +10,15 @@ import EtiquetaEstado from '../componentes/comunes/EtiquetaEstado';
 import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
+import EntrevistaIa from '../componentes/evaluacion/EntrevistaIa';
 import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
 import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
-import { apiIa, useIaDisponible } from '../servicios/apiIa';
+import { apiIa, useEstadoIa } from '../servicios/apiIa';
 
 /** Detalle de solicitud: datos del candidato, seguimiento y evaluación. El avance se gestiona en el Planner. */
 export default function DetalleSolicitud() {
-  const iaDisponible = useIaDisponible();
+  const { disponible: iaDisponible, voz: vozDisponible } = useEstadoIa();
   const { id } = useParams();
   const navegar = useNavigate();
   const ubicacion = useLocation();
@@ -37,6 +38,7 @@ export default function DetalleSolicitud() {
   const [editando, setEditando] = useState(false);
   const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [avisoEdicion, setAvisoEdicion] = useState(null);
+  const [notasEntrevista, setNotasEntrevista] = useState('');
 
   const solicitud = obtenerSolicitud(id);
   const mensaje = ubicacion.state?.mensaje;
@@ -63,6 +65,9 @@ export default function DetalleSolicitud() {
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
   // Se evalúa con la entrevista ya realizada (el Planner trae hasta aquí); después, se puede corregir el informe.
   const puedeEvaluar = ['realizada', 'informe'].includes(etapaDeSolicitud(solicitud));
+  // Entrevista con IA: con la entrevista agendada o realizada, si el servidor tiene IA o voz.
+  const conEntrevistaIa =
+    ['agendada', 'realizada'].includes(etapaDeSolicitud(solicitud)) && (iaDisponible || vozDisponible) && apiIa.conectado();
   /**
    * Registra la evaluación y guarda el informe oficial (PDF) en la carpeta de la solicitud.
    * Si el servicio de documentos no responde, la evaluación queda registrada igual.
@@ -360,12 +365,24 @@ export default function DetalleSolicitud() {
                 </div>
               ) : null}
 
+              {conEntrevistaIa ? (
+                <EntrevistaIa
+                  solicitudId={solicitud.id}
+                  vozDisponible={vozDisponible}
+                  iaDisponible={iaDisponible}
+                  puedeUsarEnBorrador={puedeEvaluar}
+                  alUsarNotas={setNotasEntrevista}
+                  alGuardarPauta={() => setVersionDocumentos((version) => version + 1)}
+                />
+              ) : null}
+
               {puedeEvaluar ? (
                 <FormularioEvaluacion
                   evaluacion={evaluacion}
                   alGuardar={guardarEvaluacion}
                   guardando={guardandoEvaluacion}
                   alGenerarBorrador={iaDisponible ? (notas) => apiIa.borradorEvaluacion(solicitud.id, notas) : null}
+                  notasEntrevista={notasEntrevista}
                 />
               ) : null}
             </>

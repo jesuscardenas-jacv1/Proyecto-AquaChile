@@ -3,10 +3,17 @@ const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { limitarPorIp } = require('../middlewares/limite');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
-const { categoriaDeArchivo, claveCarpetaPostulacion } = require('../almacenamiento/comun');
+const {
+  categoriaDeArchivo,
+  claveCarpeta,
+  claveCarpetaPostulacion,
+  nombreArchivo,
+  nombreCarpeta,
+} = require('../almacenamiento/comun');
 const { ErrorIa, iaDisponible, modeloIa } = require('../ia/cliente');
-const { buscarDescriptor } = require('../ia/documentos');
-const { analizarCv, borradorEvaluacion, extraerDatosCv, redactarOferta } = require('../ia/tareas');
+const { buscarDescriptor, textoDeTranscripcion } = require('../ia/documentos');
+const { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
+const { transcribirAudio, vozDisponible } = require('../ia/voz');
 
 /**
  * Ayudas de IA. Para el analista (fase 1): análisis del CV contra el descriptor del cargo,
@@ -38,9 +45,9 @@ const formatearAnalisis = (fila) => ({
   creadoEn: fila.creado_en,
 });
 
-/** GET /api/ia/estado — si la IA está disponible, para mostrar u ocultar sus opciones. */
+/** GET /api/ia/estado — si la IA y la transcripción de voz están disponibles, para mostrar u ocultar sus opciones. */
 router.get('/estado', (req, res) => {
-  res.json({ ok: true, disponible: iaDisponible(), modelo: iaDisponible() ? modeloIa() : null });
+  res.json({ ok: true, disponible: iaDisponible(), modelo: iaDisponible() ? modeloIa() : null, voz: vozDisponible() });
 });
 
 /** GET /api/ia/postulaciones/:id/analisis — último análisis guardado del CV (analista y jefatura). */
@@ -176,6 +183,194 @@ router.post(
       ok: true,
       borrador: { ...datos, competencias, observaciones: recortar(datos.observaciones, 2000) },
       descriptor: descriptor?.nombre ?? '',
+    });
+  }),
+);
+
+// ─── Entrevista con IA (línea A): transcripción y notas para el borrador ───────────────
+
+const MEGABYTE = 1024 * 1024;
+const AUDIO_MAXIMO = 50 * MEGABYTE;
+const TRANSCRIPCION_MAXIMA_CARACTERES = 150000;
+const leerAudio = express.raw({ type: () => true, limit: AUDIO_MAXIMO + 1024 });
+const leerTranscripcion = express.raw({ type: () => true, limit: 2 * MEGABYTE + 1024 });
+const TIPOS_AUDIO = ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mpeg', 'audio/mp3', 'video/webm'];
+
+const ORIGENES = {
+  microfono: 'Grabación del micrófono (entrevista presencial)',
+  reunion: 'Grabación del micrófono y del audio de la reunión en línea (Meet o Teams web)',
+  archivo: 'Transcripción exportada de Teams o de Meet',
+  texto: 'Transcripción pegada como texto',
+};
+
+function exigirVoz(req, res, next) {
+  if (!vozDisponible()) return res.status(503).json({ error: 'La transcripción de voz no está configurada en el servidor.' });
+  return next();
+}
+
+/** Fecha y hora de Chile, legible: "11-11-2026 16:30". */
+const fechaChile = (fecha = new Date()) =>
+  fecha
+    .toLocaleString('sv-SE', { timeZone: 'America/Santiago' })
+    .slice(0, 16)
+    .replace(/^(\d{4})-(\d{2})-(\d{2})/, '$3-$2-$1');
+const marcaArchivo = (fecha = new Date()) =>
+  fecha.toLocaleString('sv-SE', { timeZone: 'America/Santiago' }).slice(0, 16).replace(':', '.');
+
+/** Solicitud abierta en que la psicóloga confirmó el consentimiento del postulante. */
+function solicitudParaEntrevista(req) {
+  const id = Number(req.params.id);
+  const solicitud = db
+    .prepare('SELECT s.*, c.nombre AS candidato FROM solicitudes s JOIN candidatos c ON c.id = s.candidato_id WHERE s.id = ?')
+    .get(id);
+  if (!solicitud) throw new ErrorIa(`Solicitud #${id} no encontrada.`, 404);
+  if (solicitud.motivo_cierre) throw new ErrorIa('La solicitud se cerró sin evaluación.', 409);
+  // Ley 21.719: sin el consentimiento explícito del postulante no se graba ni se transcribe.
+  if (req.query.consentimiento !== 'si') {
+    throw new ErrorIa('Confirma que el postulante aceptó que se grabe la entrevista.', 400);
+  }
+  return solicitud;
+}
+
+function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha, transcripcion, notas }) {
+  const lineas = [
+    'PAUTA DE ENTREVISTA · TRANSCRIPCIÓN',
+    'Documento confidencial: solo lo ven la psicóloga evaluadora y el administrador.',
+    '',
+    `Solicitud: ${claveCarpeta(solicitud.id)} · Cargo: ${solicitud.cargo} · Candidato: ${solicitud.candidato}`,
+    `Fecha: ${fechaChile(fecha)}`,
+    `Origen: ${ORIGENES[origen]}${nombreOriginal ? ` (${nombreOriginal})` : ''}`,
+    ...(idioma ? [`Idioma reconocido: ${idioma}`] : []),
+    `Consentimiento: el postulante aceptó que se grabe la entrevista. Lo confirmó ${usuario.nombre} (${usuario.correo}) el ${fechaChile(fecha)}.`,
+    ...(origen === 'microfono' || origen === 'reunion'
+      ? ['El audio no se guardó: se envió a Azure AI Speech solo para transcribirlo.']
+      : []),
+    '',
+  ];
+  if (notas) {
+    lineas.push('NOTAS POR COMPETENCIA (propuesta de la IA, revisar)', '', notas.notas, '');
+    if (notas.temasPendientes.length) {
+      lineas.push('Temas pendientes:', ...notas.temasPendientes.map((tema) => `- ${tema}`), '');
+    }
+  }
+  lineas.push('TRANSCRIPCIÓN', '', transcripcion, '');
+  return lineas.join('\n');
+}
+
+/**
+ * Pide las notas por competencia (si la IA está disponible), guarda la transcripción como
+ * pauta de entrevista en la carpeta de la solicitud y responde con ambas.
+ */
+async function guardarYResponder(req, res, { solicitud, origen, nombreOriginal = '', transcripcion, idioma = null, extra = {} }) {
+  if (transcripcion.length > TRANSCRIPCION_MAXIMA_CARACTERES) {
+    throw new ErrorIa('La transcripción supera los 150.000 caracteres. Divide la entrevista en partes.', 413);
+  }
+
+  let notas = null;
+  let errorNotas = null;
+  if (iaDisponible()) {
+    try {
+      const { datos } = await notasEntrevista({ transcripcion, solicitud });
+      const vistas = new Set();
+      notas = {
+        competencias: datos.competencias
+          .filter(({ competencia }) => !vistas.has(competencia) && vistas.add(competencia))
+          .map((item) => ({
+            competencia: item.competencia,
+            observacion: recortar(item.observacion),
+            citas: item.citas.slice(0, 3).map((cita) => recortar(cita, 300)),
+          })),
+        temasPendientes: datos.temasPendientes.slice(0, 10).map((tema) => recortar(tema, 300)),
+        notas: recortar(datos.notas, LARGO_MAXIMO_NOTAS),
+      };
+    } catch (error) {
+      // La transcripción vale por sí sola: se guarda aunque las notas fallen.
+      if (!(error instanceof ErrorIa)) throw error;
+      errorNotas = error.message;
+    }
+  }
+
+  const fecha = new Date();
+  const almacenamiento = obtenerAlmacenamiento();
+  const carpeta = await almacenamiento.obtenerCarpeta(
+    claveCarpeta(solicitud.id),
+    nombreCarpeta(solicitud.id, solicitud.candidato),
+    { crear: true },
+  );
+  const archivo = await almacenamiento.subirArchivo(
+    carpeta,
+    nombreArchivo('pauta', `Transcripción entrevista ${marcaArchivo(fecha)}.txt`),
+    Buffer.from(textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario: req.usuario, fecha, transcripcion, notas }), 'utf8'),
+  );
+
+  res.status(201).json({
+    ok: true,
+    transcripcion,
+    notas,
+    errorNotas,
+    archivo: { ...archivo, puedeEliminar: true },
+    consentimiento: { confirmadoPor: req.usuario.nombre ?? '', fecha: fecha.toISOString() },
+    ...extra,
+  });
+}
+
+/**
+ * POST /api/ia/solicitudes/:id/transcripcion/audio?consentimiento=si&origen=microfono|reunion
+ * Cuerpo: el audio grabado en el navegador (webm u ogg, hasta 50 MB). Lo transcribe con
+ * Azure AI Speech, guarda la transcripción como pauta y devuelve las notas por competencia.
+ * El audio no se guarda. Exclusivo de la psicóloga (y del administrador).
+ */
+router.post(
+  '/solicitudes/:id/transcripcion/audio',
+  requerirRol('evaluador'),
+  exigirVoz,
+  limite,
+  leerAudio,
+  manejar(async (req, res) => {
+    const solicitud = solicitudParaEntrevista(req);
+    const origen = req.query.origen === 'reunion' ? 'reunion' : 'microfono';
+    const tipo = String(req.get('Content-Type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!TIPOS_AUDIO.includes(tipo)) {
+      throw new ErrorIa('El audio debe ser webm, ogg, wav o mp3.', 415);
+    }
+    const contenido = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const extension = tipo.split('/')[1].replace('x-', '').replace('mpeg', 'mp3').replace('wave', 'wav');
+    const resultado = await transcribirAudio({ contenido, nombre: `entrevista.${extension}`, tipo });
+
+    await guardarYResponder(req, res, {
+      solicitud,
+      origen,
+      transcripcion: resultado.texto,
+      idioma: resultado.idioma,
+      extra: { idioma: resultado.idioma, duracionMs: resultado.duracionMs, hablantes: resultado.hablantes },
+    });
+  }),
+);
+
+/**
+ * POST /api/ia/solicitudes/:id/transcripcion?consentimiento=si&nombre=reunion.vtt
+ * Cuerpo: una transcripción exportada de Teams o de Meet (.vtt, .docx o .txt), o el texto
+ * pegado (nombre terminado en .txt). La guarda como pauta y devuelve las notas por competencia.
+ */
+router.post(
+  '/solicitudes/:id/transcripcion',
+  requerirRol('evaluador'),
+  limite,
+  leerTranscripcion,
+  manejar(async (req, res) => {
+    const solicitud = solicitudParaEntrevista(req);
+    const nombre = texto(req.query.nombre) || 'transcripcion.txt';
+    const contenido = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+    const transcripcion = await textoDeTranscripcion({ nombre, contenido });
+    if (transcripcion.length < LARGO_MINIMO_NOTAS) {
+      throw new ErrorIa('La transcripción es demasiado corta.', 400);
+    }
+    const pegado = req.query.origen === 'texto';
+    await guardarYResponder(req, res, {
+      solicitud,
+      origen: pegado ? 'texto' : 'archivo',
+      nombreOriginal: pegado ? '' : nombre,
+      transcripcion,
     });
   }),
 );
