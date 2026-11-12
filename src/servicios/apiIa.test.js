@@ -49,6 +49,12 @@ describe('apiIa', () => {
     expect(opciones.headers['Content-Type']).toBe('application/pdf');
   });
 
+  it('pide la última transcripción guardada de la solicitud', async () => {
+    fetch.mockReturnValue(respuestaJson({ ok: true, transcripcion: 'Hola', notas: null }));
+    expect(await apiIa.ultimaTranscripcion(9)).toMatchObject({ transcripcion: 'Hola', notas: null });
+    expect(fetch.mock.calls[0][0]).toBe(`${URL_API}/ia/solicitudes/9/transcripcion/ultima`);
+  });
+
   it('pide el borrador de la evaluación con las notas', async () => {
     fetch.mockReturnValue(respuestaJson({ borrador: { resultadoSugerido: 'Recomendado' } }));
     expect(await apiIa.borradorEvaluacion(5, 'Notas de la entrevista')).toEqual({ resultadoSugerido: 'Recomendado' });

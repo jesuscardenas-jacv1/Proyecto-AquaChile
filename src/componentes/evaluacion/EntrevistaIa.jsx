@@ -45,6 +45,7 @@ export default function EntrevistaIa({
   const [texto, setTexto] = useState('');
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(null);
+  const [cargandoPauta, setCargandoPauta] = useState(false);
   const grabacionRef = useRef(null);
 
   // Cronómetro de la grabación y del procesamiento.
@@ -124,7 +125,20 @@ export default function EntrevistaIa({
     procesar(false, () => api.subirTranscripcion(solicitudId, texto.trim()));
   };
 
-  const ocupado = Boolean(grabando || procesando);
+  /** Carga la última transcripción guardada (con sus notas) para pasarla al borrador. */
+  const usarUltimaGuardada = async () => {
+    setError(null);
+    setCargandoPauta(true);
+    try {
+      setResultado({ ...(await api.ultimaTranscripcion(solicitudId)), desdePauta: true });
+    } catch (excepcion) {
+      setError(excepcion.message);
+    } finally {
+      setCargandoPauta(false);
+    }
+  };
+
+  const ocupado = Boolean(grabando || procesando || cargandoPauta);
   const opciones = [
     vozDisponible && grabacionPosible('microfono')
       ? { id: 'microfono', icono: 'bi-mic', titulo: 'Grabar entrevista presencial' }
@@ -146,6 +160,20 @@ export default function EntrevistaIa({
         de entrevista (confidencial: solo la ves tú).{' '}
         {vozDisponible ? 'El audio se envía a Azure AI Speech para transcribirlo y no se guarda.' : null}
       </p>
+
+      {puedeUsarEnBorrador && iaDisponible && !resultado ? (
+        <div className="border rounded p-2 mb-3 small">
+          <p className="mb-2">¿Ya transcribiste esta entrevista? Usa la última transcripción guardada y sus notas.</p>
+          <button type="button" className="btn btn-sm btn-primary" onClick={usarUltimaGuardada} disabled={ocupado}>
+            {cargandoPauta ? (
+              <span className="spinner-border spinner-border-sm me-1" aria-hidden="true" />
+            ) : (
+              <i className="bi bi-clock-history me-1" aria-hidden="true" />
+            )}
+            Usar la última transcripción guardada
+          </button>
+        </div>
+      ) : null}
 
       <div className="alert alert-warning small py-2 mb-2">
         <i className="bi bi-shield-lock me-1" aria-hidden="true" />
@@ -300,14 +328,17 @@ export default function EntrevistaIa({
 }
 
 function ResultadoEntrevista({ resultado, conBorrador, puedeUsarEnBorrador, alUsarNotas }) {
-  const { notas, errorNotas, transcripcion, archivo, hablantes } = resultado;
+  const { notas, errorNotas, transcripcion, archivo, hablantes, desdePauta } = resultado;
   return (
     <div className="mt-3 small d-flex flex-column gap-2">
       <p className="mb-0 text-success" role="status">
         <i className="bi bi-check2-circle me-1" aria-hidden="true" />
-        Transcripción guardada como pauta{archivo?.nombre ? `: ${archivo.nombre}` : ''}.
-        {hablantes ? ` Se distinguieron ${hablantes} voces.` : ''}
+        {desdePauta ? 'Transcripción cargada desde la pauta' : 'Transcripción guardada como pauta'}
+        {archivo?.nombre ? `: ${archivo.nombre}` : ''}.{hablantes ? ` Se distinguieron ${hablantes} voces.` : ''}
       </p>
+      {desdePauta && !notas ? (
+        <p className="mb-0 text-secondary">Esa pauta no trae notas: se usará la transcripción en el borrador.</p>
+      ) : null}
       {errorNotas ? <p className="mb-0 text-warning-emphasis">No se pudieron generar las notas: {errorNotas}</p> : null}
 
       {notas ? (
@@ -328,6 +359,10 @@ function ResultadoEntrevista({ resultado, conBorrador, puedeUsarEnBorrador, alUs
                 </li>
               ))}
             </ul>
+          ) : desdePauta ? (
+            <pre className="small mb-1" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+              {notas.notas}
+            </pre>
           ) : (
             <p className="mb-1">La IA no encontró evidencia clara de las competencias del catálogo.</p>
           )}

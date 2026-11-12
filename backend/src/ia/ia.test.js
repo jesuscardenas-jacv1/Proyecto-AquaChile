@@ -172,4 +172,30 @@ describe('IA', () => {
       assert.ok(config.format.schema.properties.competencias.items.properties.competencia.enum.includes('Liderazgo'));
     });
   });
+
+  it('lee la pauta guardada: transcripción, notas y temas pendientes', () => {
+    const { leerPauta } = require('../rutas/ia');
+    const pauta = [
+      'PAUTA DE ENTREVISTA · TRANSCRIPCIÓN',
+      'Documento confidencial.',
+      '',
+      'NOTAS POR COMPETENCIA (propuesta de la IA, revisar)',
+      '',
+      'Comunicación efectiva: se expresa con claridad.',
+      '',
+      'Temas pendientes:',
+      '- Liderazgo: sin evidencia.',
+      '',
+      'TRANSCRIPCIÓN',
+      '',
+      '[00:00:01] Hablante 1: Hola.',
+      '',
+    ].join('\n');
+    assert.deepEqual(leerPauta(pauta), {
+      transcripcion: '[00:00:01] Hablante 1: Hola.',
+      notas: { competencias: [], temasPendientes: ['Liderazgo: sin evidencia.'], notas: 'Comunicación efectiva: se expresa con claridad.' },
+    });
+    assert.deepEqual(leerPauta('PAUTA\n\nTRANSCRIPCIÓN\n\nSolo texto.'), { transcripcion: 'Solo texto.', notas: null });
+    assert.equal(leerPauta('sin formato'), null);
+  });
 });
