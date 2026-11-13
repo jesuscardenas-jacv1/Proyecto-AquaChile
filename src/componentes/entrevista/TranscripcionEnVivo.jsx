@@ -43,6 +43,8 @@ export default function TranscripcionEnVivo({
   const [alFinal, setAlFinal] = useState(true);
   const activa = estado === 'grabando' || estado === 'iniciando';
   const detectados = hablantesDetectados(segmentos);
+  // Con dos voces o más, se pide asignar los roles para leer la conversación y citar bien.
+  const faltanRoles = detectados.length >= 2 && detectados.some((id) => !hablantes[id]);
   // Sin conversación todavía, la caja ocupa lo justo para no empujar el resto de la pantalla.
   const compacta = !segmentos.length && !parcial;
 
@@ -133,8 +135,20 @@ export default function TranscripcionEnVivo({
       ) : null}
 
       {detectados.length ? (
-        <div className="d-flex flex-wrap align-items-center gap-2 px-3 py-2 border-bottom small" aria-label="Quién es quién">
-          <span className="text-secondary">Quién es quién:</span>
+        <div
+          className={`d-flex flex-wrap align-items-center gap-2 px-3 py-2 border-bottom small ${faltanRoles ? 'alert alert-warning rounded-0 border-0 mb-0' : ''}`}
+          aria-label="Quién es quién"
+        >
+          <span className={faltanRoles ? 'fw-semibold' : 'text-secondary'}>
+            {faltanRoles ? (
+              <>
+                <i className="bi bi-people me-1" aria-hidden="true" />
+                Indica quién es la psicóloga y quién el postulante:
+              </>
+            ) : (
+              'Quién es quién:'
+            )}
+          </span>
           {detectados.map((id) => (
             <label key={id} className="d-flex align-items-center gap-1">
               <span>{nombreHablante(id, {})}</span>

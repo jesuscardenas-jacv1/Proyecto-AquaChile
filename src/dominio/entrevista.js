@@ -116,3 +116,49 @@ export function tiempoDesde(fecha, ahora = Date.now()) {
 /** ¿La entrevista tiene algo que guardar o cerrar? */
 export const tieneContenido = ({ notas = '', transcripcion = [] } = {}) =>
   Boolean(notas.trim() || transcripcion.length);
+
+/** "2 min 32 s" / "45 s" a partir de segundos. */
+const duracionLegible = (segundos) => {
+  const minutos = Math.floor(segundos / 60);
+  const resto = Math.round(segundos % 60);
+  return minutos ? `${minutos} min${resto ? ` ${resto} s` : ''}` : `${resto} s`;
+};
+
+/**
+ * Texto de la confirmación antes de cerrar la entrevista. Avisa cuando no hay transcripción,
+ * sobre todo si se grabó audio y no se reconoció ninguna frase (problema de micrófono o de fuente).
+ * @param {{ frases: number, segundos: number, mueveEtapa: boolean }} datos
+ */
+export function confirmacionCierre({ frases, segundos, mueveEtapa }) {
+  const etapa = mueveEtapa ? ' y la entrevista pasa a "Entrevista Realizada"' : '';
+  if (frases) {
+    return `¿${mueveEtapa ? 'Terminar la entrevista' : 'Guardar la transcripción y generar las notas'}? Se detiene la grabación, la transcripción se guarda como pauta, la IA propone notas por competencia${etapa}.`;
+  }
+  if (segundos > 0) {
+    return `Se grabaron ${duracionLegible(segundos)} pero no se transcribió ninguna frase: revisa el micrófono o la fuente de audio. Si terminas ahora no se guarda pauta ni se piden notas a la IA${etapa}. ¿Terminar igual?`;
+  }
+  return `No hay transcripción: no se guarda pauta ni se piden notas a la IA; quedan solo tus notas${etapa}. ¿Terminar igual?`;
+}
+
+/**
+ * Mensaje para la solicitud después del cierre: qué se guardó y qué hizo la IA, o por qué no.
+ * @param {{ respuesta?: object, conTranscripcion: boolean, conServidor: boolean }} datos
+ * @returns {{ mensaje: string, tipo: 'success' | 'warning' }}
+ */
+export function resultadoCierre({ respuesta, conTranscripcion, conServidor }) {
+  if (!conServidor) return { tipo: 'success', mensaje: 'Entrevista terminada. Tus notas quedaron en el borrador de la evaluación.' };
+  if (!conTranscripcion) {
+    return {
+      tipo: 'warning',
+      mensaje: 'Entrevista terminada sin transcripción: no se guardó pauta ni se pidieron notas a la IA. Tus notas quedaron en el borrador.',
+    };
+  }
+  const pauta = respuesta?.archivo?.nombre ? `La transcripción quedó en la carpeta como «${respuesta.archivo.nombre}».` : 'La transcripción quedó guardada.';
+  if (respuesta?.notas) {
+    return { tipo: 'success', mensaje: `${pauta} La IA propuso notas por competencia en el borrador: revísalas antes de generar.` };
+  }
+  return {
+    tipo: 'warning',
+    mensaje: `${pauta} La IA no generó las notas por competencia${respuesta?.errorNotas ? `: ${respuesta.errorNotas}` : ''}. El borrador tiene tus notas o la transcripción.`,
+  };
+}

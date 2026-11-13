@@ -502,6 +502,17 @@ describe('API integrada (Hito 2)', () => {
             .get();
           assert.deepEqual({ ...vivo }, { tarea: 'transcripcionVivo', segundos_audio: 125 });
 
+          // Cerrar de nuevo (p. ej. tras grabar más) informa solo el audio nuevo.
+          const otraVez = await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { notas: 'n', segundosAudio: 200 } });
+          assert.equal(otraVez.status, 200);
+          const segundosVivo = db
+            .prepare(`SELECT segundos_audio FROM uso_ia WHERE tarea = 'transcripcionVivo' AND usuario = 'Prueba' ORDER BY id`)
+            .all()
+            .map((fila) => fila.segundos_audio);
+          assert.deepEqual(segundosVivo.slice(-2), [125, 75]);
+          await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { notas: 'n', segundosAudio: 200 } });
+          assert.equal(db.prepare(`SELECT count(*) AS n FROM uso_ia WHERE tarea = 'transcripcionVivo' AND usuario = 'Prueba'`).get().n, segundosVivo.length);
+
           const [pauta] = (await pautas('evaluador')).sort((a, b) => b.nombre.localeCompare(a.nombre));
           const contenido = await (
             await fetch(`${base}/solicitudes/2/documentos/${encodeURIComponent(pauta.id)}/contenido`, {

@@ -128,6 +128,13 @@ export default function TarjetaPlanner({
             <span className="visually-hidden"> de {nombre}</span>
           </Link>
         ) : null}
+        {editable && etapa === 'realizada' ? (
+          <Link to={`/planner/entrevista/${solicitud.id}`} className="small d-inline-block mb-1">
+            <i className="bi bi-mic me-1" aria-hidden="true" />
+            Ver panel de entrevista
+            <span className="visually-hidden"> de {nombre}</span>
+          </Link>
+        ) : null}
 
         {aviso?.texto ? (
           <p

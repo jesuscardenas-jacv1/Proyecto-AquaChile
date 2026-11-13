@@ -288,6 +288,9 @@ function migrar() {
       actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  // Segundos de audio en vivo ya informados al consumo, para no contarlos dos veces si la
+  // entrevista se cierra más de una vez (p. ej. al generar las notas después de marcarla realizada).
+  agregarColumna('entrevistas', 'segundos_reportados', 'REAL NOT NULL DEFAULT 0');
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

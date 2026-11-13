@@ -51,15 +51,25 @@ function DestinoSolicitud() {
     <div>
       <h1>Detalle de la solicitud</h1>
       <p>{state?.notasEntrevista}</p>
+      <p data-testid="mensaje" data-tipo={state?.tipo}>
+        {state?.mensaje}
+      </p>
     </div>
   );
 }
 
-const montar = ({ api = crearApi(), transcribir = vi.fn(), ruta = '/planner/entrevista/2', voz = true } = {}) =>
+const montar = ({
+  api = crearApi(),
+  transcribir = vi.fn(),
+  ruta = '/planner/entrevista/2',
+  voz = true,
+  datos = datosDePrueba,
+  segundosSinFrases = 30,
+} = {}) =>
   render(
     <MemoryRouter initialEntries={[ruta]}>
       <ProveedorAuth usuarioInicial={EVALUADORA}>
-        <ProveedorDatos datosIniciales={structuredClone(datosDePrueba)}>
+        <ProveedorDatos datosIniciales={structuredClone(datos)}>
           <Routes>
             <Route
               path="/planner/entrevista/:id"
@@ -70,6 +80,7 @@ const montar = ({ api = crearApi(), transcribir = vi.fn(), ruta = '/planner/entr
                   transcripcionPosible={() => true}
                   estadoIa={{ disponible: true, voz }}
                   retardoGuardado={10}
+                  segundosSinFrases={segundosSinFrases}
                 />
               }
             />
@@ -191,6 +202,63 @@ describe('PanelEntrevista', () => {
       consentimiento: true,
     });
     expect(screen.getByText('Liderazgo: coordina turnos (propuesta IA).')).toBeInTheDocument();
+    expect(screen.getByTestId('mensaje')).toHaveTextContent(/La IA propuso notas por competencia/);
+    expect(screen.getByTestId('mensaje')).toHaveAttribute('data-tipo', 'success');
+  });
+
+  it('avisa antes de terminar si se grabó audio sin ninguna frase, y lo informa después', async () => {
+    const usuario = userEvent.setup();
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const api = crearApi({ entrevista: { segundosAudio: 152 } });
+    api.cerrar.mockResolvedValue({ transcripcion: '', notas: null, errorNotas: null, archivo: null });
+    montar({ api });
+    await screen.findByRole('heading', { name: 'Juan Pérez' });
+    await usuario.click(screen.getByRole('button', { name: /terminar y generar/i }));
+    expect(confirmar).toHaveBeenCalledWith(expect.stringMatching(/Se grabaron 2 min 32 s pero no se transcribió ninguna frase/));
+    expect(await screen.findByTestId('mensaje')).toHaveTextContent(/sin transcripción/);
+    expect(screen.getByTestId('mensaje')).toHaveAttribute('data-tipo', 'warning');
+  });
+
+  it('si la IA no genera las notas, lo dice al llegar a la solicitud', async () => {
+    const usuario = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const api = crearApi({ entrevista: { transcripcion: [{ hablante: 'Guest-2', inicioMs: 0, texto: 'Coordino el turno.' }] } });
+    api.cerrar.mockResolvedValue({ notas: null, errorNotas: 'La IA no respondió.', archivo: { nombre: 'Pauta.txt' } });
+    montar({ api });
+    await screen.findByRole('heading', { name: 'Juan Pérez' });
+    await usuario.click(screen.getByRole('button', { name: /terminar y generar/i }));
+    expect(await screen.findByTestId('mensaje')).toHaveTextContent(/«Pauta\.txt».*no generó las notas por competencia: La IA no respondió\./);
+  });
+
+  it('con la entrevista ya realizada permite guardar lo grabado después sin mover la etapa', async () => {
+    const usuario = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const datos = structuredClone(datosDePrueba);
+    datos.solicitudes.find((s) => s.id === 2).etapa = 'realizada';
+    const api = crearApi({ entrevista: { transcripcion: [{ hablante: 'Guest-2', inicioMs: 0, texto: 'Coordino el turno.' }] } });
+    montar({ api, datos });
+    expect(await screen.findByText(/guardar la transcripción y generar las notas con el botón de abajo/)).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Guardar transcripción y generar notas (IA)' }));
+    expect(await screen.findByRole('heading', { name: 'Detalle de la solicitud' })).toBeInTheDocument();
+    expect(api.cerrar).toHaveBeenCalledWith(2, expect.objectContaining({ transcripcion: '[00:00:00] Hablante 2: Coordino el turno.' }));
+  });
+
+  it('con la entrevista realizada y nada grabado ni anotado no ofrece cerrar', async () => {
+    const datos = structuredClone(datosDePrueba);
+    datos.solicitudes.find((s) => s.id === 2).etapa = 'realizada';
+    montar({ datos });
+    await screen.findByRole('heading', { name: 'Juan Pérez' });
+    expect(screen.queryByRole('button', { name: /guardar transcripción/i })).toBeNull();
+  });
+
+  it('avisa arriba si la grabación no transcribe ninguna frase', async () => {
+    const usuario = userEvent.setup();
+    const { transcribir } = crearTranscriptor();
+    montar({ transcribir, segundosSinFrases: 1 });
+    await screen.findByRole('heading', { name: 'Juan Pérez' });
+    await usuario.click(screen.getByRole('checkbox', { name: /aceptó que se grabe/i }));
+    await usuario.click(screen.getByRole('button', { name: /comenzar a grabar/i }));
+    expect(await screen.findByText(/no se ha transcrito ninguna frase/, {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('si el cierre falla se queda en el panel con el error', async () => {

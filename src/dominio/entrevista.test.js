@@ -4,6 +4,8 @@ import {
   agruparCriterios,
   citaParaNotas,
   competenciasConNotas,
+  confirmacionCierre,
+  resultadoCierre,
   etiquetaCompetencia,
   hablantesDetectados,
   marcaTiempo,
@@ -96,6 +98,31 @@ describe('dominio de la entrevista', () => {
     expect(tiempoDesde('2026-11-13T10:00:00Z', ahora)).toBe('hace 2 h');
     expect(tiempoDesde(null, ahora)).toBe('');
     expect(tiempoDesde('no es fecha', ahora)).toBe('');
+  });
+
+  it('confirma el cierre avisando cuando no hay transcripción', () => {
+    expect(confirmacionCierre({ frases: 3, segundos: 120, mueveEtapa: true })).toMatch(/^¿Terminar la entrevista\?.*Entrevista Realizada/);
+    expect(confirmacionCierre({ frases: 3, segundos: 120, mueveEtapa: false })).toMatch(/^¿Guardar la transcripción y generar las notas\?/);
+    expect(confirmacionCierre({ frases: 3, segundos: 120, mueveEtapa: false })).not.toMatch(/Realizada/);
+    expect(confirmacionCierre({ frases: 0, segundos: 152, mueveEtapa: true })).toMatch(/Se grabaron 2 min 32 s pero no se transcribió ninguna frase/);
+    expect(confirmacionCierre({ frases: 0, segundos: 45, mueveEtapa: true })).toMatch(/Se grabaron 45 s/);
+    expect(confirmacionCierre({ frases: 0, segundos: 0, mueveEtapa: false })).toMatch(/^No hay transcripción/);
+  });
+
+  it('informa qué se guardó y qué hizo la IA al cerrar', () => {
+    expect(resultadoCierre({ conServidor: false })).toMatchObject({ tipo: 'success' });
+    expect(resultadoCierre({ conServidor: true, conTranscripcion: false })).toMatchObject({
+      tipo: 'warning',
+      mensaje: expect.stringMatching(/sin transcripción/),
+    });
+    const conNotas = resultadoCierre({
+      conServidor: true,
+      conTranscripcion: true,
+      respuesta: { archivo: { nombre: 'Pauta - Transcripción entrevista.txt' }, notas: { notas: 'x' } },
+    });
+    expect(conNotas).toEqual({ tipo: 'success', mensaje: expect.stringMatching(/«Pauta - Transcripción entrevista\.txt».*propuso notas/) });
+    const sinNotas = resultadoCierre({ conServidor: true, conTranscripcion: true, respuesta: { notas: null, errorNotas: 'La IA no respondió.' } });
+    expect(sinNotas).toEqual({ tipo: 'warning', mensaje: expect.stringMatching(/no generó las notas por competencia: La IA no respondió\./) });
   });
 
   it('sabe si la entrevista tiene contenido', () => {
