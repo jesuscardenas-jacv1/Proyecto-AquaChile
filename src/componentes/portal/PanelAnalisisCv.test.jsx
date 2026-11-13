@@ -27,6 +27,7 @@ const crearApi = (cambios = {}) => ({
   conectado: () => true,
   estado: vi.fn().mockResolvedValue({ disponible: true }),
   obtenerAnalisis: vi.fn().mockResolvedValue(null),
+  obtenerAnalisisSolicitud: vi.fn().mockResolvedValue(null),
   analizarPostulacion: vi.fn().mockResolvedValue(analisis),
   ...cambios,
 });
@@ -52,10 +53,13 @@ describe('PanelAnalisisCv', () => {
     expect(screen.getByText(/de cumplimiento de los requisitos de la oferta según el CV/)).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: /cumplimiento de requisitos/i })).toHaveAttribute('aria-valuenow', '60');
     expect(screen.getByText(/Obligatorios cumplidos: 1 de 3/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Requisitos que respalda el CV/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Brechas para el cargo/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Confirmar en la entrevista/ })).toBeInTheDocument();
     expect(screen.getByText('2 años de experiencia en plantas de proceso')).toBeInTheDocument();
     expect(screen.getByText('1 año en planta')).toBeInTheDocument();
     expect(screen.getByText('Deseable')).toBeInTheDocument();
-    expect(screen.getByText(/Confirmar en la entrevista/)).toBeInTheDocument();
+    expect(screen.getByText(/· Parcial/)).toBeInTheDocument();
     expect(screen.getByText(/¿Cómo se calcula\?/)).toBeInTheDocument();
     expect(screen.getByText('¿Ha operado grúa horquilla?')).toBeInTheDocument();
     expect(screen.getByText('Hay un período de 2024 sin información.')).toBeInTheDocument();
@@ -89,6 +93,36 @@ describe('PanelAnalisisCv', () => {
     expect(await screen.findByText(/3 años en planta/)).toBeInTheDocument();
     expect(screen.getByText(/No la menciona/)).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('desde una solicitud, la psicóloga ve el análisis de la postulación de origen, sin poder pedir otro', async () => {
+    const api = crearApi({ obtenerAnalisisSolicitud: vi.fn().mockResolvedValue(analisis) });
+    render(<PanelAnalisisCv solicitudId={12} puedeAnalizar api={api} />);
+
+    expect(await screen.findByText('60 %')).toBeInTheDocument();
+    expect(api.obtenerAnalisisSolicitud).toHaveBeenCalledWith(12);
+    expect(api.obtenerAnalisis).not.toHaveBeenCalled();
+    expect(screen.getByText('No la menciona')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /analizar/i })).toBeNull();
+  });
+
+  it('desde una solicitud sin análisis lo indica', async () => {
+    render(<PanelAnalisisCv solicitudId={12} api={crearApi()} />);
+    expect(await screen.findByText(/no tiene análisis de CV/)).toBeInTheDocument();
+  });
+
+  it('sin brechas lo dice en lugar de dejar la sección vacía', async () => {
+    const completo = {
+      ...analisis,
+      resultado: {
+        ...analisis.resultado,
+        criterios: [{ requisito: 'Título técnico', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Técnico' }],
+        cumplimiento: { porcentaje: 100, obligatoriosCumplidos: 1, obligatoriosTotal: 1, fuente: 'oferta' },
+      },
+    };
+    render(<PanelAnalisisCv postulacion={postulacion} api={crearApi({ obtenerAnalisis: vi.fn().mockResolvedValue(completo) })} />);
+    expect(await screen.findByText(/No se detectaron brechas/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Confirmar en la entrevista/ })).toBeNull();
   });
 
   it('muestra el error del servidor si el análisis falla', async () => {

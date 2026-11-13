@@ -144,6 +144,23 @@ describe('API integrada (Hito 2)', () => {
       const guardado = await pedir(ruta, { rol: 'jefatura' });
       assert.deepEqual([guardado.status, guardado.datos.analisis.resultado.resumen], [200, analisis.resumen]);
       assert.equal((await pedir(ruta, { rol: 'evaluador' })).status, 403);
+
+      // Al pasar a evaluación, la psicóloga ve el análisis desde la solicitud (solo lectura).
+      const sinAnalisis = await pedir('/ia/solicitudes/1/analisis', { rol: 'evaluador' });
+      assert.equal(sinAnalisis.status, 404);
+      const pasada = await pedir(`/postulaciones/${id}`, {
+        rol: 'analista',
+        metodo: 'PATCH',
+        cuerpo: { estado: 'En evaluación', solicitudId: 1 },
+      });
+      assert.equal(pasada.status, 200);
+      const paraPsicologa = await pedir('/ia/solicitudes/1/analisis', { rol: 'evaluador' });
+      assert.deepEqual(
+        [paraPsicologa.status, paraPsicologa.datos.analisis.postulacionId, paraPsicologa.datos.analisis.resultado.cumplimiento.porcentaje],
+        [200, id, 75],
+      );
+      assert.equal((await pedir('/ia/solicitudes/1/analisis', { rol: 'jefatura' })).status, 200);
+      assert.equal((await pedir('/ia/solicitudes/1/analisis')).status, 401);
     });
 
     it('registra el consumo de cada llamada y el administrador lo ve en /admin/uso-ia', async () => {

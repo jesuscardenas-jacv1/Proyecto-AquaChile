@@ -126,7 +126,34 @@ describe('DetalleSolicitud', () => {
     const conServidor = (estado) => {
       vi.spyOn(apiIa, 'conectado').mockReturnValue(true);
       vi.spyOn(apiIa, 'estado').mockResolvedValue(estado);
+      vi.spyOn(apiIa, 'obtenerAnalisisSolicitud').mockResolvedValue(null);
     };
+
+    it('la psicóloga ve el porcentaje y las brechas del CV antes de la entrevista', async () => {
+      conServidor({ disponible: true, voz: false });
+      apiIa.obtenerAnalisisSolicitud.mockResolvedValue({
+        postulacionId: 4,
+        descriptor: 'DC_Monitor_Produccion.pdf',
+        creadoEn: '2026-11-12 10:00:00',
+        resultado: {
+          resumen: 'Técnico con un año en planta.',
+          criterios: [
+            { requisito: 'Técnico de nivel medio', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Técnico (2023)' },
+            { requisito: '2 años en plantas de proceso', tipo: 'obligatorio', nivel: 'parcial', evidencia: 'Tiene 1 de los 2 años pedidos' },
+          ],
+          cumplimiento: { porcentaje: 75, obligatoriosCumplidos: 1, obligatoriosTotal: 2, fuente: 'oferta' },
+          preguntasSugeridas: [],
+          alertas: [],
+        },
+      });
+      renderDetalle('2', datosCon(2, { etapa: 'agendada' }));
+
+      expect(await screen.findByText('75 %')).toBeInTheDocument();
+      expect(apiIa.obtenerAnalisisSolicitud).toHaveBeenCalledWith(2);
+      expect(screen.getByRole('heading', { name: /brechas para el cargo/i })).toBeInTheDocument();
+      expect(screen.getByText('Tiene 1 de los 2 años pedidos')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /analizar cv/i })).toBeNull();
+    });
 
     it('con la entrevista realizada transcribe y lleva las notas al borrador', async () => {
       conServidor({ disponible: true, voz: true });

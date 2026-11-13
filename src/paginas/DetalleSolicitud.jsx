@@ -12,6 +12,7 @@ import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
 import EntrevistaIa from '../componentes/evaluacion/EntrevistaIa';
 import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
+import PanelAnalisisCv from '../componentes/portal/PanelAnalisisCv';
 import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
 import { apiIa, useEstadoIa } from '../servicios/apiIa';
@@ -312,6 +313,9 @@ export default function DetalleSolicitud() {
           )}
         </div>
       </section>
+
+      {/* Análisis del CV hecho en Postulaciones: la psicóloga lo revisa antes de la entrevista. */}
+      <PanelAnalisisCv solicitudId={solicitud.id} api={apiIa} />
 
       <PanelDocumentos
         solicitud={solicitud}

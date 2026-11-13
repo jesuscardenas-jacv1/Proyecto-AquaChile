@@ -61,6 +61,22 @@ router.get('/postulaciones/:id/analisis', requerirRol('analista', 'jefatura'), (
 });
 
 /**
+ * GET /api/ia/solicitudes/:id/analisis — análisis del CV de la postulación que dio origen a la
+ * solicitud, para que la psicóloga prepare la entrevista (también lo ven el analista y la jefatura).
+ * Si la solicitud no vino del portal o su postulación no tiene análisis, responde 404.
+ */
+router.get('/solicitudes/:id/analisis', requerirRol('analista', 'evaluador', 'jefatura'), (req, res) => {
+  const fila = db
+    .prepare(
+      `SELECT a.* FROM analisis_cv a JOIN postulaciones p ON p.id = a.postulacion_id
+       WHERE p.solicitud_id = ? ORDER BY a.creado_en DESC LIMIT 1`,
+    )
+    .get(Number(req.params.id));
+  if (!fila) return res.status(404).json({ error: 'Esta solicitud no tiene análisis de CV.' });
+  return res.json({ ok: true, analisis: formatearAnalisis(fila) });
+});
+
+/**
  * POST /api/ia/postulaciones/:id/analisis
  * Analiza el CV de la postulación contra el descriptor del cargo y guarda el resultado.
  */

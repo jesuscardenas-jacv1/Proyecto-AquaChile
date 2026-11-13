@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { nivelRequisito, textoFuente, tramoCumplimiento } from '../../dominio/analisisCv';
+import { agruparRequisitos, nivelRequisito, textoFuente, tramoCumplimiento } from '../../dominio/analisisCv';
 import { formatearFecha } from '../../dominio/formateo';
 import { apiIa, useIaDisponible } from '../../servicios/apiIa';
 
@@ -23,12 +23,46 @@ function Lista({ titulo, icono, elementos, vacio, renderizar }) {
   );
 }
 
+/** Un grupo de requisitos (cumple, brechas o por confirmar) con el detalle de cada uno. */
+function GrupoRequisitos({ titulo, icono, criterios, vacio = null, mostrarNivel = false }) {
+  if (!criterios.length && !vacio) return null;
+  return (
+    <div className="mt-3">
+      <h4 className="h6 small fw-semibold mb-1">
+        <i className={`bi ${icono} me-1`} aria-hidden="true" />
+        {titulo}
+      </h4>
+      {criterios.length ? (
+        <ul className="list-unstyled small mb-0">
+          {criterios.map((criterio, indice) => {
+            const nivel = nivelRequisito(criterio.nivel);
+            return (
+              <li key={`${criterio.requisito}-${indice}`} className="d-flex gap-2 py-1 border-top">
+                <i className={`bi ${nivel.icono} ${nivel.clase}`} aria-hidden="true" />
+                <div>
+                  <strong>{criterio.requisito}</strong>
+                  {criterio.tipo === 'deseable' ? <span className="badge text-bg-light border ms-1">Deseable</span> : null}
+                  {mostrarNivel ? <span className="ms-1 text-secondary">· {nivel.etiqueta}</span> : null}
+                  {criterio.evidencia ? <div className="text-secondary">{criterio.evidencia}</div> : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="small text-secondary mb-0">{vacio}</p>
+      )}
+    </div>
+  );
+}
+
 /**
  * Porcentaje de cumplimiento de los requisitos y el detalle por requisito. La IA clasifica cada
  * requisito; el número lo calcula el servidor con reglas fijas que se explican aquí mismo.
  */
 function Cumplimiento({ criterios, cumplimiento }) {
   const tramo = tramoCumplimiento(cumplimiento?.porcentaje);
+  const grupos = agruparRequisitos(criterios);
   return (
     <div>
       {tramo ? (
@@ -58,24 +92,23 @@ function Cumplimiento({ criterios, cumplimiento }) {
         </p>
       )}
 
-      {criterios.length ? (
-        <ul className="list-unstyled small mb-0">
-          {criterios.map((criterio, indice) => {
-            const nivel = nivelRequisito(criterio.nivel);
-            return (
-              <li key={indice} className="d-flex gap-2 py-1 border-top">
-                <i className={`bi ${nivel.icono} ${nivel.clase}`} aria-hidden="true" />
-                <div>
-                  <strong>{criterio.requisito}</strong>
-                  {criterio.tipo === 'deseable' ? <span className="badge text-bg-light border ms-1">Deseable</span> : null}
-                  <span className="ms-1 text-secondary">· {nivel.etiqueta}</span>
-                  {criterio.evidencia ? <div className="text-secondary">{criterio.evidencia}</div> : null}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      <GrupoRequisitos
+        titulo="Requisitos que respalda el CV"
+        icono="bi-check2-circle text-success"
+        criterios={grupos.cumple}
+      />
+      <GrupoRequisitos
+        titulo="Brechas para el cargo"
+        icono="bi-exclamation-triangle text-warning"
+        criterios={grupos.brechas}
+        vacio="No se detectaron brechas con los requisitos del cargo."
+        mostrarNivel
+      />
+      <GrupoRequisitos
+        titulo="Confirmar en la entrevista"
+        icono="bi-question-circle text-info"
+        criterios={grupos.porConfirmar}
+      />
 
       <details className="small text-secondary mt-2">
         <summary>¿Cómo se calcula?</summary>
@@ -93,7 +126,9 @@ function Cumplimiento({ criterios, cumplimiento }) {
  * Es un apoyo para preparar la entrevista: no recomienda contratar ni descartar.
  * Solo aparece si el servidor tiene la IA configurada. La jefatura ve el último análisis.
  */
-export default function PanelAnalisisCv({ postulacion, puedeAnalizar = false, api = apiIa }) {
+export default function PanelAnalisisCv({ postulacion, solicitudId = null, puedeAnalizar = false, api = apiIa }) {
+  // Desde una solicitud (psicóloga) se muestra el análisis de la postulación de origen, solo lectura.
+  const desdeSolicitud = solicitudId !== null;
   const disponible = useIaDisponible(api);
   const [analisis, setAnalisis] = useState(null);
   const [cargando, setCargando] = useState(false);
@@ -104,15 +139,14 @@ export default function PanelAnalisisCv({ postulacion, puedeAnalizar = false, ap
     if (!disponible) return undefined;
     let vigente = true;
     setCargando(true);
-    api
-      .obtenerAnalisis(postulacion.id)
+    (desdeSolicitud ? api.obtenerAnalisisSolicitud(solicitudId) : api.obtenerAnalisis(postulacion.id))
       .then((guardado) => vigente && setAnalisis(guardado))
       .catch((excepcion) => vigente && setError(excepcion.message))
       .finally(() => vigente && setCargando(false));
     return () => {
       vigente = false;
     };
-  }, [api, disponible, postulacion.id]);
+  }, [api, disponible, desdeSolicitud, solicitudId, postulacion?.id]);
 
   if (!disponible) return null;
 
@@ -137,7 +171,7 @@ export default function PanelAnalisisCv({ postulacion, puedeAnalizar = false, ap
           <i className="bi bi-stars me-1" aria-hidden="true" />
           Análisis del CV con IA
         </h3>
-        {puedeAnalizar ? (
+        {puedeAnalizar && !desdeSolicitud ? (
           <button type="button" className="btn btn-sm btn-outline-primary" onClick={analizar} disabled={analizando || cargando}>
             {analizando ? (
               <span className="spinner-border spinner-border-sm me-1" aria-hidden="true" />
@@ -222,7 +256,9 @@ export default function PanelAnalisisCv({ postulacion, puedeAnalizar = false, ap
         <p className="small text-secondary mb-0">
           {puedeAnalizar
             ? 'Compara el CV con los requisitos del cargo, calcula el porcentaje de cumplimiento y propone preguntas para la entrevista.'
-            : 'Esta postulación aún no tiene análisis.'}
+            : desdeSolicitud
+              ? 'Este candidato no tiene análisis de CV (la solicitud no viene del portal o no se analizó su CV en Postulaciones).'
+              : 'Esta postulación aún no tiene análisis.'}
         </p>
       ) : null}
     </section>
