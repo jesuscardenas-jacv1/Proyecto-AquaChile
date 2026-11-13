@@ -1,4 +1,4 @@
-import { agruparCriterios } from '../../dominio/entrevista';
+import { requisitosParaEntrevista } from '../../dominio/entrevista';
 import { nivelRequisito, tramoCumplimiento } from '../../dominio/analisisCv';
 
 /** Anillo de progreso con el porcentaje de cumplimiento. */
@@ -45,13 +45,14 @@ function ListaCriterios({ criterios, vacio }) {
   return (
     <ul className="list-unstyled small mb-0 d-flex flex-column gap-2">
       {criterios.map((criterio, indice) => {
-        const nivel = nivelRequisito(criterio.nivel);
+        // Sin nivel: brecha de un análisis anterior a los criterios (no distingue parcial de sin evidencia).
+        const nivel = criterio.nivel ? nivelRequisito(criterio.nivel) : { icono: 'bi-dash-circle', clase: 'text-warning' };
         return (
           <li key={indice} className="d-flex gap-2">
             <i className={`bi ${nivel.icono} ${nivel.clase} mt-1`} aria-hidden="true" />
             <div>
               <span className="fw-semibold">{criterio.requisito}</span>
-              {criterio.nivel !== 'cumple' ? <span className="text-secondary"> · {nivel.etiqueta}</span> : null}
+              {nivel.etiqueta && criterio.nivel !== 'cumple' ? <span className="text-secondary"> · {nivel.etiqueta}</span> : null}
               {criterio.evidencia ? <div className="text-secondary fst-italic">“{criterio.evidencia}”</div> : null}
             </div>
           </li>
@@ -75,7 +76,7 @@ export default function ResumenCvLateral({
   alPlegar,
 }) {
   const resultado = analisis?.resultado;
-  const { fortalezas, brechas, porConfirmar } = agruparCriterios(resultado?.criterios);
+  const { fortalezas, brechas, porConfirmar, anterior } = requisitosParaEntrevista(resultado);
   const cumplimiento = resultado?.cumplimiento;
   const tramo = tramoCumplimiento(cumplimiento?.porcentaje);
   const preguntas = resultado?.preguntasSugeridas ?? [];
@@ -115,6 +116,10 @@ export default function ResumenCvLateral({
                       {cumplimiento.obligatoriosCumplidos} de {cumplimiento.obligatoriosTotal} obligatorios
                     </div>
                   </>
+                ) : anterior ? (
+                  <div className="text-secondary">
+                    Análisis anterior, sin porcentaje: el analista puede volver a analizar el CV para calcularlo.
+                  </div>
                 ) : (
                   <div className="text-secondary">Sin porcentaje: no hay requisitos comprobables con el CV.</div>
                 )}

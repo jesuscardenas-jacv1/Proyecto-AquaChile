@@ -94,6 +94,9 @@ describe('PanelEntrevista', () => {
     expect(screen.getByRole('checkbox', { name: '¿Ha liderado equipos?' })).toBeChecked();
     expect(screen.getByLabelText('Notas de la entrevista')).toHaveValue('Llegó puntual.');
     expect(api.obtener).toHaveBeenCalledWith(2);
+    // Las notas van antes que la transcripción: es lo que la psicóloga escribe durante la entrevista.
+    const [notas, transcripcion] = ['Mis notas', 'Transcripción en vivo'].map((titulo) => screen.getByRole('heading', { name: titulo }));
+    expect(notas.compareDocumentPosition(transcripcion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     await usuario.type(screen.getByLabelText('Notas de la entrevista'), ' Buena disposición.');
     await waitFor(() =>

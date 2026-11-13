@@ -59,6 +59,26 @@ describe('ResumenCvLateral', () => {
     expect(screen.getByText(/no viene del portal/)).toBeInTheDocument();
   });
 
+  it('muestra un análisis anterior al porcentaje con sus coincidencias y brechas', () => {
+    render(
+      <ResumenCvLateral
+        analisis={{
+          resultado: {
+            resumen: 'Desarrollador de software que postula a RR.HH.',
+            coincidencias: [{ requisito: 'Título profesional', evidencia: 'Ingeniero en Informática' }],
+            brechas: [{ requisito: 'Experiencia en reclutamiento', detalle: 'No la menciona' }],
+            preguntasSugeridas: ['¿Qué le motiva a postular?'],
+            alertas: [],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/Análisis anterior, sin porcentaje/)).toBeInTheDocument();
+    expect(screen.getByText('Título profesional')).toBeInTheDocument();
+    expect(screen.getByText('“No la menciona”')).toBeInTheDocument();
+    expect(screen.getAllByText('1')).toHaveLength(2);
+  });
+
   it('sin requisitos comprobables no inventa un porcentaje', () => {
     render(
       <ResumenCvLateral

@@ -16,8 +16,8 @@ import NotasEntrevistaPanel from '../componentes/entrevista/NotasEntrevistaPanel
 /**
  * Panel de entrevista de la psicóloga (se abre desde la tarjeta "Entrevista Agendada" del Planner).
  *
- * - Izquierda: transcripción en vivo (Azure AI Speech, con el consentimiento del postulante) y
- *   "Mis notas", que se guardan solas.
+ * - Izquierda: "Mis notas", que se guardan solas (arriba: es lo que la psicóloga escribe), y la
+ *   transcripción en vivo (Azure AI Speech, con el consentimiento del postulante), que avanza sola.
  * - Derecha: resumen del análisis del CV que hizo el analista con IA, con las preguntas sugeridas
  *   para ir marcando.
  * - Al terminar: guarda la transcripción como pauta, la IA propone notas por competencia, la
@@ -318,6 +318,13 @@ export default function PanelEntrevista({
         <div className="row g-3">
           <div className={lateralPlegado ? 'col-12' : 'col-12 col-lg-8'}>
             <div className="d-flex flex-column gap-3">
+              <NotasEntrevistaPanel
+                notas={notas}
+                alCambiar={cambiarNotas}
+                milisegundosActuales={segundos * 1000}
+                guardado={guardado}
+                ahora={ahora}
+              />
               <TranscripcionEnVivo
                 disponible={conVoz}
                 estado={estado}
@@ -336,13 +343,6 @@ export default function PanelEntrevista({
                 alReanudar={comenzar}
                 nivel={nivel}
                 error={errorVoz}
-              />
-              <NotasEntrevistaPanel
-                notas={notas}
-                alCambiar={cambiarNotas}
-                milisegundosActuales={segundos * 1000}
-                guardado={guardado}
-                ahora={ahora}
               />
             </div>
           </div>

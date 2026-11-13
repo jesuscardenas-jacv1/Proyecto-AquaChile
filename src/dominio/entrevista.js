@@ -26,6 +26,22 @@ export function agruparCriterios(criterios = []) {
   };
 }
 
+/**
+ * Requisitos del análisis del CV para el panel de entrevista. Los análisis guardados antes del
+ * porcentaje de cumplimiento no traen `criterios` sino `coincidencias` y `brechas`: se muestran
+ * igual (`anterior: true`), sin nivel por requisito.
+ */
+export function requisitosParaEntrevista(resultado) {
+  if (!resultado) return { fortalezas: [], brechas: [], porConfirmar: [], anterior: false };
+  if (Array.isArray(resultado.criterios)) return { ...agruparCriterios(resultado.criterios), anterior: false };
+  return {
+    fortalezas: (resultado.coincidencias ?? []).map(({ requisito, evidencia }) => ({ requisito, nivel: 'cumple', evidencia })),
+    brechas: (resultado.brechas ?? []).map(({ requisito, detalle }) => ({ requisito, nivel: null, evidencia: detalle })),
+    porConfirmar: [],
+    anterior: true,
+  };
+}
+
 /** Orden de aparición de los hablantes: "Guest-2" → 2. Sin id → null. */
 const numeroHablante = (id) => {
   const coincidencia = /(\d+)\s*$/.exec(id ?? '');

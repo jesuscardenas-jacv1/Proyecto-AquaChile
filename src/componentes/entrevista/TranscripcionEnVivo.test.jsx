@@ -45,6 +45,7 @@ describe('TranscripcionEnVivo', () => {
       />,
     );
     expect(screen.getByText('[00:01]')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Conversación transcrita' })).not.toHaveClass('compacta');
     expect(screen.getByText('No directamente, pero coordino turnos.')).toBeInTheDocument();
     expect(screen.getAllByText('Postulante').length).toBeGreaterThan(0);
     expect(screen.getByText('y además …')).toBeInTheDocument();
@@ -67,8 +68,9 @@ describe('TranscripcionEnVivo', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Se perdió la conexión.');
   });
 
-  it('sin voz en el servidor invita a tomar notas a mano', () => {
+  it('sin voz en el servidor invita a tomar notas a mano, en una caja compacta', () => {
     render(<TranscripcionEnVivo disponible={false} />);
+    expect(screen.getByRole('list', { name: 'Conversación transcrita' })).toHaveClass('compacta');
     expect(screen.getByText(/no está configurada en el servidor/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /comenzar/i })).toBeNull();
   });

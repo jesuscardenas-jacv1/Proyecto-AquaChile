@@ -8,6 +8,7 @@ import {
   hablantesDetectados,
   marcaTiempo,
   nombreHablante,
+  requisitosParaEntrevista,
   textoTranscripcion,
   tiempoDesde,
   tieneContenido,
@@ -32,6 +33,23 @@ describe('dominio de la entrevista', () => {
     expect(grupos.brechas.map((c) => c.requisito)).toEqual(['Experiencia', 'Licencia']);
     expect(grupos.porConfirmar.map((c) => c.requisito)).toEqual(['Turnos']);
     expect(agruparCriterios(undefined).fortalezas).toEqual([]);
+  });
+
+  it('lee también los análisis anteriores al porcentaje (coincidencias y brechas)', () => {
+    const anterior = requisitosParaEntrevista({
+      coincidencias: [{ requisito: 'Título', evidencia: 'Ingeniero' }],
+      brechas: [{ requisito: 'Liderazgo', detalle: 'Sin personas a cargo' }],
+      preguntasSugeridas: ['¿?'],
+    });
+    expect(anterior.anterior).toBe(true);
+    expect(anterior.fortalezas).toEqual([{ requisito: 'Título', nivel: 'cumple', evidencia: 'Ingeniero' }]);
+    expect(anterior.brechas).toEqual([{ requisito: 'Liderazgo', nivel: null, evidencia: 'Sin personas a cargo' }]);
+    expect(requisitosParaEntrevista({ criterios: [{ requisito: 'X', nivel: 'cumple' }] })).toMatchObject({
+      anterior: false,
+      fortalezas: [{ requisito: 'X' }],
+    });
+    expect(requisitosParaEntrevista(null).anterior).toBe(false);
+    expect(requisitosParaEntrevista({}).fortalezas).toEqual([]);
   });
 
   it('nombra a los hablantes por su rol o por su número', () => {

@@ -1819,8 +1819,12 @@ h1, h2, h3, h4, h5, h6,
 
 /* ─── Panel de entrevista (/planner/entrevista/:id) ─────────────────────────────── */
 .panel-entrevista-dialogo {
-  height: clamp(16rem, 42vh, 30rem);
+  height: clamp(14rem, 36vh, 26rem);
   overflow-y: auto;
+}
+
+.panel-entrevista-dialogo.compacta {
+  height: auto;
 }
 
 .panel-entrevista-turno {
