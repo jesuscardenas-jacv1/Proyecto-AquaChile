@@ -153,6 +153,17 @@ describe('DetalleSolicitud', () => {
       expect(screen.getByRole('heading', { name: /brechas para el cargo/i })).toBeInTheDocument();
       expect(screen.getByText('Tiene 1 de los 2 años pedidos')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /analizar cv/i })).toBeNull();
+      // Con la entrevista agendada, la guía queda junto a las herramientas de la entrevista.
+      expect(await screen.findByText(/Guía para la entrevista/)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /brechas a indagar/i })).toBeInTheDocument();
+    });
+
+    it('sin entrevista agendada o realizada no muestra la guía', async () => {
+      conServidor({ disponible: true, voz: false });
+      renderDetalle('3');
+      // El panel del análisis sí consulta (una vez); la guía no aparece fuera de la entrevista.
+      await vi.waitFor(() => expect(apiIa.obtenerAnalisisSolicitud).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText(/Guía para la entrevista/)).toBeNull();
     });
 
     it('con la entrevista realizada transcribe y lleva las notas al borrador', async () => {

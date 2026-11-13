@@ -43,3 +43,23 @@ export function agruparRequisitos(criterios = []) {
     porConfirmar: criterios.filter((criterio) => criterio.nivel === 'no-evaluable'),
   };
 }
+
+/**
+ * Lo que la psicóloga necesita a mano durante la entrevista, a partir del análisis del CV:
+ * brechas con lo que falta, lo que hay que confirmar, preguntas sugeridas y datos a confirmar.
+ * Acepta también los análisis guardados antes de los criterios (con `brechas`).
+ */
+export function guiaEntrevista(resultado) {
+  if (!resultado) return null;
+  const grupos = resultado.criterios ? agruparRequisitos(resultado.criterios) : null;
+  const brechas = grupos
+    ? grupos.brechas.map(({ requisito, tipo, evidencia }) => ({ requisito, tipo, detalle: evidencia }))
+    : (resultado.brechas ?? []).map(({ requisito, detalle }) => ({ requisito, tipo: 'obligatorio', detalle }));
+  return {
+    porcentaje: resultado.cumplimiento?.porcentaje ?? null,
+    brechas,
+    porConfirmar: grupos ? grupos.porConfirmar.map(({ requisito }) => requisito) : [],
+    preguntas: resultado.preguntasSugeridas ?? [],
+    alertas: resultado.alertas ?? [],
+  };
+}
