@@ -51,7 +51,9 @@ describe('TarjetaPlanner', () => {
     expect(screen.getByRole('link', { name: 'Ana Pérez' })).toHaveAttribute('href', '/solicitudes/12');
     unmount();
     montar({ editable: true, etapa: 'realizada' });
-    expect(screen.queryByRole('link', { name: /panel de entrevista/i })).toBeNull();
+    // Ya realizada, el panel sigue a mano para procesar lo que se grabó después.
+    expect(screen.queryByRole('link', { name: /abrir panel de entrevista/i })).toBeNull();
+    expect(screen.getByRole('link', { name: /ver panel de entrevista/i })).toHaveAttribute('href', '/planner/entrevista/12');
   });
 
   it('para la jefatura (solo lectura) no muestra el enlace ni acciones', () => {

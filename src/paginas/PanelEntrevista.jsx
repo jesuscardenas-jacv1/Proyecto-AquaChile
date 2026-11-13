@@ -2,8 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDatos } from '../datos/DatosContext';
 import { etapaDeSolicitud, textoEntrevista } from '../dominio/planner';
-import { agregarLinea, citaParaNotas, competenciasConNotas, marcaTiempo, textoTranscripcion } from '../dominio/entrevista';
+import {
+  agregarLinea,
+  citaParaNotas,
+  competenciasConNotas,
+  confirmacionCierre,
+  marcaTiempo,
+  resultadoCierre,
+  textoTranscripcion,
+} from '../dominio/entrevista';
 import { COMPETENCIAS } from '../datos/constantes';
+
 import { apiEntrevista } from '../servicios/apiEntrevista';
 import { useEstadoIa } from '../servicios/apiIa';
 import { iniciarTranscripcionEnVivo, puedeTranscribirEnVivo } from '../servicios/transcriptorVivo';
@@ -23,12 +32,20 @@ import NotasEntrevistaPanel from '../componentes/entrevista/NotasEntrevistaPanel
  * - Al terminar: guarda la transcripción como pauta, la IA propone notas por competencia, la
  *   entrevista pasa a "Entrevista Realizada" y se abre la solicitud para registrar la evaluación.
  */
+/** Texto del botón de cierre según la etapa y si hay IA en el servidor. */
+function textoBotonCierre({ agendada, conIa }) {
+  if (agendada) return conIa ? 'Terminar y generar notas por competencia (IA)' : 'Terminar entrevista';
+  return conIa ? 'Guardar transcripción y generar notas (IA)' : 'Guardar transcripción';
+}
+
 export default function PanelEntrevista({
   api = apiEntrevista,
   transcribir = iniciarTranscripcionEnVivo,
   transcripcionPosible = puedeTranscribirEnVivo,
   estadoIa: estadoInyectado,
   retardoGuardado = 1500,
+  // Si en este tiempo de grabación no llega ninguna frase, se avisa (micrófono o fuente de audio).
+  segundosSinFrases = 30,
 }) {
   const { id } = useParams();
   const solicitudId = Number(id);
@@ -61,6 +78,8 @@ export default function PanelEntrevista({
   const [errorCierre, setErrorCierre] = useState(null);
 
   const control = useRef(null);
+  // Inicio de la grabación en curso (segundos y frases), para avisar si no se reconoce voz.
+  const [sesion, setSesion] = useState(null);
   // Lo último de la entrevista, para guardar desde temporizadores y al salir sin depender del render.
   const actual = useRef({ notas, transcripcion: segmentos, preguntas, hablantes, segundosAudio: segundos });
   actual.current = { notas, transcripcion: segmentos, preguntas, hablantes, segundosAudio: segundos };
@@ -183,6 +202,7 @@ export default function PanelEntrevista({
           detenerGrabacion();
         },
       });
+      setSesion({ segundos: actual.current.segundosAudio, frases: actual.current.transcripcion.length });
       setEstado('grabando');
     } catch (error) {
       control.current = null;
@@ -215,9 +235,14 @@ export default function PanelEntrevista({
     }
   };
 
+  /**
+   * Cierra la entrevista: guarda la pauta y pide las notas a la IA. Con la entrevista agendada
+   * además la marca como realizada; ya realizada, sirve para procesar lo que se grabó después.
+   */
   const terminarEntrevista = async () => {
+    const mueveEtapa = etapa === 'agendada';
     const confirmado = window.confirm(
-      '¿Terminar la entrevista? Se detiene la grabación, la transcripción se guarda como pauta y la entrevista pasa a "Entrevista Realizada".',
+      confirmacionCierre({ frases: actual.current.transcripcion.length, segundos: actual.current.segundosAudio, mueveEtapa }),
     );
     if (!confirmado) return;
     setCerrando(true);
@@ -228,9 +253,10 @@ export default function PanelEntrevista({
       if (!(await guardarAhora())) throw new Error('No se pudieron guardar las notas. Revisa la conexión e intenta de nuevo.');
 
       let notasParaBorrador = actual.current.notas;
+      let respuesta = null;
+      const transcripcion = textoTranscripcion(actual.current.transcripcion, actual.current.hablantes);
       if (api.conectado()) {
-        const transcripcion = textoTranscripcion(actual.current.transcripcion, actual.current.hablantes);
-        const respuesta = await api.cerrar(solicitudId, {
+        respuesta = await api.cerrar(solicitudId, {
           transcripcion,
           notas: actual.current.notas,
           segundosAudio: actual.current.segundosAudio,
@@ -240,15 +266,11 @@ export default function PanelEntrevista({
         notasParaBorrador = respuesta.notas?.notas || notasParaBorrador || transcripcion;
       }
 
-      if (etapa === 'agendada' && !(await moverEtapa(solicitudId, 'realizada'))) {
+      if (mueveEtapa && !(await moverEtapa(solicitudId, 'realizada'))) {
         throw new Error('No se pudo marcar la entrevista como realizada.');
       }
-      navegar(`/solicitudes/${solicitudId}`, {
-        state: {
-          mensaje: 'Entrevista terminada. Sus notas quedaron en el borrador de la evaluación: revísalas antes de generar.',
-          notasEntrevista: notasParaBorrador,
-        },
-      });
+      const { mensaje, tipo } = resultadoCierre({ respuesta, conTranscripcion: Boolean(transcripcion), conServidor: api.conectado() });
+      navegar(`/solicitudes/${solicitudId}`, { state: { mensaje, tipo, notasEntrevista: notasParaBorrador } });
     } catch (error) {
       setErrorCierre(error.message);
       setCerrando(false);
@@ -272,6 +294,9 @@ export default function PanelEntrevista({
 
   const conVoz = vozDisponible && api.conectado();
   const grabando = estado === 'grabando' || estado === 'iniciando';
+  const sinFrases =
+    estado === 'grabando' && sesion && segundos - sesion.segundos >= segundosSinFrases && segmentos.length === sesion.frases;
+  const sePuedeCerrar = etapa === 'agendada' || (etapa === 'realizada' && (segmentos.length > 0 || notas.trim()));
   const cubiertas = competenciasConNotas(notas).length;
 
   return (
@@ -303,10 +328,26 @@ export default function PanelEntrevista({
 
       {etapa !== 'agendada' ? (
         <Mensaje tipo="info">
-          Esta entrevista ya no está en «Entrevista Agendada». Puedes revisar y completar tus notas; la evaluación se registra
-          en la <Link to={`/solicitudes/${solicitudId}`}>solicitud</Link>.
+          Esta entrevista ya no está en «Entrevista Agendada». Puedes completar tus notas o seguir grabando y luego{' '}
+          {etapa === 'realizada' ? 'guardar la transcripción y generar las notas con el botón de abajo' : 'revisarlas'}; la
+          evaluación se registra en la <Link to={`/solicitudes/${solicitudId}`}>solicitud</Link>.
         </Mensaje>
       ) : null}
+      <div aria-live="assertive">
+        {errorVoz ? (
+          <Mensaje tipo="warning" alCerrar={() => setErrorVoz(null)}>
+            <i className="bi bi-mic-mute me-1" aria-hidden="true" />
+            {errorVoz}
+          </Mensaje>
+        ) : null}
+        {sinFrases ? (
+          <Mensaje tipo="warning">
+            <i className="bi bi-soundwave me-1" aria-hidden="true" />
+            Llevas {marcaTiempo((segundos - sesion.segundos) * 1000)} grabando y no se ha transcrito ninguna frase. Revisa que el
+            micrófono capte voz (el medidor debe moverse) y la fuente de audio elegida.
+          </Mensaje>
+        ) : null}
+      </div>
       {carga.error ? <Mensaje tipo="danger">No se pudo cargar la entrevista: {carga.error}</Mensaje> : null}
 
       {carga.cargando ? (
@@ -342,7 +383,6 @@ export default function PanelEntrevista({
                 alPausar={detenerGrabacion}
                 alReanudar={comenzar}
                 nivel={nivel}
-                error={errorVoz}
               />
             </div>
           </div>
@@ -384,18 +424,14 @@ export default function PanelEntrevista({
         <button type="button" className="btn btn-outline-primary" onClick={guardarYSalir} disabled={cerrando}>
           Guardar y continuar después
         </button>
-        {etapa === 'agendada' ? (
+        {sePuedeCerrar ? (
           <button type="button" className="btn btn-primary" onClick={terminarEntrevista} disabled={cerrando || carga.cargando}>
             {cerrando ? (
               <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
             ) : (
               <i className="bi bi-stars me-2" aria-hidden="true" />
             )}
-            {cerrando
-              ? 'Terminando…'
-              : iaDisponible && api.conectado()
-                ? 'Terminar y generar notas por competencia (IA)'
-                : 'Terminar entrevista'}
+            {cerrando ? 'Terminando…' : textoBotonCierre({ agendada: etapa === 'agendada', conIa: iaDisponible && api.conectado() })}
           </button>
         ) : null}
       </footer>

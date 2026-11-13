@@ -59,6 +59,16 @@ describe('TranscripcionEnVivo', () => {
     expect(screen.getByRole('combobox', { name: 'Fuente de audio' })).toBeDisabled();
   });
 
+  it('con dos voces pide indicar quién es quién hasta que se asignan', () => {
+    const { rerender } = render(<TranscripcionEnVivo disponible estado="grabando" segmentos={segmentos} hablantes={{ 'Guest-2': 'Postulante' }} />);
+    expect(screen.getByText(/Indica quién es la psicóloga y quién el postulante/)).toBeInTheDocument();
+    rerender(
+      <TranscripcionEnVivo disponible estado="grabando" segmentos={segmentos} hablantes={{ 'Guest-1': 'Psicóloga', 'Guest-2': 'Postulante' }} />,
+    );
+    expect(screen.queryByText(/Indica quién es/)).toBeNull();
+    expect(screen.getByText('Quién es quién:')).toBeInTheDocument();
+  });
+
   it('en pausa permite reanudar y muestra el error', async () => {
     const usuario = userEvent.setup();
     const alReanudar = vi.fn();

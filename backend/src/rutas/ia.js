@@ -512,8 +512,16 @@ router.post(
 
     const transcripcion = texto(req.body?.transcripcion);
     const notasPsicologa = recortar(req.body?.notas, LARGO_MAXIMO_NOTAS);
+    // Al consumo va solo el audio que aún no se informó: la entrevista se puede cerrar más de una vez.
     const segundos = Math.min(Math.max(Number(req.body?.segundosAudio) || 0, 0), SEGUNDOS_MAXIMOS_ENTREVISTA);
-    if (segundos > 0) registrarVoz({ segundos, idioma: 'es-CL', enVivo: true });
+    const reportados = db.prepare('SELECT segundos_reportados FROM entrevistas WHERE solicitud_id = ?').get(id)?.segundos_reportados ?? 0;
+    if (segundos > reportados) {
+      registrarVoz({ segundos: segundos - reportados, idioma: 'es-CL', enVivo: true });
+      db.prepare(
+        `INSERT INTO entrevistas (solicitud_id, segundos_audio, segundos_reportados, actualizado_por) VALUES (?, ?, ?, ?)
+         ON CONFLICT(solicitud_id) DO UPDATE SET segundos_reportados = excluded.segundos_reportados`,
+      ).run(id, segundos, segundos, req.usuario.nombre ?? '');
+    }
 
     if (!transcripcion) {
       return res.json({ ok: true, transcripcion: '', notas: null, errorNotas: null, archivo: null });
