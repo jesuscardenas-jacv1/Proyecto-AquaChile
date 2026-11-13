@@ -43,6 +43,8 @@ export default function TranscripcionEnVivo({
   const [alFinal, setAlFinal] = useState(true);
   const activa = estado === 'grabando' || estado === 'iniciando';
   const detectados = hablantesDetectados(segmentos);
+  // Sin conversación todavía, la caja ocupa lo justo para no empujar el resto de la pantalla.
+  const compacta = !segmentos.length && !parcial;
 
   // Sigue la conversación mientras la psicóloga no haya subido a leer algo anterior.
   useEffect(() => {
@@ -157,7 +159,7 @@ export default function TranscripcionEnVivo({
       <div className="position-relative">
         <ol
           ref={lista}
-          className="list-unstyled mb-0 px-3 py-2 panel-entrevista-dialogo"
+          className={`list-unstyled mb-0 px-3 py-2 panel-entrevista-dialogo ${compacta ? 'compacta' : ''}`}
           onScroll={alDesplazar}
           aria-live="polite"
           aria-label="Conversación transcrita"
