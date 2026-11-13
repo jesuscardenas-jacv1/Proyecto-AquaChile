@@ -12,6 +12,7 @@ const { generarJson } = require('./cliente');
 const { bloqueDocumento } = require('./documentos');
 const { COMPETENCIAS, REGLAS_COMUNES, TAREAS } = require('./catalogo');
 const { configuracionDe } = require('./configuracion');
+const { calcularCumplimiento, normalizarCriterios, requisitosDeOferta } = require('./cumplimiento');
 
 /** Llama a Claude con la configuración vigente de la tarea. */
 function ejecutar(tarea, { documentos = [], datos }) {
@@ -33,17 +34,45 @@ const indagar = (solicitud) =>
 const catalogoCompetencias = () => `Catálogo de competencias: ${COMPETENCIAS.join(', ')}.`;
 
 /**
- * Compara el CV con el descriptor del cargo. No entrega puntaje ni recomendación: muestra
- * evidencia, brechas y preguntas para que el analista y la psicóloga decidan.
+ * Compara el CV con los requisitos del cargo. Los requisitos salen de la oferta; si la oferta
+ * no tiene, la IA los toma del descriptor. La IA clasifica cada requisito y este módulo calcula
+ * el porcentaje de cumplimiento con reglas fijas (ver cumplimiento.js). No recomienda contratar
+ * ni descartar: es un apoyo para preparar la entrevista.
  */
 async function analizarCv({ cv, descriptor, oferta }) {
   const documentos = [await bloqueDocumento(cv, 'CV del postulante')];
   if (descriptor) documentos.push(await bloqueDocumento(descriptor, 'Descriptor del cargo'));
-  return ejecutar('analizarCv', {
+  const requisitos = requisitosDeOferta(oferta);
+
+  let fuente;
+  let indicacionRequisitos;
+  if (requisitos.length) {
+    fuente = 'oferta';
+    indicacionRequisitos = `Requisitos del cargo (devuelve en "criterios" un elemento por requisito, en este mismo orden y con el mismo texto):
+${requisitos.map((requisito, indice) => `${indice + 1}. ${requisito}`).join('\n')}`;
+  } else if (descriptor) {
+    fuente = 'descriptor';
+    indicacionRequisitos = `La oferta no tiene requisitos: toma los requisitos de la sección de requisitos del descriptor del cargo (máximo 8), copia su texto en "requisito" y marca "tipo" como deseable solo si el descriptor lo dice.`;
+  } else {
+    fuente = null;
+    indicacionRequisitos = 'No hay requisitos ni descriptor del cargo: deja "criterios" vacío y dilo en "alertas".';
+  }
+
+  const respuesta = await ejecutar('analizarCv', {
     documentos,
     datos: `Cargo al que postula: ${oferta?.cargo || 'no indicado'}${oferta?.titulo ? ` (oferta "${oferta.titulo}")` : ''}.
-${descriptor ? 'Compara el CV con el descriptor del cargo.' : 'No hay descriptor del cargo: compara el CV con lo esperable para el cargo y dilo en "alertas".'}`,
+${indicacionRequisitos}`,
   });
+
+  const criterios = normalizarCriterios(respuesta.datos.criterios, requisitos);
+  return {
+    ...respuesta,
+    datos: {
+      ...respuesta.datos,
+      criterios,
+      cumplimiento: { ...calcularCumplimiento(criterios), fuente: criterios.length ? fuente : null },
+    },
+  };
 }
 
 /** Extrae los datos de contacto del CV para completar el formulario del candidato. */

@@ -11,8 +11,13 @@ const analisis = {
   creadoEn: '2026-11-11 10:00:00',
   resultado: {
     resumen: 'Técnico con tres años en plantas de proceso.',
-    coincidencias: [{ requisito: 'Experiencia en producción', evidencia: '3 años en planta' }],
-    brechas: [{ requisito: 'Licencia de grúa', detalle: 'No la menciona' }],
+    criterios: [
+      { requisito: 'Técnico de nivel medio o superior', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Técnico en procesos industriales' },
+      { requisito: '2 años de experiencia en plantas de proceso', tipo: 'obligatorio', nivel: 'parcial', evidencia: '1 año en planta' },
+      { requisito: 'Deseable licencia de grúa horquilla', tipo: 'deseable', nivel: 'sin-evidencia', evidencia: 'No la menciona' },
+      { requisito: 'Disponibilidad para turnos rotativos', tipo: 'obligatorio', nivel: 'no-evaluable', evidencia: '' },
+    ],
+    cumplimiento: { porcentaje: 60, evaluados: 3, total: 4, obligatoriosCumplidos: 1, obligatoriosTotal: 3, fuente: 'oferta' },
     preguntasSugeridas: ['¿Ha operado grúa horquilla?'],
     alertas: ['Hay un período de 2024 sin información.'],
   },
@@ -34,7 +39,7 @@ describe('PanelAnalisisCv', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('el analista analiza el CV y ve coincidencias, brechas, preguntas y el aviso de que es una sugerencia', async () => {
+  it('el analista analiza el CV y ve el porcentaje de cumplimiento, cada requisito, preguntas y el aviso de que es una sugerencia', async () => {
     const api = crearApi();
     const usuario = userEvent.setup();
     render(<PanelAnalisisCv postulacion={postulacion} puedeAnalizar api={api} />);
@@ -43,13 +48,47 @@ describe('PanelAnalisisCv', () => {
 
     expect(api.analizarPostulacion).toHaveBeenCalledWith(7);
     expect(await screen.findByText('Técnico con tres años en plantas de proceso.')).toBeInTheDocument();
-    expect(screen.getByText(/3 años en planta/)).toBeInTheDocument();
-    expect(screen.getByText(/No la menciona/)).toBeInTheDocument();
+    expect(screen.getByText('60 %')).toBeInTheDocument();
+    expect(screen.getByText(/de cumplimiento de los requisitos de la oferta según el CV/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: /cumplimiento de requisitos/i })).toHaveAttribute('aria-valuenow', '60');
+    expect(screen.getByText(/Obligatorios cumplidos: 1 de 3/)).toBeInTheDocument();
+    expect(screen.getByText('2 años de experiencia en plantas de proceso')).toBeInTheDocument();
+    expect(screen.getByText('1 año en planta')).toBeInTheDocument();
+    expect(screen.getByText('Deseable')).toBeInTheDocument();
+    expect(screen.getByText(/Confirmar en la entrevista/)).toBeInTheDocument();
+    expect(screen.getByText(/¿Cómo se calcula\?/)).toBeInTheDocument();
     expect(screen.getByText('¿Ha operado grúa horquilla?')).toBeInTheDocument();
     expect(screen.getByText('Hay un período de 2024 sin información.')).toBeInTheDocument();
     expect(screen.getByText(/comparando con DC_Monitor_Produccion\.pdf/)).toBeInTheDocument();
     expect(screen.getByText(/ni debe usarse por sí sola para descartar/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /volver a analizar/i })).toBeInTheDocument();
+  });
+
+  it('sin requisitos evaluables no muestra un porcentaje', async () => {
+    const sinNumero = {
+      ...analisis,
+      resultado: { ...analisis.resultado, criterios: [], cumplimiento: { porcentaje: null, fuente: null } },
+    };
+    render(<PanelAnalisisCv postulacion={postulacion} api={crearApi({ obtenerAnalisis: vi.fn().mockResolvedValue(sinNumero) })} />);
+    expect(await screen.findByText(/Sin porcentaje/)).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('un análisis guardado antes de los criterios se sigue viendo con coincidencias y brechas', async () => {
+    const antiguo = {
+      ...analisis,
+      resultado: {
+        resumen: 'Análisis antiguo.',
+        coincidencias: [{ requisito: 'Experiencia en producción', evidencia: '3 años en planta' }],
+        brechas: [{ requisito: 'Licencia de grúa', detalle: 'No la menciona' }],
+        preguntasSugeridas: [],
+        alertas: [],
+      },
+    };
+    render(<PanelAnalisisCv postulacion={postulacion} api={crearApi({ obtenerAnalisis: vi.fn().mockResolvedValue(antiguo) })} />);
+    expect(await screen.findByText(/3 años en planta/)).toBeInTheDocument();
+    expect(screen.getByText(/No la menciona/)).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('muestra el error del servidor si el análisis falla', async () => {

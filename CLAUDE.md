@@ -94,11 +94,13 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
 - **Descriptor de cargo:** se guarda por cargo (tabla `cargos`, carpeta `C0001 - Cargo`): se sube una vez y lo reutilizan
   sus ofertas y solicitudes, cada solicitud con su copia. Los cargos del catálogo traen un PDF ficticio en `public/descriptores`.
-- **IA:** análisis del CV contra el descriptor en Postulaciones, "Completar con IA desde el CV" en Nueva
+- **IA:** análisis del CV contra los requisitos del cargo en Postulaciones (con % de cumplimiento), "Completar con IA desde el CV" en Nueva
   solicitud, "Redactar con IA" en ofertas y, para la psicóloga, "Borrador con IA desde tus notas" en la evaluación
   (el resultado solo se sugiere; lo marca ella y las notas no se guardan). Backend en `backend/src/ia/` con el SDK de Anthropic (Claude Opus 5.5,
   salida con esquema JSON). Solo con `ANTHROPIC_API_KEY`; sin clave la app oculta estas opciones. La IA sugiere y no
-  decide: sin puntajes ni recomendaciones de descarte. Las pruebas usan un cliente simulado (`establecerClienteIa`).
+  decide: sin recomendaciones de contratar o descartar. El único número es el **% de cumplimiento de requisitos** del
+  análisis de CV: la IA solo clasifica cada requisito (cumple, parcial, sin evidencia, no evaluable) y el porcentaje lo
+  calcula `backend/src/ia/cumplimiento.js` con pesos fijos (obligatorio 2, deseable 1; requisitos de la oferta o, sin ellos, del descriptor). Las pruebas usan un cliente simulado (`establecerClienteIa`).
 - **Reuniones online** (`backend/src/reuniones/`): con la modalidad "Google Meet" el backend crea o actualiza un evento
   en Google Calendar con enlace de Meet (misma cuenta OAuth que Drive, alcance `calendar.events`, sin invitados); con
   "Teams" la psicóloga pega el enlace (proveedor `graph` opcional con `REUNIONES_TEAMS=graph`). Si el calendario falla,
