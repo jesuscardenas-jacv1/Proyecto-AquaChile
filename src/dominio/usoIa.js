@@ -7,6 +7,7 @@ export const NOMBRES_TAREA = {
   borradorEvaluacion: 'Borrador de evaluación',
   notasEntrevista: 'Notas de la entrevista',
   transcripcion: 'Transcripción de audio',
+  transcripcionVivo: 'Transcripción en vivo',
 };
 
 export const nombreTarea = (tarea) => NOMBRES_TAREA[tarea] ?? tarea;

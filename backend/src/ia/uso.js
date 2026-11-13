@@ -86,8 +86,18 @@ function registrarClaude({ tarea, respuesta }) {
 }
 
 /** Registra una transcripción de Azure Speech. */
-function registrarVoz({ segundos, idioma }) {
-  guardar({ proveedor: 'azure-speech', tarea: 'transcripcion', modelo: `fast-transcription ${idioma ?? ''}`.trim(), segundos, costo: costoVoz(segundos) });
+/**
+ * Audio procesado por Azure Speech. `enVivo`: transcripción en tiempo real del panel de
+ * entrevista (el navegador informa los segundos al terminar); si no, transcripción rápida.
+ */
+function registrarVoz({ segundos, idioma, enVivo = false }) {
+  guardar({
+    proveedor: 'azure-speech',
+    tarea: enVivo ? 'transcripcionVivo' : 'transcripcion',
+    modelo: `${enVivo ? 'real-time' : 'fast-transcription'} ${idioma ?? ''}`.trim(),
+    segundos,
+    costo: costoVoz(segundos),
+  });
 }
 
 const redondear = (valor, decimales = 4) => Number(Number(valor ?? 0).toFixed(decimales));

@@ -13,8 +13,8 @@ const {
 const { ErrorIa, iaDisponible, modeloIa } = require('../ia/cliente');
 const { buscarDescriptor, textoDeTranscripcion } = require('../ia/documentos');
 const { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
-const { transcribirAudio, vozDisponible } = require('../ia/voz');
-const { conContextoUso } = require('../ia/uso');
+const { emitirTokenVoz, transcribirAudio, vozDisponible } = require('../ia/voz');
+const { conContextoUso, registrarVoz } = require('../ia/uso');
 
 /**
  * Ayudas de IA. Para el analista (fase 1): análisis del CV contra el descriptor del cargo,
@@ -220,6 +220,7 @@ const ORIGENES = {
   reunion: 'Grabación del micrófono y del audio de la reunión en línea (Meet o Teams web)',
   archivo: 'Transcripción exportada de Teams o de Meet',
   texto: 'Transcripción pegada como texto',
+  vivo: 'Transcripción en vivo durante la entrevista (panel de entrevista, Azure AI Speech)',
 };
 
 function exigirVoz(req, res, next) {
@@ -252,6 +253,7 @@ function solicitudParaEntrevista(req) {
 }
 
 const TITULO_NOTAS = 'NOTAS POR COMPETENCIA (propuesta de la IA, revisar)';
+const TITULO_NOTAS_PSICOLOGA = 'NOTAS DE LA PSICÓLOGA (tomadas durante la entrevista)';
 const TITULO_TEMAS = 'Temas pendientes:';
 const TITULO_TRANSCRIPCION = 'TRANSCRIPCIÓN';
 const PREFIJO_PAUTA_TRANSCRIPCION = 'Transcripción entrevista';
@@ -283,7 +285,7 @@ function leerPauta(texto) {
   return { transcripcion, notas: notas ? { competencias: [], temasPendientes, notas } : null };
 }
 
-function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha, transcripcion, notas }) {
+function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha, transcripcion, notas, notasPsicologa = '' }) {
   const lineas = [
     'PAUTA DE ENTREVISTA · TRANSCRIPCIÓN',
     'Documento confidencial: solo lo ven la psicóloga evaluadora y el administrador.',
@@ -293,11 +295,13 @@ function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha,
     `Origen: ${ORIGENES[origen]}${nombreOriginal ? ` (${nombreOriginal})` : ''}`,
     ...(idioma ? [`Idioma reconocido: ${idioma}`] : []),
     `Consentimiento: el postulante aceptó que se grabe la entrevista. Lo confirmó ${usuario.nombre} (${usuario.correo}) el ${fechaChile(fecha)}.`,
-    ...(origen === 'microfono' || origen === 'reunion'
+    ...(['microfono', 'reunion', 'vivo'].includes(origen)
       ? ['El audio no se guardó: se envió a Azure AI Speech solo para transcribirlo.']
       : []),
     '',
   ];
+  // Antes de las notas de la IA: leerPauta solo lee el bloque de la IA y la transcripción.
+  if (notasPsicologa) lineas.push(TITULO_NOTAS_PSICOLOGA, '', notasPsicologa, '');
   if (notas) {
     lineas.push(TITULO_NOTAS, '', notas.notas, '');
     if (notas.temasPendientes.length) {
@@ -312,7 +316,11 @@ function textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario, fecha,
  * Pide las notas por competencia (si la IA está disponible), guarda la transcripción como
  * pauta de entrevista en la carpeta de la solicitud y responde con ambas.
  */
-async function guardarYResponder(req, res, { solicitud, origen, nombreOriginal = '', transcripcion, idioma = null, extra = {} }) {
+async function guardarYResponder(
+  req,
+  res,
+  { solicitud, origen, nombreOriginal = '', transcripcion, idioma = null, notasPsicologa = '', extra = {} },
+) {
   if (transcripcion.length > TRANSCRIPCION_MAXIMA_CARACTERES) {
     throw new ErrorIa('La transcripción supera los 150.000 caracteres. Divide la entrevista en partes.', 413);
   }
@@ -321,7 +329,7 @@ async function guardarYResponder(req, res, { solicitud, origen, nombreOriginal =
   let errorNotas = null;
   if (iaDisponible()) {
     try {
-      const { datos } = await notasEntrevista({ transcripcion, solicitud });
+      const { datos } = await notasEntrevista({ transcripcion, solicitud, notasPsicologa });
       const vistas = new Set();
       notas = {
         competencias: datos.competencias
@@ -351,7 +359,10 @@ async function guardarYResponder(req, res, { solicitud, origen, nombreOriginal =
   const archivo = await almacenamiento.subirArchivo(
     carpeta,
     nombreArchivo('pauta', `${PREFIJO_PAUTA_TRANSCRIPCION} ${marcaArchivo(fecha)}.txt`),
-    Buffer.from(textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario: req.usuario, fecha, transcripcion, notas }), 'utf8'),
+    Buffer.from(
+      textoPauta({ solicitud, origen, nombreOriginal, idioma, usuario: req.usuario, fecha, transcripcion, notas, notasPsicologa }),
+      'utf8',
+    ),
   );
 
   res.status(201).json({
@@ -456,6 +467,62 @@ router.get(
     if (!pauta) throw new ErrorIa('La pauta guardada no tiene el formato esperado.', 422);
 
     res.json({ ok: true, ...pauta, archivo: { id: ultima.id, nombre: ultima.nombre, modificado: ultima.modificado } });
+  }),
+);
+
+// ─── Panel de entrevista: transcripción en vivo y cierre ───────────────────────────────
+
+// El navegador renueva el token cada ~9 minutos durante la entrevista: límite aparte.
+const limiteToken = limitarPorIp({ maximo: 30, ventanaMs: 10 * 60 * 1000 });
+const SEGUNDOS_MAXIMOS_ENTREVISTA = 4 * 60 * 60;
+
+/**
+ * POST /api/ia/voz/token
+ * Token de Azure Speech de 10 minutos para transcribir en vivo desde el navegador
+ * (la clave no sale del servidor). Exclusivo de la psicóloga (y del administrador).
+ */
+router.post(
+  '/voz/token',
+  requerirRol('evaluador'),
+  exigirVoz,
+  limiteToken,
+  manejar(async (req, res) => {
+    res.json({ ok: true, ...(await emitirTokenVoz()) });
+  }),
+);
+
+/**
+ * POST /api/ia/solicitudes/:id/entrevista/cierre
+ * Cuerpo JSON: { transcripcion, notas, segundosAudio, consentimiento }. Cierra la entrevista
+ * del panel: registra el audio transcrito en vivo (para el consumo) y, si hay transcripción,
+ * la guarda como pauta junto con las notas de la psicóloga y propone las notas por
+ * competencia con IA. Sin transcripción solo responde: las notas ya quedaron guardadas.
+ */
+router.post(
+  '/solicitudes/:id/entrevista/cierre',
+  requerirRol('evaluador'),
+  limite,
+  manejar(async (req, res) => {
+    const id = Number(req.params.id);
+    const solicitud = db
+      .prepare('SELECT s.*, c.nombre AS candidato FROM solicitudes s JOIN candidatos c ON c.id = s.candidato_id WHERE s.id = ?')
+      .get(id);
+    if (!solicitud) throw new ErrorIa(`Solicitud #${id} no encontrada.`, 404);
+    if (solicitud.motivo_cierre) throw new ErrorIa('La solicitud se cerró sin evaluación.', 409);
+
+    const transcripcion = texto(req.body?.transcripcion);
+    const notasPsicologa = recortar(req.body?.notas, LARGO_MAXIMO_NOTAS);
+    const segundos = Math.min(Math.max(Number(req.body?.segundosAudio) || 0, 0), SEGUNDOS_MAXIMOS_ENTREVISTA);
+    if (segundos > 0) registrarVoz({ segundos, idioma: 'es-CL', enVivo: true });
+
+    if (!transcripcion) {
+      return res.json({ ok: true, transcripcion: '', notas: null, errorNotas: null, archivo: null });
+    }
+    // Ley 21.719: sin el consentimiento explícito del postulante no se graba ni se transcribe.
+    if (req.body?.consentimiento !== true) {
+      throw new ErrorIa('Confirma que el postulante aceptó que se grabe la entrevista.', 400);
+    }
+    return guardarYResponder(req, res, { solicitud, origen: 'vivo', transcripcion, idioma: 'es-CL', notasPsicologa });
   }),
 );
 

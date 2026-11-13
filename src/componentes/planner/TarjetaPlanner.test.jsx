@@ -39,6 +39,21 @@ describe('TarjetaPlanner', () => {
     expect(screen.getByText('Google Meet')).toBeInTheDocument();
   });
 
+  it('con la entrevista agendada, la psicóloga abre el panel de entrevista', () => {
+    montar({ editable: true });
+    expect(screen.getByRole('link', { name: /abrir panel de entrevista/i })).toHaveAttribute('href', '/planner/entrevista/12');
+    expect(screen.getByRole('link', { name: 'Ana Pérez' })).toHaveAttribute('href', '/planner/entrevista/12');
+  });
+
+  it('sin permiso de edición o en otra etapa, el nombre lleva a la solicitud y no hay panel', () => {
+    const { unmount } = montar({ editable: false });
+    expect(screen.queryByRole('link', { name: /panel de entrevista/i })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Ana Pérez' })).toHaveAttribute('href', '/solicitudes/12');
+    unmount();
+    montar({ editable: true, etapa: 'realizada' });
+    expect(screen.queryByRole('link', { name: /panel de entrevista/i })).toBeNull();
+  });
+
   it('para la jefatura (solo lectura) no muestra el enlace ni acciones', () => {
     montar({ editable: false, soloLectura: true });
     expect(screen.queryByRole('link', { name: /unirse/i })).toBeNull();

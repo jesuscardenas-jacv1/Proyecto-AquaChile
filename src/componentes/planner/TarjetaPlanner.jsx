@@ -46,6 +46,8 @@ function avisoTarjeta(etapa, solicitud, hoy) {
  * ("Entrevista coordinada para 9/09 a las 12:30") y el analista que la solicitó.
  * Las acciones solo aparecen si `editable` es verdadero (perfil evaluador). Con una entrevista
  * online agendada muestra "Unirse a la reunión" (la jefatura, `soloLectura`, solo ve la modalidad).
+ * Con la entrevista agendada, la psicóloga abre desde aquí el panel de entrevista
+ * (/planner/entrevista/:id): transcripción en vivo, notas y resumen del CV.
  */
 export default function TarjetaPlanner({
   solicitud,
@@ -67,12 +69,14 @@ export default function TarjetaPlanner({
   const aviso = avisoTarjeta(etapa, solicitud, hoy);
   const nombre = candidato?.nombre ?? 'Candidato eliminado';
   const solicitante = solicitud.reclutador || 'Sin reclutador/a';
+  const conPanel = editable && etapa === 'agendada';
+  const enlace = conPanel ? `/planner/entrevista/${solicitud.id}` : `/solicitudes/${solicitud.id}`;
 
   return (
     <article className="card border-0 shadow-sm planner-tarjeta" aria-label={`${nombre}, ${solicitud.cargo}`}>
       <div className="card-body p-3">
         <div className="d-flex justify-content-between align-items-start gap-2">
-          <Link to={`/solicitudes/${solicitud.id}`} className="fw-semibold text-decoration-none planner-tarjeta-nombre">
+          <Link to={enlace} className="fw-semibold text-decoration-none planner-tarjeta-nombre">
             {nombre}
           </Link>
           <span className="text-secondary small text-nowrap">#{solicitud.id}</span>
@@ -112,6 +116,17 @@ export default function TarjetaPlanner({
               soloLectura={soloLectura}
             />
           </div>
+        ) : null}
+
+        {conPanel ? (
+          <Link
+            to={enlace}
+            className="btn btn-sm btn-outline-primary w-100 my-2 d-flex align-items-center justify-content-center gap-1"
+          >
+            <i className="bi bi-mic" aria-hidden="true" />
+            Abrir panel de entrevista
+            <span className="visually-hidden"> de {nombre}</span>
+          </Link>
         ) : null}
 
         {aviso?.texto ? (

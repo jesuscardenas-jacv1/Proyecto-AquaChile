@@ -40,7 +40,8 @@ export default function DetalleSolicitud() {
   const [editando, setEditando] = useState(false);
   const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [avisoEdicion, setAvisoEdicion] = useState(null);
-  const [notasEntrevista, setNotasEntrevista] = useState('');
+  // Al terminar la entrevista en el panel, sus notas llegan aquí para el borrador de la evaluación.
+  const [notasEntrevista, setNotasEntrevista] = useState(() => ubicacion.state?.notasEntrevista ?? '');
 
   const solicitud = obtenerSolicitud(id);
   const mensaje = ubicacion.state?.mensaje;

@@ -274,6 +274,20 @@ function migrar() {
       creado_en    TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  // Panel de entrevista de la psicóloga: lo que lleva de la entrevista en curso, guardado
+  // automáticamente (notas, transcripción en vivo y preguntas ya hechas). Confidencial.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS entrevistas (
+      solicitud_id    INTEGER PRIMARY KEY REFERENCES solicitudes(id) ON DELETE CASCADE,
+      notas           TEXT NOT NULL DEFAULT '',
+      transcripcion   TEXT NOT NULL DEFAULT '[]',
+      preguntas       TEXT NOT NULL DEFAULT '[]',
+      hablantes       TEXT NOT NULL DEFAULT '{}',
+      segundos_audio  REAL NOT NULL DEFAULT 0,
+      actualizado_por TEXT NOT NULL DEFAULT '',
+      actualizado_en  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 
