@@ -9,6 +9,7 @@
  *   Los valores de aquí son los originales: "Restablecer" vuelve a ellos.
  */
 const { COMPETENCIAS, NIVELES_COMPETENCIA } = require('../bd/competencias');
+const { NIVELES: NIVELES_REQUISITO, TIPOS: TIPOS_REQUISITO } = require('./cumplimiento');
 
 const RESULTADOS = ['Recomendado', 'Recomendado con observaciones', 'No recomendado'];
 
@@ -40,8 +41,15 @@ const objeto = (propiedades) => ({
 
 const ESQUEMA_ANALISIS = objeto({
   resumen: texto,
-  coincidencias: lista(objeto({ requisito: texto, evidencia: texto })),
-  brechas: lista(objeto({ requisito: texto, detalle: texto })),
+  // Un elemento por requisito del cargo. El porcentaje no lo da la IA: lo calcula cumplimiento.js.
+  criterios: lista(
+    objeto({
+      requisito: texto,
+      tipo: { type: 'string', enum: TIPOS_REQUISITO },
+      nivel: { type: 'string', enum: NIVELES_REQUISITO },
+      evidencia: texto,
+    }),
+  ),
   preguntasSugeridas: lista(texto),
   alertas: lista(texto),
 });
@@ -83,14 +91,19 @@ const TAREAS = {
     nombre: 'Análisis de CV',
     usadoPor: 'Analista, en el detalle de una postulación',
     sistema: 'Ayudas al equipo de Reclutamiento y Selección de una empresa acuícola a revisar postulaciones.',
-    entrada: 'El CV del postulante, el descriptor del cargo (si existe) y el cargo y título de la oferta.',
+    entrada: 'El CV del postulante, los requisitos de la oferta, el descriptor del cargo (si existe) y el cargo y título de la oferta.',
     indicaciones: `Entrega:
 - resumen: 3 a 4 frases sobre formación y experiencia relevante para el cargo.
-- coincidencias: hasta 6 requisitos del cargo que el CV respalda, con la evidencia concreta del CV.
-- brechas: hasta 6 requisitos del cargo que el CV no muestra o muestra a medias.
-- preguntasSugeridas: 3 a 5 preguntas para la entrevista que ayuden a confirmar las brechas.
+- criterios: en "evidencia", cita breve del CV que respalda el nivel, o qué falta para comprobarlo.
+- preguntasSugeridas: 3 a 5 preguntas para la entrevista que ayuden a confirmar los requisitos parciales, sin evidencia o no evaluables.
 - alertas: datos faltantes o inconsistencias del CV (fechas que no calzan, períodos sin información). Lista vacía si no hay.`,
-    limites: 'No recomiendes contratar ni descartar: eso lo deciden las personas.',
+    limites: `Clasifica cada requisito del cargo en "criterios" con uno de estos niveles:
+- cumple: el CV lo muestra de forma clara.
+- parcial: el CV lo muestra a medias (menos años, área afín, título en curso).
+- sin-evidencia: el CV no lo menciona.
+- no-evaluable: no se puede comprobar con un CV (disponibilidad, turnos, aptitudes que se ven en la entrevista) o se refiere a datos personales sensibles.
+Ante la duda entre dos niveles, elige el más bajo. No calcules puntajes ni porcentajes.
+No recomiendes contratar ni descartar: eso lo deciden las personas.`,
     esfuerzo: 'medium',
     esquema: ESQUEMA_ANALISIS,
   },

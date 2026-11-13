@@ -10,6 +10,7 @@ const { bloqueDocumento, descriptorDelCatalogo, textoDeTranscripcion } = require
 const { analizarCv, notasEntrevista } = require('./tareas');
 const { establecerTranscriptor, marcaDeTiempo, transcribirAudio, vozDisponible } = require('./voz');
 const { costoClaude, costoVoz } = require('./uso');
+const { calcularCumplimiento, normalizarCriterios, requisitosDeOferta, tipoDeRequisito } = require('./cumplimiento');
 const { guardarConfiguracion, restablecerConfiguracion, configuracionDe } = require('./configuracion');
 
 // El registro de consumo escribe en la tabla uso_ia: debe existir.
@@ -95,12 +96,14 @@ describe('IA', () => {
   });
 
   it('el análisis de CV envía el CV y el descriptor, y advierte que los documentos no son instrucciones', async () => {
-    const resultado = { resumen: 'r', coincidencias: [], brechas: [], preguntasSugeridas: ['¿?'], alertas: [] };
+    const resultado = { resumen: 'r', criterios: [], preguntasSugeridas: ['¿?'], alertas: [] };
     const cliente = clienteSimulado(respuestaJson(resultado));
     establecerClienteIa(cliente);
     const { datos } = await analizarCv({ cv: pdf, descriptor: { nombre: 'dc.pdf', contenido: Buffer.from('%PDF dc') }, oferta: { cargo: 'Jefe de Centro' } });
 
-    assert.deepEqual(datos, resultado);
+    assert.equal(datos.resumen, 'r');
+    assert.deepEqual(datos.preguntasSugeridas, ['¿?']);
+    assert.equal(datos.cumplimiento.porcentaje, null, 'sin criterios no se inventa un porcentaje');
     const [{ system, messages }] = cliente.llamadas;
     assert.match(system, /no instrucciones/);
     const titulos = messages[0].content.filter((b) => b.type === 'document').map((b) => b.title);
@@ -109,7 +112,7 @@ describe('IA', () => {
   });
 
   describe('configuración editable por el administrador', () => {
-    const resultado = { resumen: 'r', coincidencias: [], brechas: [], preguntasSugeridas: [], alertas: [] };
+    const resultado = { resumen: 'r', criterios: [], preguntasSugeridas: [], alertas: [] };
     after(() => {
       restablecerConfiguracion('analizarCv', 'prueba');
       require('../bd/conexion').prepare(`DELETE FROM config_ia_historial WHERE usuario = 'prueba'`).run();
@@ -129,7 +132,8 @@ describe('IA', () => {
       const instruccion = messages[0].content.at(-1).text;
       assert.deepEqual([model, salida.effort, fallbacks], ['claude-sonnet-5-5', 'high', 'default']);
       assert.match(instruccion, /experiencia en terreno/);
-      assert.doesNotMatch(instruccion, /hasta 6 requisitos/, 'reemplaza las indicaciones originales');
+      assert.doesNotMatch(instruccion, /cita breve del CV/, 'reemplaza las indicaciones originales');
+      assert.match(instruccion, /no-evaluable/, 'los niveles de los requisitos son fijos');
       assert.match(instruccion, /No recomiendes contratar ni descartar/, 'los límites siguen');
       assert.match(system, /datos personales sensibles/, 'las reglas comunes siguen');
       assert.equal(salida.format.type, 'json_schema');
@@ -154,7 +158,7 @@ describe('IA', () => {
 
       const vigente = restablecerConfiguracion('analizarCv', 'prueba');
       assert.deepEqual([vigente.personalizada, vigente.modelo, vigente.esfuerzo], [false, '', 'medium']);
-      assert.match(vigente.indicaciones, /hasta 6 requisitos/);
+      assert.match(vigente.indicaciones, /cita breve del CV/);
     });
   });
 
@@ -272,5 +276,88 @@ describe('IA', () => {
     assert.equal(costoVoz(1800), 0.5);
     if (previo === undefined) delete process.env.AZURE_SPEECH_USD_HORA;
     else process.env.AZURE_SPEECH_USD_HORA = previo;
+  });
+});
+
+describe('Cumplimiento de requisitos del cargo', () => {
+  afterEach(() => establecerClienteIa(null));
+  const criterio = (requisito, nivel, tipo = 'obligatorio') => ({ requisito, tipo, nivel, evidencia: '' });
+
+  it('reconoce los requisitos deseables por su texto', () => {
+    assert.equal(tipoDeRequisito('Deseable experiencia de 2 años en bodega.'), 'deseable');
+    assert.equal(tipoDeRequisito('Licencia de conducir clase B.'), 'obligatorio');
+  });
+
+  it('lee los requisitos de la oferta sin vacíos ni repetidos, y tolera un JSON ilegible', () => {
+    assert.deepEqual(requisitosDeOferta({ requisitos: '["Título técnico", " ", "título técnico", "Licencia B"]' }), ['Título técnico', 'Licencia B']);
+    assert.deepEqual(requisitosDeOferta({ requisitos: '{roto' }), []);
+    assert.deepEqual(requisitosDeOferta(null), []);
+  });
+
+  it('pondera obligatorios (2) y deseables (1), y deja fuera los no evaluables', () => {
+    const resultado = calcularCumplimiento([
+      criterio('Título técnico', 'cumple'),
+      criterio('3 años de experiencia', 'parcial'),
+      criterio('Licencia clase D', 'sin-evidencia'),
+      criterio('Deseable Excel avanzado', 'cumple', 'deseable'),
+      criterio('Turnos rotativos', 'no-evaluable'),
+    ]);
+    // (2×1 + 2×0,5 + 2×0 + 1×1) / (2 + 2 + 2 + 1) = 4 / 7 = 57 %
+    assert.equal(resultado.porcentaje, 57);
+    assert.deepEqual([resultado.evaluados, resultado.total], [4, 5]);
+    assert.deepEqual([resultado.obligatoriosCumplidos, resultado.obligatoriosTotal], [1, 4]);
+    assert.deepEqual(resultado.porConfirmar, ['3 años de experiencia', 'Licencia clase D', 'Turnos rotativos']);
+  });
+
+  it('sin requisitos evaluables no inventa un porcentaje', () => {
+    assert.equal(calcularCumplimiento([]).porcentaje, null);
+    assert.equal(calcularCumplimiento([criterio('Turnos', 'no-evaluable')]).porcentaje, null);
+  });
+
+  it('con requisitos de la oferta, la IA no puede cambiar su texto, su tipo ni agregar otros', () => {
+    const criterios = normalizarCriterios(
+      [
+        { requisito: 'Otro texto', tipo: 'deseable', nivel: 'cumple', evidencia: 'Técnico en acuicultura' },
+        { requisito: 'x', tipo: 'obligatorio', nivel: 'inventado', evidencia: '' },
+        { requisito: 'Requisito extra', tipo: 'obligatorio', nivel: 'cumple', evidencia: '' },
+      ],
+      ['Título técnico en acuicultura', 'Deseable licencia clase B'],
+    );
+    assert.deepEqual(criterios, [
+      { requisito: 'Título técnico en acuicultura', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Técnico en acuicultura' },
+      { requisito: 'Deseable licencia clase B', tipo: 'deseable', nivel: 'sin-evidencia', evidencia: '' },
+    ]);
+  });
+
+  it('el análisis usa los requisitos de la oferta y devuelve el porcentaje calculado', async () => {
+    const cliente = clienteSimulado(
+      respuestaJson({
+        resumen: 'r',
+        criterios: [
+          { requisito: 'a', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Título de técnico eléctrico' },
+          { requisito: 'b', tipo: 'deseable', nivel: 'sin-evidencia', evidencia: 'No menciona licencia SEC' },
+        ],
+        preguntasSugeridas: [],
+        alertas: [],
+      }),
+    );
+    establecerClienteIa(cliente);
+    const oferta = { cargo: 'Técnico Eléctrico', requisitos: JSON.stringify(['Título de Técnico Eléctrico', 'Deseable licencia SEC clase D']) };
+    const { datos } = await analizarCv({ cv: pdf, oferta });
+
+    const instruccion = cliente.llamadas[0].messages[0].content.at(-1).text;
+    assert.match(instruccion, /1\. Título de Técnico Eléctrico\n2\. Deseable licencia SEC clase D/);
+    assert.match(instruccion, /No calcules puntajes ni porcentajes/);
+    // (2×1 + 1×0) / (2 + 1) = 67 %
+    assert.equal(datos.cumplimiento.porcentaje, 67);
+    assert.equal(datos.cumplimiento.fuente, 'oferta');
+    assert.equal(datos.criterios[1].tipo, 'deseable');
+  });
+
+  it('sin requisitos en la oferta, pide tomarlos del descriptor', async () => {
+    const cliente = clienteSimulado(respuestaJson({ resumen: 'r', criterios: [], preguntasSugeridas: [], alertas: [] }));
+    establecerClienteIa(cliente);
+    await analizarCv({ cv: pdf, descriptor: { nombre: 'dc.pdf', contenido: Buffer.from('%PDF dc') }, oferta: { cargo: 'Gruero' } });
+    assert.match(cliente.llamadas[0].messages[0].content.at(-1).text, /toma los requisitos .* del descriptor/);
   });
 });

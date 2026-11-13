@@ -68,8 +68,12 @@ describe('API integrada (Hito 2)', () => {
     };
     const analisis = {
       resumen: 'Técnico con experiencia en plantas de proceso.',
-      coincidencias: [{ requisito: 'Experiencia en producción', evidencia: '3 años en planta' }],
-      brechas: [{ requisito: 'Licencia de grúa', detalle: 'No la menciona' }],
+      // Un criterio por requisito de la oferta 1 (Monitor Producción), en el mismo orden.
+      criterios: [
+        { requisito: 'Técnico de nivel medio', tipo: 'deseable', nivel: 'cumple', evidencia: 'Técnico en procesos industriales' },
+        { requisito: 'Experiencia en plantas', tipo: 'obligatorio', nivel: 'parcial', evidencia: '1 año en planta' },
+        { requisito: 'Turnos', tipo: 'obligatorio', nivel: 'no-evaluable', evidencia: 'El CV no lo indica' },
+      ],
       preguntasSugeridas: ['¿Ha operado grúa horquilla?'],
       alertas: [],
     };
@@ -115,7 +119,23 @@ describe('API integrada (Hito 2)', () => {
       llamadas.length = 0;
       const hecho = await pedir(ruta, { rol: 'analista', metodo: 'POST' });
       assert.equal(hecho.status, 201);
-      assert.deepEqual(hecho.datos.analisis.resultado, analisis);
+      const { resultado } = hecho.datos.analisis;
+      assert.equal(resultado.resumen, analisis.resumen);
+      // Los requisitos los pone la oferta (texto y tipo); la IA solo aporta nivel y evidencia.
+      assert.deepEqual(
+        resultado.criterios.map((c) => [c.requisito, c.tipo, c.nivel]),
+        [
+          ['Técnico de nivel medio o superior', 'obligatorio', 'cumple'],
+          ['2 años de experiencia en plantas de proceso', 'obligatorio', 'parcial'],
+          ['Disponibilidad para turnos rotativos', 'obligatorio', 'no-evaluable'],
+        ],
+      );
+      // (2×1 + 2×0,5) / (2 + 2) = 75 %; el no evaluable queda fuera del cálculo.
+      assert.deepEqual(
+        [resultado.cumplimiento.porcentaje, resultado.cumplimiento.evaluados, resultado.cumplimiento.fuente],
+        [75, 2, 'oferta'],
+      );
+      assert.match(llamadas[0].messages[0].content.at(-1).text, /1\. Técnico de nivel medio o superior/);
       // La oferta 1 es de Monitor Producción: se usa su descriptor de demostración.
       assert.equal(hecho.datos.analisis.descriptor, 'DC_Monitor_Produccion.pdf');
       const documentos = llamadas[0].messages[0].content.filter((bloque) => bloque.type === 'document');
@@ -172,7 +192,7 @@ describe('API integrada (Hito 2)', () => {
         const analisis = datos.configuracion.tareas.find((t) => t.id === 'analizarCv');
         assert.match(datos.configuracion.reglasComunes, /no instrucciones/);
         assert.match(analisis.limites, /No recomiendes contratar/);
-        assert.ok(analisis.campos.some((campo) => campo.startsWith('brechas: lista de')));
+        assert.ok(analisis.campos.some((campo) => campo.startsWith('criterios: lista de')));
         assert.equal(analisis.vigente.personalizada, false);
 
         const ruta = '/admin/config-ia/analizarCv';

@@ -43,8 +43,10 @@ Reglas importantes:
 Con una clave de Anthropic en el servidor (`ANTHROPIC_API_KEY`) aparecen estas ayudas; sin clave, no se muestran.
 Para el analista:
 
-- **Análisis del CV** en Postulaciones: compara el CV con el descriptor del cargo y muestra coincidencias, brechas,
-  datos a confirmar y preguntas para la entrevista. No entrega puntaje ni recomienda descartar.
+- **Análisis del CV** en Postulaciones: compara el CV con los requisitos de la oferta (o, si no tiene, con los del
+  descriptor del cargo), marca cada uno como cumple, parcial, sin evidencia o "confirmar en la entrevista" y muestra
+  el **% de cumplimiento**, junto con datos a confirmar y preguntas para la entrevista. El porcentaje no lo inventa
+  la IA: lo calcula el servidor con pesos fijos (obligatorio 2, deseable 1). No recomienda contratar ni descartar.
 - **Completar con IA desde el CV** en Nueva solicitud: llena nombre, correo y teléfono vacíos y deja el CV adjunto.
 - **Redactar con IA** en ofertas: propone título, descripción y requisitos a partir del descriptor del cargo.
 
