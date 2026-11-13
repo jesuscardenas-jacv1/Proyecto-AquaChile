@@ -281,6 +281,7 @@ describe('IA', () => {
 
 describe('Cumplimiento de requisitos del cargo', () => {
   afterEach(() => establecerClienteIa(null));
+  after(() => require('../bd/conexion').prepare(`DELETE FROM uso_ia WHERE usuario = ''`).run());
   const criterio = (requisito, nivel, tipo = 'obligatorio') => ({ requisito, tipo, nivel, evidencia: '' });
 
   it('reconoce los requisitos deseables por su texto', () => {

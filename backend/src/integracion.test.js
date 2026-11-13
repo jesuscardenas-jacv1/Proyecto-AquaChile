@@ -16,7 +16,7 @@ const { establecerAlmacenamiento } = require('./almacenamiento');
 const { AlmacenamientoLocal } = require('./almacenamiento/local');
 const { establecerClienteIa } = require('./ia/cliente');
 const { establecerReuniones } = require('./reuniones');
-const { establecerTranscriptor } = require('./ia/voz');
+const { establecerEmisorToken, establecerTranscriptor } = require('./ia/voz');
 
 describe('API integrada (Hito 2)', () => {
   let servidor;
@@ -406,6 +406,101 @@ describe('API integrada (Hito 2)', () => {
         assert.equal(ultima.datos.notas, null);
         assert.match(ultima.datos.archivo.nombre, /^Pauta - Transcripción entrevista/);
         assert.equal(llamadas.length, 0, 'leer la pauta no llama a la IA');
+      });
+
+      it('panel de entrevista: guarda lo que lleva y muestra el análisis del CV, solo a la psicóloga', async () => {
+        const db = require('./bd/conexion');
+        // La postulación analizada más arriba pasa a ser el origen de la solicitud 2.
+        const postulacion = db.prepare(`SELECT p.id FROM postulaciones p JOIN analisis_cv a ON a.postulacion_id = p.id LIMIT 1`).get();
+        db.prepare('UPDATE postulaciones SET solicitud_id = 2 WHERE id = ?').run(postulacion.id);
+
+        assert.equal((await pedir('/entrevistas/2', { rol: 'analista' })).status, 403);
+        assert.equal((await pedir('/entrevistas/2', { rol: 'jefatura' })).status, 403);
+        assert.equal((await pedir('/entrevistas/99999', { rol: 'evaluador' })).status, 404);
+        const vacia = await pedir('/entrevistas/2', { rol: 'evaluador' });
+        assert.equal(vacia.status, 200);
+        assert.deepEqual([vacia.datos.entrevista.notas, vacia.datos.entrevista.transcripcion], ['', []]);
+        assert.equal(vacia.datos.analisis.resultado.cumplimiento.porcentaje, 75);
+        assert.equal(vacia.datos.tienePostulacion, true);
+
+        const largas = await pedir('/entrevistas/2', { rol: 'evaluador', metodo: 'PUT', cuerpo: { notas: 'x'.repeat(20001) } });
+        assert.equal(largas.status, 413);
+
+        const guardada = await pedir('/entrevistas/2', {
+          rol: 'evaluador',
+          metodo: 'PUT',
+          cuerpo: {
+            notas: '[01:10 · Liderazgo] Coordina el turno con su equipo.',
+            transcripcion: [
+              { hablante: 'Guest-1', inicioMs: 1000, texto: '¿Cómo coordina su turno?' },
+              { hablante: 'Guest-2', inicioMs: 4200, texto: 'Yo coordino el turno con mi equipo cada mañana.' },
+              { hablante: 'Guest-2', inicioMs: 9000, texto: '   ' },
+            ],
+            preguntas: ['¿Ha operado grúa horquilla?'],
+            hablantes: { 'Guest-1': 'Psicóloga', 'Guest-2': 'Jefe' },
+            segundosAudio: 95,
+          },
+        });
+        assert.equal(guardada.status, 200);
+        assert.equal(guardada.datos.entrevista.transcripcion.length, 2, 'sin frases vacías');
+        assert.deepEqual(guardada.datos.entrevista.hablantes, { 'Guest-1': 'Psicóloga' }, 'solo roles válidos');
+        assert.equal(guardada.datos.entrevista.actualizadoPor, 'Prueba');
+        const leida = await pedir('/entrevistas/2', { rol: 'evaluador' });
+        assert.deepEqual(leida.datos.entrevista.preguntas, ['¿Ha operado grúa horquilla?']);
+        assert.equal(leida.datos.entrevista.segundosAudio, 95);
+      });
+
+      it('panel de entrevista: entrega un token de voz y cierra con las notas de la psicóloga', async () => {
+        const db = require('./bd/conexion');
+        establecerTranscriptor(async () => azure);
+        establecerEmisorToken(async () => ({ token: 'token-de-prueba', region: 'eastus2', idioma: 'es-CL', vigenciaSegundos: 600 }));
+        try {
+          assert.equal((await pedir('/ia/voz/token', { rol: 'analista', metodo: 'POST' })).status, 403);
+          const token = await pedir('/ia/voz/token', { rol: 'evaluador', metodo: 'POST' });
+          assert.deepEqual([token.status, token.datos.token, token.datos.region], [200, 'token-de-prueba', 'eastus2']);
+
+          const ruta = '/ia/solicitudes/2/entrevista/cierre';
+          assert.equal((await pedir(ruta, { rol: 'analista', metodo: 'POST', cuerpo: {} })).status, 403);
+          const sinTexto = await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { notas: 'Solo notas a mano.', segundosAudio: 0 } });
+          assert.deepEqual([sinTexto.status, sinTexto.datos.archivo], [200, null]);
+
+          const transcripcion = '[00:00:01] Psicóloga: ¿Cómo coordina su turno?\n\n[00:00:04] Hablante 2: Yo coordino el turno con mi equipo.';
+          const sinConsentimiento = await pedir(ruta, { rol: 'evaluador', metodo: 'POST', cuerpo: { transcripcion, notas: 'n' } });
+          assert.equal(sinConsentimiento.status, 400);
+
+          establecerClienteIa(cliente);
+          respuesta = notas;
+          llamadas.length = 0;
+          const cerrada = await pedir(ruta, {
+            rol: 'evaluador',
+            metodo: 'POST',
+            cuerpo: { transcripcion, notas: '[01:10 · Liderazgo] Coordina el turno.', segundosAudio: 125, consentimiento: true },
+          });
+          assert.equal(cerrada.status, 201);
+          assert.equal(cerrada.datos.notas.competencias.length, 1);
+          assert.match(llamadas[0].messages[0].content[0].text, /<notas_de_la_psicologa>\n\[01:10 · Liderazgo\] Coordina el turno\./);
+
+          const vivo = db
+            .prepare(`SELECT tarea, segundos_audio FROM uso_ia WHERE tarea = 'transcripcionVivo' AND usuario = 'Prueba' ORDER BY id DESC LIMIT 1`)
+            .get();
+          assert.deepEqual({ ...vivo }, { tarea: 'transcripcionVivo', segundos_audio: 125 });
+
+          const [pauta] = (await pautas('evaluador')).sort((a, b) => b.nombre.localeCompare(a.nombre));
+          const contenido = await (
+            await fetch(`${base}/solicitudes/2/documentos/${encodeURIComponent(pauta.id)}/contenido`, {
+              headers: { Authorization: cabeceras('evaluador').Authorization },
+            })
+          ).text();
+          assert.match(contenido, /Origen: Transcripción en vivo/);
+          assert.match(contenido, /NOTAS DE LA PSICÓLOGA[\s\S]*Coordina el turno\.[\s\S]*NOTAS POR COMPETENCIA[\s\S]*TRANSCRIPCIÓN/);
+          // La pauta se sigue leyendo para el borrador: notas de la IA y transcripción.
+          const ultima = await pedir('/ia/solicitudes/2/transcripcion/ultima', { rol: 'evaluador' });
+          assert.match(ultima.datos.transcripcion, /Yo coordino el turno con mi equipo/);
+          assert.ok(ultima.datos.notas.notas);
+        } finally {
+          establecerEmisorToken(null);
+          db.prepare(`DELETE FROM uso_ia WHERE usuario = 'Prueba'`).run();
+        }
       });
     });
   });

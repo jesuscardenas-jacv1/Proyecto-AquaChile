@@ -135,7 +135,8 @@ Mejora sobre el alcance (evolución futura del caso). La IA **solo sugiere**: na
 | Configuración | `backend/src/ia/configuracion.js` | Ajustes del admin (`config_ia`) con historial (`config_ia_historial`); `GET/PUT /api/admin/config-ia[/:tarea]`, `POST …/restablecer` |
 | Tareas | `backend/src/ia/tareas.js` | `analizarCv`, `extraerDatosCv`, `redactarOferta`, `borradorEvaluacion`, `notasEntrevista`: arman datos del caso + indicaciones vigentes + límites |
 | Documentos | `backend/src/ia/documentos.js` | PDF → bloque `document` base64; Word → texto (mammoth); descriptor: cargo C####, oferta O#### o catálogo |
-| Voz | `backend/src/ia/voz.js` | Azure AI Speech, transcripción rápida, `es-CL` (luego `es-MX`, `es-ES`), separación de hablantes. El audio no se guarda |
+| Voz | `backend/src/ia/voz.js` | Azure AI Speech, transcripción rápida, `es-CL` (luego `es-MX`, `es-ES`), separación de hablantes. El audio no se guarda. `emitirTokenVoz()`: token de 10 min para la transcripción en vivo (la clave no sale del servidor) |
+| Panel de entrevista | `src/paginas/PanelEntrevista.jsx`, `backend/src/rutas/entrevistas.js` | `/planner/entrevista/:id` (desde la tarjeta "Entrevista Agendada"): transcripción en vivo en el navegador (`src/servicios/transcriptorVivo.js`, SDK de Azure cargado a demanda, `ConversationTranscriber`), notas con guardado automático (tabla `entrevistas`) y análisis del CV de la postulación. Al terminar: `POST /api/ia/solicitudes/:id/entrevista/cierre` (pauta + notas por competencia) y etapa "realizada" |
 | Consumo | `backend/src/ia/uso.js` | Tabla `uso_ia` (tokens, segundos de audio, costo estimado, usuario); panel en `/administracion` (`GET /api/admin/uso-ia`) |
 | Rutas | `backend/src/rutas/ia.js` | `/api/ia/*`, límite 20 llamadas cada 10 min por IP; análisis de CV guardado en `analisis_cv` |
 | Frontend | `src/servicios/apiIa.js` | `useIaDisponible()` oculta las opciones si el servidor no tiene clave |
@@ -158,7 +159,8 @@ de la tarea y esquema de salida. Cada cambio queda en el historial y se puede re
 **Costos:** precios de lista en `uso.js` (Opus USD 4 / 20 por millón de tokens de entrada / salida). Un análisis de CV
 cuesta ~USD 0,08. Azure Speech F0 incluye 5 h de audio al mes (en S0, definir `AZURE_SPEECH_USD_HORA`).
 **Variables:** `ANTHROPIC_API_KEY`, `IA_MODELO` (opcional), `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION=eastus2`.
-**Pruebas:** usar siempre `establecerClienteIa` / `establecerTranscriptor` (simulados, sin costo); nunca la API real en las pruebas.
+**Pruebas:** usar siempre `establecerClienteIa` / `establecerTranscriptor` / `establecerEmisorToken` (simulados, sin costo); nunca la API real en las pruebas.
+En el panel del navegador de Claude Code el micrófono está bloqueado: la transcripción en vivo se prueba en Chrome o Edge.
 
 ## Comandos
 

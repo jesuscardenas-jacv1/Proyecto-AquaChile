@@ -47,19 +47,16 @@ function mensajeDePermiso(error, modo) {
 }
 
 /**
- * Inicia la grabación. Devuelve { detener, cancelar }: `detener()` entrega el audio (Blob);
- * `cancelar()` lo descarta. `alTerminar` se llama si la grabación se corta sola (por ejemplo,
- * al dejar de compartir la pestaña).
- * @param {{ modo: 'microfono' | 'reunion', alTerminar?: () => void, entorno?: object }} opciones
+ * Abre el audio de la entrevista: el micrófono y, en modo "reunion", también el audio de la
+ * pestaña de Meet o Teams, mezclados en un solo flujo. Lo usan la grabación y la
+ * transcripción en vivo del panel de entrevista.
+ * Devuelve { flujo, pistas, contexto, liberar }; `liberar()` corta el micrófono y la pestaña.
+ * @param {{ modo: 'microfono' | 'reunion', entorno?: object }} opciones
  */
-export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = globalThis }) {
-  if (!puedeGrabar(modo, entorno))
-    throw new ErrorGrabacion('Este navegador no permite grabar audio. Usa Chrome o Edge.');
+export async function abrirAudio({ modo, entorno = globalThis }) {
   const { mediaDevices } = entorno.navigator;
-
   let microfono = null;
   let pantalla = null;
-  let contexto = null;
   try {
     microfono = await mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     if (modo === 'reunion') {
@@ -77,6 +74,7 @@ export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = 
   }
 
   let flujo = microfono;
+  let contexto = null;
   if (pantalla) {
     const Contexto = entorno.AudioContext || entorno.webkitAudioContext;
     contexto = new Contexto();
@@ -85,6 +83,30 @@ export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = 
     contexto.createMediaStreamSource(new entorno.MediaStream(pantalla.getAudioTracks())).connect(destino);
     flujo = destino.stream;
   }
+
+  return {
+    flujo,
+    contexto,
+    // Si se deja de compartir la pestaña o se desconecta el micrófono, quien usa el audio debe terminar.
+    pistas: [...(pantalla?.getTracks() ?? []), ...microfono.getAudioTracks()],
+    liberar() {
+      detenerPistas(microfono, pantalla);
+      contexto?.close?.();
+    },
+  };
+}
+
+/**
+ * Inicia la grabación. Devuelve { detener, cancelar }: `detener()` entrega el audio (Blob);
+ * `cancelar()` lo descarta. `alTerminar` se llama si la grabación se corta sola (por ejemplo,
+ * al dejar de compartir la pestaña).
+ * @param {{ modo: 'microfono' | 'reunion', alTerminar?: () => void, entorno?: object }} opciones
+ */
+export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = globalThis }) {
+  if (!puedeGrabar(modo, entorno))
+    throw new ErrorGrabacion('Este navegador no permite grabar audio. Usa Chrome o Edge.');
+  const audio = await abrirAudio({ modo, entorno });
+  const { flujo } = audio;
 
   const tipo = tipoAdmitido(entorno);
   const grabadora = new entorno.MediaRecorder(flujo, {
@@ -97,10 +119,7 @@ export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = 
   };
 
   let terminada = false;
-  const liberar = () => {
-    detenerPistas(microfono, pantalla);
-    contexto?.close?.();
-  };
+  const liberar = () => audio.liberar();
   const finalizar = () =>
     new Promise((resolver) => {
       if (terminada) return resolver();
@@ -115,7 +134,7 @@ export async function iniciarGrabacion({ modo, alTerminar = () => {}, entorno = 
     });
 
   // Si se deja de compartir la pestaña o se desconecta el micrófono, la grabación termina.
-  [...(pantalla?.getTracks() ?? []), ...microfono.getAudioTracks()].forEach((pista) => {
+  audio.pistas.forEach((pista) => {
     pista.addEventListener?.('ended', () => {
       if (!terminada) alTerminar();
     });

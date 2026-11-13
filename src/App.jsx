@@ -11,6 +11,7 @@ import DetalleSolicitud from './paginas/DetalleSolicitud';
 import InformePsicolaboral from './paginas/InformePsicolaboral';
 import Planner from './paginas/Planner';
 import InformesEnviados from './paginas/InformesEnviados';
+import PanelEntrevista from './paginas/PanelEntrevista';
 import Login from './paginas/Login';
 import Administracion from './paginas/Administracion';
 import Postulaciones from './paginas/Postulaciones';
@@ -104,6 +105,14 @@ export default function App() {
             element={
               <RutaProtegida rolesPermitidos={['evaluador', 'jefatura']}>
                 <Planner />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/planner/entrevista/:id"
+            element={
+              <RutaProtegida rolesPermitidos={['evaluador']}>
+                <PanelEntrevista />
               </RutaProtegida>
             }
           />

@@ -154,9 +154,48 @@ async function transcribirAudio({ contenido, nombre, tipo }) {
   };
 }
 
+// ─── Transcripción en vivo (panel de entrevista) ───────────────────────────────────────
+
+let emisorInyectado = null;
+
+/** Para las pruebas: reemplaza la emisión del token de Azure (null la quita). */
+function establecerEmisorToken(emisor) {
+  emisorInyectado = emisor;
+}
+
+/**
+ * Token de corta duración (10 minutos) para que el navegador transcriba en vivo con el SDK de
+ * Azure Speech. La clave nunca sale del servidor: el navegador solo recibe este token.
+ * @returns {Promise<{ token: string, region: string, idioma: string, vigenciaSegundos: number }>}
+ */
+async function emitirTokenVoz() {
+  if (!vozDisponible()) throw new ErrorIa('La transcripción de voz no está configurada en el servidor.', 503);
+  if (emisorInyectado) return emisorInyectado();
+
+  const region = process.env.AZURE_SPEECH_REGION;
+  let respuesta;
+  try {
+    respuesta = await fetch(`https://${region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`, {
+      method: 'POST',
+      headers: { 'Ocp-Apim-Subscription-Key': process.env.AZURE_SPEECH_KEY, 'Content-Length': '0' },
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    console.error('❌ Azure Speech no entregó el token:', error.message);
+    throw new ErrorIa('El servicio de transcripción no respondió. Intenta de nuevo.', 502);
+  }
+  if (respuesta.status === 401 || respuesta.status === 403) {
+    throw new ErrorIa('La clave del servicio de transcripción no es válida.', 503);
+  }
+  if (!respuesta.ok) throw new ErrorIa('El servicio de transcripción falló. Intenta de nuevo.', 502);
+  return { token: await respuesta.text(), region, idioma: IDIOMAS[0], vigenciaSegundos: 600 };
+}
+
 module.exports = {
   IDIOMAS,
   agruparTurnos,
+  emitirTokenVoz,
+  establecerEmisorToken,
   establecerTranscriptor,
   marcaDeTiempo,
   textoDeTurnos,

@@ -115,14 +115,24 @@ ${notas}
  * borrador de la evaluación. No evalúa ni asigna niveles: eso lo hace el borrador, con la
  * revisión de la psicóloga.
  */
-async function notasEntrevista({ transcripcion, solicitud }) {
+async function notasEntrevista({ transcripcion, solicitud, notasPsicologa = '' }) {
+  // Las notas que la psicóloga tomó en el panel de entrevista orientan el orden y el foco,
+  // pero la evidencia sigue saliendo de lo que dice el postulante en la transcripción.
+  const notasPropias = notasPsicologa.trim()
+    ? `
+
+Notas que tomó la psicóloga durante la entrevista (úsalas para saber qué le pareció relevante; las citas deben salir de la transcripción):
+<notas_de_la_psicologa>
+${notasPsicologa.trim()}
+</notas_de_la_psicologa>`
+    : '';
   return ejecutar('notasEntrevista', {
     datos: `Cargo evaluado: ${solicitud.cargo} (${solicitud.familia_cargo || 'familia no indicada'}).
 ${indagar(solicitud)}${catalogoCompetencias()}
 
 <transcripcion_de_la_entrevista>
 ${transcripcion}
-</transcripcion_de_la_entrevista>`,
+</transcripcion_de_la_entrevista>${notasPropias}`,
   });
 }
 
