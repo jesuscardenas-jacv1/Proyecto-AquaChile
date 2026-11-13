@@ -46,7 +46,10 @@ Para el analista:
 - **Análisis del CV** en Postulaciones: compara el CV con los requisitos de la oferta (o, si no tiene, con los del
   descriptor del cargo), marca cada uno como cumple, parcial, sin evidencia o "confirmar en la entrevista" y muestra
   el **% de cumplimiento**, junto con datos a confirmar y preguntas para la entrevista. El porcentaje no lo inventa
-  la IA: lo calcula el servidor con pesos fijos (obligatorio 2, deseable 1). No recomienda contratar ni descartar.
+  la IA: lo calcula el servidor con pesos fijos (obligatorio 2, deseable 1). Separa lo que el CV respalda, las **brechas para
+  el cargo** y lo que hay que confirmar en la entrevista. La psicóloga ve el mismo análisis en el detalle de la solicitud (solo lectura) y, durante la entrevista, una
+  **Guía para la entrevista** con las brechas, lo que hay que confirmar y las preguntas sugeridas. Solo el analista analiza.
+  No recomienda contratar ni descartar.
 - **Completar con IA desde el CV** en Nueva solicitud: llena nombre, correo y teléfono vacíos y deja el CV adjunto.
 - **Redactar con IA** en ofertas: propone título, descripción y requisitos a partir del descriptor del cargo.
 

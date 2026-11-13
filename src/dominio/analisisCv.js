@@ -26,3 +26,40 @@ export function tramoCumplimiento(porcentaje) {
 /** "requisitos de la oferta" o "requisitos del descriptor del cargo". */
 export const textoFuente = (fuente) =>
   fuente === 'descriptor' ? 'los requisitos del descriptor del cargo' : 'los requisitos de la oferta';
+
+/**
+ * Separa los requisitos del análisis en tres grupos para leerlos de un vistazo:
+ * - cumple: lo que el CV respalda.
+ * - brechas: parcial o sin evidencia (lo que le falta para el cargo), obligatorios primero.
+ * - porConfirmar: lo que solo se puede comprobar en la entrevista.
+ */
+export function agruparRequisitos(criterios = []) {
+  const obligatoriosPrimero = (a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'obligatorio' ? -1 : 1);
+  return {
+    cumple: criterios.filter((criterio) => criterio.nivel === 'cumple'),
+    brechas: criterios
+      .filter((criterio) => criterio.nivel === 'parcial' || criterio.nivel === 'sin-evidencia' || !NIVELES_REQUISITO[criterio.nivel])
+      .sort(obligatoriosPrimero),
+    porConfirmar: criterios.filter((criterio) => criterio.nivel === 'no-evaluable'),
+  };
+}
+
+/**
+ * Lo que la psicóloga necesita a mano durante la entrevista, a partir del análisis del CV:
+ * brechas con lo que falta, lo que hay que confirmar, preguntas sugeridas y datos a confirmar.
+ * Acepta también los análisis guardados antes de los criterios (con `brechas`).
+ */
+export function guiaEntrevista(resultado) {
+  if (!resultado) return null;
+  const grupos = resultado.criterios ? agruparRequisitos(resultado.criterios) : null;
+  const brechas = grupos
+    ? grupos.brechas.map(({ requisito, tipo, evidencia }) => ({ requisito, tipo, detalle: evidencia }))
+    : (resultado.brechas ?? []).map(({ requisito, detalle }) => ({ requisito, tipo: 'obligatorio', detalle }));
+  return {
+    porcentaje: resultado.cumplimiento?.porcentaje ?? null,
+    brechas,
+    porConfirmar: grupos ? grupos.porConfirmar.map(({ requisito }) => requisito) : [],
+    preguntas: resultado.preguntasSugeridas ?? [],
+    alertas: resultado.alertas ?? [],
+  };
+}

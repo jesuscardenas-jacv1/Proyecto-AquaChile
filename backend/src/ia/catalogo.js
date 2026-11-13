@@ -94,7 +94,7 @@ const TAREAS = {
     entrada: 'El CV del postulante, los requisitos de la oferta, el descriptor del cargo (si existe) y el cargo y título de la oferta.',
     indicaciones: `Entrega:
 - resumen: 3 a 4 frases sobre formación y experiencia relevante para el cargo.
-- criterios: en "evidencia", cita breve del CV que respalda el nivel, o qué falta para comprobarlo.
+- criterios: en "evidencia", si cumple, una cita breve del CV; si es parcial o sin evidencia, la brecha: qué le falta concretamente para el cargo (por ejemplo, "tiene 1 de los 2 años pedidos").
 - preguntasSugeridas: 3 a 5 preguntas para la entrevista que ayuden a confirmar los requisitos parciales, sin evidencia o no evaluables.
 - alertas: datos faltantes o inconsistencias del CV (fechas que no calzan, períodos sin información). Lista vacía si no hay.`,
     limites: `Clasifica cada requisito del cargo en "criterios" con uno de estos niveles:
@@ -102,6 +102,7 @@ const TAREAS = {
 - parcial: el CV lo muestra a medias (menos años, área afín, título en curso).
 - sin-evidencia: el CV no lo menciona.
 - no-evaluable: no se puede comprobar con un CV (disponibilidad, turnos, aptitudes que se ven en la entrevista) o se refiere a datos personales sensibles.
+En "evidencia" de un requisito parcial o sin evidencia, describe la brecha (qué falta), no solo que no aparece.
 Ante la duda entre dos niveles, elige el más bajo. No calcules puntajes ni porcentajes.
 No recomiendes contratar ni descartar: eso lo deciden las personas.`,
     esfuerzo: 'medium',

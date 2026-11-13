@@ -11,7 +11,9 @@ import Mensaje from '../componentes/comunes/Mensaje';
 import PanelGestion from '../componentes/solicitudes/PanelGestion';
 import FormularioEvaluacion from '../componentes/evaluacion/FormularioEvaluacion';
 import EntrevistaIa from '../componentes/evaluacion/EntrevistaIa';
+import GuiaEntrevista from '../componentes/evaluacion/GuiaEntrevista';
 import PanelDocumentos from '../componentes/solicitudes/PanelDocumentos';
+import PanelAnalisisCv from '../componentes/portal/PanelAnalisisCv';
 import FormularioEdicionSolicitud from '../componentes/solicitudes/FormularioEdicionSolicitud';
 import { apiDocumentos } from '../servicios/apiDocumentos';
 import { apiIa, useEstadoIa } from '../servicios/apiIa';
@@ -65,6 +67,7 @@ export default function DetalleSolicitud() {
   const evaluacion = obtenerEvaluacionDeSolicitud(solicitud.id);
   // Se evalúa con la entrevista ya realizada (el Planner trae hasta aquí); después, se puede corregir el informe.
   const puedeEvaluar = ['realizada', 'informe'].includes(etapaDeSolicitud(solicitud));
+  const enEntrevista = ['agendada', 'realizada'].includes(etapaDeSolicitud(solicitud)) && apiIa.conectado();
   // Entrevista con IA: con la entrevista agendada o realizada, si el servidor tiene IA o voz.
   const conEntrevistaIa =
     ['agendada', 'realizada'].includes(etapaDeSolicitud(solicitud)) && (iaDisponible || vozDisponible) && apiIa.conectado();
@@ -313,6 +316,9 @@ export default function DetalleSolicitud() {
         </div>
       </section>
 
+      {/* Análisis del CV hecho en Postulaciones: la psicóloga lo revisa antes de la entrevista. */}
+      <PanelAnalisisCv solicitudId={solicitud.id} api={apiIa} />
+
       <PanelDocumentos
         solicitud={solicitud}
         nombreCandidato={candidato?.nombre}
@@ -364,6 +370,9 @@ export default function DetalleSolicitud() {
                   <p className="mb-0">{evaluacion.observaciones}</p>
                 </div>
               ) : null}
+
+              {/* Durante la entrevista: brechas y preguntas del análisis del CV, a mano junto a la grabación. */}
+              {enEntrevista ? <GuiaEntrevista solicitudId={solicitud.id} api={apiIa} /> : null}
 
               {conEntrevistaIa ? (
                 <EntrevistaIa

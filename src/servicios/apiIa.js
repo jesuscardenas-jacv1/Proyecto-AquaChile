@@ -45,6 +45,16 @@ export const apiIa = {
     }
   },
 
+  /** Análisis del CV de la postulación que originó la solicitud, o null si no tiene. */
+  async obtenerAnalisisSolicitud(solicitudId) {
+    try {
+      return (await llamar(`/ia/solicitudes/${solicitudId}/analisis`)).analisis;
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  },
+
   analizarPostulacion: async (postulacionId) =>
     (await llamar(`/ia/postulaciones/${postulacionId}/analisis`, { metodo: 'POST' })).analisis,
 
