@@ -949,6 +949,17 @@ h1, h2, h3, h4, h5, h6,
   border: 1px solid #c39a3f;
 }
 
+/* En las barras de progreso el color va sólido: el tono suave de las insignias casi no se ve. */
+.progress-bar.bg-success {
+  background-color: var(--austral-verde) !important;
+  border: 0;
+}
+
+.progress-bar.bg-warning {
+  background-color: #c39a3f !important;
+  border: 0;
+}
+
 .badge.bg-danger,
 .bg-danger {
   background-color: rgba(181, 82, 74, 0.18) !important;
@@ -1920,4 +1931,10 @@ h1, h2, h3, h4, h5, h6,
     top: 1rem;
     max-height: calc(100vh - 7rem);
   }
+}
+
+/* Porcentaje del análisis del CV en la bandeja de postulaciones */
+.analisis-cv-celda {
+  min-width: 4.5rem;
+  max-width: 6rem;
 }

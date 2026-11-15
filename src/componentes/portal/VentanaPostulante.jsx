@@ -33,6 +33,7 @@ export default function VentanaPostulante({
   conServidor = false,
   alPasarAEvaluacion,
   alCambiarEstado,
+  alAnalizar,
   alCerrar,
   api = apiDocumentos,
   apiIa = apiIaPorDefecto,
@@ -232,7 +233,7 @@ export default function VentanaPostulante({
               </section>
 
               {conServidor && postulacion.cvNombre ? (
-                <PanelAnalisisCv postulacion={postulacion} puedeAnalizar={!soloLectura} api={apiIa} />
+                <PanelAnalisisCv postulacion={postulacion} puedeAnalizar={!soloLectura} api={apiIa} alAnalizar={alAnalizar} />
               ) : null}
             </div>
 

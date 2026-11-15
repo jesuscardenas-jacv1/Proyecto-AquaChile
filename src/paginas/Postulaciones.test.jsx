@@ -32,6 +32,31 @@ describe('Postulaciones (bandeja del analista)', () => {
     expect(within(filas[0]).getByText('Monitor Producción - Planta Calbuco')).toBeInTheDocument();
   });
 
+  it('muestra el porcentaje del análisis del CV o que aún no se analiza', async () => {
+    const datos = structuredClone(datosPortal);
+    datos.postulaciones[0].analisisCv = { porcentaje: 80 };
+    datos.postulaciones[1].analisisCv = { porcentaje: null };
+    const usuario = userEvent.setup();
+    renderConContexto(<Postulaciones />, { ruta: '/postulaciones', datosIniciales: datos, usuario: analista });
+
+    expect(screen.getByRole('columnheader', { name: 'Análisis CV' })).toBeInTheDocument();
+    const fila = screen.getAllByRole('row')[1];
+    expect(within(fila).getByText('80 %')).toBeInTheDocument();
+    expect(within(fila).getByRole('progressbar', { name: /cumplimiento de requisitos según el cv: 80 %/i })).toHaveAttribute(
+      'aria-valuenow',
+      '80',
+    );
+
+    // Analizado sin requisitos comprobables, y sin análisis.
+    await usuario.click(screen.getByRole('button', { name: /^todas/i }));
+    expect(screen.getByText('Sin porcentaje')).toBeInTheDocument();
+  });
+
+  it('una postulación sin análisis del CV aparece como "Sin analizar"', () => {
+    renderFlujo('/postulaciones');
+    expect(within(screen.getAllByRole('row')[1]).getByText('Sin analizar')).toBeInTheDocument();
+  });
+
   it('abre el detalle del postulante al pinchar su nombre o su fila', async () => {
     const usuario = userEvent.setup();
     renderFlujo('/postulaciones');

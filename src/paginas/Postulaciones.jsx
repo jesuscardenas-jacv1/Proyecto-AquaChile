@@ -5,6 +5,7 @@ import { useAuth } from '../datos/AuthContext';
 import { ESTADOS_POSTULACION } from '../datos/demoPostulaciones';
 import { filtrarPostulaciones, resumenPostulaciones } from '../dominio/postulaciones';
 import { formatearFecha } from '../dominio/formateo';
+import { tramoCumplimiento } from '../dominio/analisisCv';
 import EstadoVacio from '../componentes/comunes/EstadoVacio';
 import Mensaje from '../componentes/comunes/Mensaje';
 import VentanaPostulante from '../componentes/portal/VentanaPostulante';
@@ -16,13 +17,46 @@ const COLOR_ESTADO = {
 };
 
 /**
+ * Porcentaje de cumplimiento de requisitos del último análisis del CV con IA.
+ * Es un apoyo para elegir a quién evaluar: no descarta a nadie.
+ */
+function CeldaAnalisisCv({ analisisCv }) {
+  if (!analisisCv) return <span className="small text-secondary text-nowrap">Sin analizar</span>;
+  const { porcentaje } = analisisCv;
+  const tramo = tramoCumplimiento(porcentaje);
+  if (!tramo)
+    return (
+      <span className="small text-secondary text-nowrap" title="No hay requisitos que se puedan comprobar con el CV">
+        Sin porcentaje
+      </span>
+    );
+  return (
+    <div className="analisis-cv-celda" title={tramo.texto}>
+      <span className="fw-semibold tabular">{porcentaje} %</span>
+      <div
+        className="progress"
+        role="progressbar"
+        aria-label={`Cumplimiento de requisitos según el CV: ${porcentaje} %`}
+        aria-valuenow={porcentaje}
+        aria-valuemin="0"
+        aria-valuemax="100"
+        style={{ height: 4 }}
+      >
+        <div className={`progress-bar ${tramo.color}`} style={{ width: `${porcentaje}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Bandeja de postulaciones del portal "Trabaja con nosotros".
  * El analista elige a quién pasar a evaluación psicolaboral (abre el formulario de
  * solicitud ya completado) o descarta la postulación. La jefatura solo consulta.
- * Un clic en el postulante abre una ventana con su detalle y su CV.
+ * Un clic en el postulante abre una ventana con su detalle y su CV, donde se analiza el CV con IA;
+ * la columna "Análisis CV" muestra el porcentaje de cumplimiento de ese análisis.
  */
 export default function Postulaciones() {
-  const { postulaciones, ofertas, candidatos, actualizarPostulacion, modo } = useDatos();
+  const { postulaciones, ofertas, candidatos, actualizarPostulacion, refrescar, modo } = useDatos();
   const { soloLectura } = useAuth();
   const navegar = useNavigate();
   const [criterios, setCriterios] = useState({ estado: 'Recibida', ofertaId: '', busqueda: '' });
@@ -141,6 +175,9 @@ export default function Postulaciones() {
                   <th scope="col" className="d-none d-lg-table-cell">
                     CV
                   </th>
+                  <th scope="col" title="Cumplimiento de los requisitos del cargo según el análisis del CV con IA">
+                    Análisis CV
+                  </th>
                   <th scope="col">Estado</th>
                   <th scope="col" className="text-end">
                     Acciones
@@ -176,6 +213,9 @@ export default function Postulaciones() {
                     </td>
                     <td className="d-none d-lg-table-cell">{formatearFecha(postulacion.fechaPostulacion)}</td>
                     <td className="d-none d-lg-table-cell small text-break">{postulacion.cvNombre || '—'}</td>
+                    <td>
+                      <CeldaAnalisisCv analisisCv={postulacion.analisisCv} />
+                    </td>
                     <td>
                       <span className={`badge ${COLOR_ESTADO[postulacion.estado]}`}>{postulacion.estado}</span>
                     </td>
@@ -232,6 +272,7 @@ export default function Postulaciones() {
           conServidor={modo === 'api'}
           alPasarAEvaluacion={pasarAEvaluacion}
           alCambiarEstado={cambiarEstado}
+          alAnalizar={() => refrescar?.()}
           alCerrar={() => setIdDetalle(null)}
         />
       ) : null}

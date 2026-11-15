@@ -116,6 +116,9 @@ describe('API integrada (Hito 2)', () => {
 
       assert.equal((await pedir(ruta, { rol: 'jefatura', metodo: 'POST' })).status, 403);
       assert.equal((await pedir(ruta, { rol: 'analista' })).status, 404, 'aún no hay análisis guardado');
+      const enBandeja = async () =>
+        (await pedir('/postulaciones', { rol: 'analista' })).datos.postulaciones.find((p) => p.id === id).analisisCv;
+      assert.equal(await enBandeja(), null, 'sin análisis la bandeja no muestra porcentaje');
       llamadas.length = 0;
       const hecho = await pedir(ruta, { rol: 'analista', metodo: 'POST' });
       assert.equal(hecho.status, 201);
@@ -135,6 +138,8 @@ describe('API integrada (Hito 2)', () => {
         [resultado.cumplimiento.porcentaje, resultado.cumplimiento.evaluados, resultado.cumplimiento.fuente],
         [75, 2, 'oferta'],
       );
+      // La bandeja de postulaciones muestra el porcentaje del último análisis.
+      assert.deepEqual(await enBandeja(), { porcentaje: 75 });
       assert.match(llamadas[0].messages[0].content.at(-1).text, /1\. Técnico de nivel medio o superior/);
       // La oferta 1 es de Monitor Producción: se usa su descriptor de demostración.
       assert.equal(hecho.datos.analisis.descriptor, 'DC_Monitor_Produccion.pdf');

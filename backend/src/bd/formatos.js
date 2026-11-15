@@ -117,6 +117,8 @@ function formatearPostulacion(p) {
     ciudad: p.ciudad,
     cvNombre: p.cv_nombre,
     solicitudId: p.solicitud_id ?? null,
+    // Porcentaje del último análisis del CV con IA (null si no tiene análisis o no hubo requisitos evaluables).
+    analisisCv: p.cv_analizado ? { porcentaje: p.cv_porcentaje ?? null } : null,
   };
 }
 

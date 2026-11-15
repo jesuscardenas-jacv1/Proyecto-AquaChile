@@ -32,7 +32,13 @@ const ESTADOS = ['Recibida', 'En evaluación', 'Descartada'];
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 const TELEFONO_VALIDO = /^\+?[0-9]{8,15}$/;
 const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
-const obtener = (id) => db.prepare('SELECT * FROM postulaciones WHERE id = ?').get(id);
+// Cada postulación con el porcentaje de cumplimiento de su último análisis del CV, si lo tiene.
+const CONSULTA_POSTULACIONES = `
+  SELECT p.*, a.postulacion_id IS NOT NULL AS cv_analizado,
+         json_extract(a.resultado, '$.cumplimiento.porcentaje') AS cv_porcentaje
+  FROM postulaciones p LEFT JOIN analisis_cv a ON a.postulacion_id = p.id`;
+
+const obtener = (id) => db.prepare(`${CONSULTA_POSTULACIONES} WHERE p.id = ?`).get(id);
 
 function validarPostulante(datos) {
   if (texto(datos.nombre).length < 3) return 'Ingresa tu nombre completo.';
@@ -111,7 +117,7 @@ router.post('/', limitePostular, (req, res) => {
  */
 router.get('/', autenticar, requerirRol('analista', 'jefatura'), (req, res) => {
   const postulaciones = db
-    .prepare('SELECT * FROM postulaciones ORDER BY fecha_postulacion DESC, id DESC')
+    .prepare(`${CONSULTA_POSTULACIONES} ORDER BY p.fecha_postulacion DESC, p.id DESC`)
     .all()
     .map(formatearPostulacion);
   res.json({ ok: true, total: postulaciones.length, postulaciones });
