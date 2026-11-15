@@ -43,13 +43,16 @@ describe('PanelAnalisisCv', () => {
   it('el analista analiza el CV y ve el porcentaje de cumplimiento, cada requisito, preguntas y el aviso de que es una sugerencia', async () => {
     const api = crearApi();
     const usuario = userEvent.setup();
-    render(<PanelAnalisisCv postulacion={postulacion} puedeAnalizar api={api} />);
+    const alAnalizar = vi.fn();
+    render(<PanelAnalisisCv postulacion={postulacion} puedeAnalizar api={api} alAnalizar={alAnalizar} />);
 
     await usuario.click(await screen.findByRole('button', { name: /analizar cv/i }));
 
     expect(api.analizarPostulacion).toHaveBeenCalledWith(7);
     expect(await screen.findByText('Técnico con tres años en plantas de proceso.')).toBeInTheDocument();
     expect(screen.getByText('60 %')).toBeInTheDocument();
+    // Avisa a la bandeja para que muestre el nuevo porcentaje.
+    expect(alAnalizar).toHaveBeenCalledWith(analisis);
     expect(screen.getByText(/de cumplimiento de los requisitos de la oferta según el CV/)).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: /cumplimiento de requisitos/i })).toHaveAttribute('aria-valuenow', '60');
     expect(screen.getByText(/Obligatorios cumplidos: 1 de 3/)).toBeInTheDocument();

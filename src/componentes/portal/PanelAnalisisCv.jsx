@@ -126,7 +126,13 @@ function Cumplimiento({ criterios, cumplimiento }) {
  * Es un apoyo para preparar la entrevista: no recomienda contratar ni descartar.
  * Solo aparece si el servidor tiene la IA configurada. La jefatura ve el último análisis.
  */
-export default function PanelAnalisisCv({ postulacion, solicitudId = null, puedeAnalizar = false, api = apiIa }) {
+export default function PanelAnalisisCv({
+  postulacion,
+  solicitudId = null,
+  puedeAnalizar = false,
+  api = apiIa,
+  alAnalizar = () => {},
+}) {
   // Desde una solicitud (psicóloga) se muestra el análisis de la postulación de origen, solo lectura.
   const desdeSolicitud = solicitudId !== null;
   const disponible = useIaDisponible(api);
@@ -154,7 +160,10 @@ export default function PanelAnalisisCv({ postulacion, solicitudId = null, puede
     setError(null);
     setAnalizando(true);
     try {
-      setAnalisis(await api.analizarPostulacion(postulacion.id));
+      const nuevo = await api.analizarPostulacion(postulacion.id);
+      setAnalisis(nuevo);
+      // Para que la bandeja de postulaciones muestre el nuevo porcentaje.
+      alAnalizar(nuevo);
     } catch (excepcion) {
       setError(excepcion.message);
     } finally {

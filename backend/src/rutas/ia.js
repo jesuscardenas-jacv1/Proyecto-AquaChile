@@ -15,6 +15,7 @@ const { buscarDescriptor, textoDeTranscripcion } = require('../ia/documentos');
 const { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
 const { emitirTokenVoz, transcribirAudio, vozDisponible } = require('../ia/voz');
 const { conContextoUso, registrarVoz } = require('../ia/uso');
+const { emitir } = require('../tiempoReal');
 
 /**
  * Ayudas de IA. Para el analista (fase 1): análisis del CV contra el descriptor del cargo,
@@ -110,6 +111,8 @@ router.post(
     ).run(id, JSON.stringify(datos), modelo, descriptor?.nombre ?? '', req.usuario.nombre ?? '');
 
     const fila = db.prepare('SELECT * FROM analisis_cv WHERE postulacion_id = ?').get(id);
+    // La bandeja de postulaciones muestra el porcentaje: que se actualice en todas las sesiones.
+    emitir('datos', { ruta: req.originalUrl });
     res.status(201).json({ ok: true, analisis: formatearAnalisis(fila) });
   }),
 );
