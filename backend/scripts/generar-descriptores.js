@@ -62,8 +62,20 @@ function generar({ nombre, familiaCargo, descriptorCargo }) {
 
     seccion(doc, 'Objetivo del cargo');
     doc.text(contenido.objetivo);
-    seccion(doc, 'Funciones principales');
-    doc.list(contenido.funciones, { bulletRadius: 1.8, textIndent: 12, paragraphGap: 2 });
+    if (contenido.resultados) {
+      // Resultados principales: qué hace el cargo y para qué, numerados.
+      seccion(doc, 'Resultados principales');
+      contenido.resultados.forEach(({ accion, resultado }, indice) => {
+        doc.font('Helvetica-Bold').text(`${indice + 1}. `, { continued: true }).font('Helvetica').text(accion);
+        // Sangría de todo el párrafo (no solo de la primera línea).
+        doc.font('Helvetica-Oblique').fillColor(COLORES.secundario).text(`Para qué: ${resultado}`, 70, doc.y, { width: ancho - 126 });
+        doc.font('Helvetica').fillColor(COLORES.texto).moveDown(0.35);
+        doc.x = 56;
+      });
+    } else {
+      seccion(doc, 'Funciones principales');
+      doc.list(contenido.funciones, { bulletRadius: 1.8, textIndent: 12, paragraphGap: 2 });
+    }
     seccion(doc, 'Requisitos');
     doc.list(contenido.requisitos, { bulletRadius: 1.8, textIndent: 12, paragraphGap: 2 });
     seccion(doc, 'Competencias clave');

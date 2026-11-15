@@ -5,12 +5,35 @@
 module.exports = {
   'Analista de Control de Gestión': {
     reportaA: 'Jefatura de Control de Gestión',
-    objetivo: 'Elaborar y analizar la información de gestión para apoyar la toma de decisiones de las áreas.',
-    funciones: [
-      'Preparar reportes mensuales de costos, producción y presupuesto.',
-      'Analizar desviaciones y proponer planes de acción junto a las áreas.',
-      'Mantener actualizados los indicadores de gestión.',
-      'Apoyar el proceso anual de presupuesto.',
+    objetivo:
+      'Asistir en la generación de modelos de control de gestión según las necesidades del negocio y hacer seguimiento a los indicadores claves que impactan en sus distintas etapas y procesos, con el objetivo de contribuir con información clave para la toma de decisiones estratégicas y oportunidades de mejora que impacten los resultados a nivel corporativo. Lo anterior, en el marco de las políticas internas definidas.',
+    // Resultados principales: qué hace (acción) y para qué (resultado).
+    resultados: [
+      {
+        accion:
+          'Apoyar en el desarrollo y difusión de los modelos de control de gestión a nivel corporativo y hacer seguimiento a los principales indicadores que impactan los procesos de las distintas áreas de la compañía.',
+        resultado: 'Contribuir con lineamientos y definiciones estratégicas para el control de gestión de la compañía.',
+      },
+      { accion: 'Generar acuerdos de gestión con las áreas y controlar su cumplimiento.', resultado: 'Contribuir con eficiencia en los procesos.' },
+      {
+        accion:
+          'Analizar y controlar los costos, tanto su imputación como su comportamiento. Detectar e informar desviaciones, analizar causas y generar acciones para su control, trabajando en conjunto con las distintas áreas de la compañía.',
+        resultado: 'Contribuir al control de costos de la compañía y oportunidad de reacción ante desviaciones.',
+      },
+      {
+        accion: 'Controlar la validez de la información alojada en los sistemas, verificando exactitud en su alimentación y mantención.',
+        resultado: 'Contribuir con un canal de información que permita medir y monitorear el cumplimiento de los acuerdos generados.',
+      },
+      { accion: 'Elaborar informes según necesidad de Gerencia u otras áreas de la compañía.', resultado: 'Contribuir con información para la toma de decisiones.' },
+      {
+        accion:
+          'Dar soporte en el desarrollo del presupuesto en las distintas empresas, controlar y explicar desviaciones. Controlar las etapas y flujos de presupuestos de proyectos, acompañando a las distintas áreas responsables de cada proyecto.',
+        resultado: 'Contribuir al control presupuestario de la compañía.',
+      },
+      {
+        accion: 'Desempeñar todas aquellas labores necesarias, relacionadas con la naturaleza del cargo.',
+        resultado: 'Cumplir adecuada, oportuna y eficientemente con las funciones que le fueron encomendadas.',
+      },
     ],
     requisitos: ['Título profesional en Ingeniería Comercial, Industrial o afín.', 'Manejo avanzado de planillas de cálculo.', 'Deseable experiencia de 2 años en control de gestión.'],
     competencias: ['Pensamiento analítico', 'Rigurosidad', 'Comunicación efectiva'],
