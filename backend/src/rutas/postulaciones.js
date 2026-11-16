@@ -15,6 +15,8 @@ const {
 } = require('../almacenamiento/comun');
 const { limitarPorIp } = require('../middlewares/limite');
 const { encolar } = require('../ia/colaAnalisis');
+const { enviarEnSegundoPlano } = require('../correo');
+const { correoConfirmacionPostulacion } = require('../correo/plantillas');
 
 /**
  * Postulaciones del portal "Trabaja con nosotros".
@@ -42,6 +44,32 @@ const CONSULTA_POSTULACIONES = `
   LEFT JOIN cola_analisis_cv c ON c.postulacion_id = p.id`;
 
 const obtener = (id) => db.prepare(`${CONSULTA_POSTULACIONES} WHERE p.id = ?`).get(id);
+
+/**
+ * Envía al postulante el correo de confirmación, una sola vez por postulación
+ * (se marca `confirmacion_enviada_en`). Si el correo falla, la postulación sigue igual.
+ */
+function confirmarAlPostulante(postulacionId) {
+  const datos = db
+    .prepare(
+      `SELECT p.confirmacion_enviada_en, p.fecha_postulacion, c.nombre, c.correo, o.cargo, o.titulo
+       FROM postulaciones p JOIN candidatos c ON c.id = p.candidato_id JOIN ofertas o ON o.id = p.oferta_id
+       WHERE p.id = ?`,
+    )
+    .get(postulacionId);
+  if (!datos || datos.confirmacion_enviada_en || !datos.correo) return;
+  db.prepare("UPDATE postulaciones SET confirmacion_enviada_en = datetime('now') WHERE id = ?").run(postulacionId);
+  enviarEnSegundoPlano({
+    para: datos.correo,
+    ...correoConfirmacionPostulacion({
+      nombre: datos.nombre,
+      cargo: datos.cargo,
+      oferta: datos.titulo,
+      fecha: datos.fecha_postulacion,
+      origen: 'portal',
+    }),
+  });
+}
 
 function validarPostulante(datos) {
   if (texto(datos.nombre).length < 3) return 'Ingresa tu nombre completo.';
@@ -106,6 +134,8 @@ router.post('/', limitePostular, (req, res) => {
       mensaje: `Nueva postulación: ${texto(datos.nombre)} a ${oferta.titulo}`,
       enlace: '/postulaciones',
     });
+    // Con CV, la confirmación se envía cuando el CV termina de subirse; sin CV, ahora.
+    if (!texto(datos.cvNombre)) confirmarAlPostulante(Number(lastInsertRowid));
 
     res.status(201).json({ ok: true, mensaje: 'Postulación recibida.', postulacion: { id: Number(lastInsertRowid) } });
   } catch (excepcion) {
@@ -194,6 +224,8 @@ router.post(
     await almacenamiento.subirArchivo(carpeta, nombreArchivo('cv', req.query.nombre), contenido);
     // Análisis con IA en segundo plano, por turnos y con límites (ver src/ia/colaAnalisis.js).
     encolar(id);
+    // Postulación completa: se confirma al postulante por correo (una sola vez).
+    confirmarAlPostulante(id);
 
     // No se devuelven ids ni rutas internas al público.
     res.status(201).json({ ok: true, mensaje: 'Currículum recibido.' });

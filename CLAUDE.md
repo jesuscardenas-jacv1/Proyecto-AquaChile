@@ -86,9 +86,10 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   `reclutador`. La evaluadora ve por defecto en Solicitudes las asignadas a ella y las aún sin asignar.
 - **Carpeta en el portal:** `PanelDocumentos` muestra la carpeta; al pincharla lista los archivos y `VentanaDocumento` los abre sin salir (PDF, imagen, audio, video y Word `.docx`; el resto se descarga). Los adjuntos del formulario de solicitud se suben a la carpeta al crearla.
 - **Notificaciones:** campana del menú (`CampanaNotificaciones`, tabla `notificaciones`): postulación nueva → analistas; candidato nuevo → los demás analistas; solicitud nueva → psicóloga responsable o, sin asignar, todas; asignación → la psicóloga asignada. Solo con servidor.
-- **Correo (Resend):** `backend/src/correo/` (`enviarCorreo`, plantillas, `establecerClienteCorreo` en pruebas). Solo
-  **solicitud nueva** y **asignación** envían correo, vía `notificar(destinatarios, aviso, { correo })`, en segundo plano
-  (un fallo no rompe la operación). Sin `RESEND_API_KEY` no se envía. `CORREO_DESTINO_PRUEBA` redirige todo a una
+- **Correo (Resend):** `backend/src/correo/` (`enviarCorreo`, plantillas, `establecerClienteCorreo` en pruebas). Internos:
+  **solicitud nueva** y **asignación**, vía `notificar(destinatarios, aviso, { correo })`. Al postulante: **confirmación de
+  postulación**: portal, cuando termina de subir el CV (sin CV, al registrarse; una sola vez, `postulaciones.confirmacion_enviada_en`),
+  y registro manual en Nuevo candidato. Sin ids ni enlaces internos. Todo en segundo plano (un fallo no rompe la operación). Sin `RESEND_API_KEY` no se envía. `CORREO_DESTINO_PRUEBA` redirige todo a una
   dirección de prueba (sin dominio verificado Resend solo entrega al dueño de la cuenta); `APP_URL` arma el enlace.
   Nunca llamar a Resend desde el frontend ni poner la clave en `VITE_*`.
 - **Proxy de Vite (sin CORS en desarrollo):** sin `VITE_API_URL`, `URL_API` es `/api` y `vite.config.js` lo reenvía a

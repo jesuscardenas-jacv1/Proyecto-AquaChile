@@ -14,12 +14,17 @@ const escapar = (valor) =>
 /** URL pública del frontend (sin barra final). */
 const urlApp = () => (process.env.APP_URL || 'http://localhost:5173').trim().replace(/\/+$/, '');
 
+const PIE_INTERNO =
+  'Aviso automático del sistema de evaluaciones psicolaborales (proyecto académico DSY1104, datos ficticios). No respondas a este correo.';
+
 /**
  * Correo de aviso genérico.
- * @param {{ saludo: string, titulo: string, intro: string, filas: [string, string][], enlace: string }} datos
+ * @param {{ saludo: string, titulo: string, intro: string, filas: [string, string][],
+ *   boton?: { texto: string, enlace: string } | null, cierre?: string, pie?: string }} datos
+ *   `boton.enlace` es una ruta de la app (se le antepone APP_URL).
  */
-function plantillaAviso({ saludo, titulo, intro, filas, enlace }) {
-  const url = `${urlApp()}${enlace}`;
+function plantillaAviso({ saludo, titulo, intro, filas, boton = null, cierre = '', pie = PIE_INTERNO }) {
+  const url = boton ? `${urlApp()}${boton.enlace}` : '';
   const filasHtml = filas
     .map(
       ([etiqueta, valor]) =>
@@ -42,14 +47,26 @@ function plantillaAviso({ saludo, titulo, intro, filas, enlace }) {
 <h1 style="margin:0 0 12px;color:${COLORES.texto};font-family:Montserrat,Arial,sans-serif;font-size:20px">${escapar(titulo)}</h1>
 <p style="margin:0 0 16px;color:${COLORES.texto};font-size:14px;line-height:1.5">${escapar(intro)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px">${filasHtml}</table>
-<a href="${escapar(url)}" style="display:inline-block;background:${COLORES.acentoBoton};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:8px">Ver solicitud</a>
+${cierre ? `<p style="margin:0 0 16px;color:${COLORES.texto};font-size:14px;line-height:1.5">${escapar(cierre)}</p>` : ''}
+${boton ? `<a href="${escapar(url)}" style="display:inline-block;background:${COLORES.acentoBoton};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:8px">${escapar(boton.texto)}</a>` : ''}
 </td></tr>
 <tr><td style="padding:14px 24px;background:#f2f6f8;color:${COLORES.suave};font-size:12px;line-height:1.5">
-Aviso automático del sistema de evaluaciones psicolaborales (proyecto académico DSY1104, datos ficticios). No respondas a este correo.
+${escapar(pie)}
 </td></tr>
 </table></td></tr></table></body></html>`;
 
-  const texto = [saludo, '', titulo, intro, '', ...filas.map(([e, v]) => `${e}: ${v}`), '', `Ver solicitud: ${url}`].join('\n');
+  const texto = [
+    saludo,
+    '',
+    titulo,
+    intro,
+    '',
+    ...filas.map(([e, v]) => `${e}: ${v}`),
+    ...(cierre ? ['', cierre] : []),
+    ...(boton ? ['', `${boton.texto}: ${url}`] : []),
+    '',
+    pie,
+  ].join('\n');
   return { html, texto };
 }
 
@@ -68,7 +85,7 @@ function correoSolicitudNueva(solicitud, nombreDestinatario) {
       titulo: 'Tienes una nueva solicitud de evaluación',
       intro: 'Se registró una solicitud de evaluación psicolaboral que requiere tu gestión.',
       filas: filasSolicitud(solicitud),
-      enlace: `/solicitudes/${solicitud.id}`,
+      boton: { texto: 'Ver solicitud', enlace: `/solicitudes/${solicitud.id}` },
     }),
   };
 }
@@ -81,9 +98,39 @@ function correoAsignacion(solicitud, nombreDestinatario) {
       titulo: 'Te asignaron una solicitud',
       intro: 'Quedaste como psicóloga responsable de esta solicitud de evaluación.',
       filas: filasSolicitud(solicitud),
-      enlace: `/solicitudes/${solicitud.id}`,
+      boton: { texto: 'Ver solicitud', enlace: `/solicitudes/${solicitud.id}` },
     }),
   };
 }
 
-module.exports = { correoAsignacion, correoSolicitudNueva, plantillaAviso, urlApp };
+/** Fecha yyyy-mm-dd como dd-mm-aaaa. */
+const fechaChilena = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(iso ?? '') ? iso.slice(0, 10).split('-').reverse().join('-') : iso);
+
+/**
+ * Confirmación al postulante: desde el portal (con la oferta) o registrado a mano por el analista.
+ * Sin datos internos (ids, analistas, notas) y sin enlace a la app interna: el postulante no tiene sesión.
+ * @param {{ nombre: string, cargo: string, oferta?: string, fecha: string, origen: 'portal' | 'manual' }} datos
+ */
+function correoConfirmacionPostulacion({ nombre, cargo, oferta, fecha, origen }) {
+  const filas = [['Cargo', cargo]];
+  if (oferta && oferta !== cargo) filas.push(['Oferta', oferta]);
+  filas.push(['Fecha', fechaChilena(fecha)]);
+  return {
+    asunto: `Recibimos tu postulación · ${cargo}`,
+    ...plantillaAviso({
+      saludo: `Hola, ${nombre}:`,
+      titulo: origen === 'portal' ? 'Recibimos tu postulación' : 'Registramos tu postulación',
+      intro:
+        origen === 'portal'
+          ? 'Gracias por postular a AquaChile. Tu postulación y tu currículum quedaron registrados correctamente.'
+          : 'El equipo de Reclutamiento y Selección de AquaChile registró tu postulación para el siguiente cargo.',
+      filas,
+      cierre:
+        'Nuestro equipo revisará tu postulación. Si avanzas a la siguiente etapa, te contactaremos por este medio o por teléfono.',
+      boton: origen === 'portal' ? { texto: 'Ver otras ofertas', enlace: '/trabaja-con-nosotros' } : null,
+      pie: 'Correo automático: no respondas a este mensaje. Tus datos se usan solo para este proceso de selección (proyecto académico DSY1104).',
+    }),
+  };
+}
+
+module.exports = { correoAsignacion, correoConfirmacionPostulacion, correoSolicitudNueva, plantillaAviso, urlApp };
