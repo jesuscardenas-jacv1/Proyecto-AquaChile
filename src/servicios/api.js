@@ -7,7 +7,10 @@
  *   demostración viven en el navegador. Las pruebas unitarias usan este modo.
  */
 
-export const URL_API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
+// Sin VITE_API_URL (desarrollo) se usa /api en el mismo origen: el proxy de Vite lo
+// reenvía al backend local y el navegador no necesita CORS. En GitHub Pages se compila
+// con VITE_API_URL apuntando al backend en Azure.
+export const URL_API = import.meta.env.VITE_API_URL ?? '/api';
 const CLAVE_TOKEN = 'aquachile_token_api';
 
 /** En las pruebas unitarias nunca se llama al backend real. */
