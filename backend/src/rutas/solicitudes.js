@@ -2,7 +2,8 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearCandidato, formatearEvaluacion, formatearSolicitud } = require('../bd/formatos');
-const { notificarPsicologa, notificarRol, resumenSolicitud } = require('../bd/notificaciones');
+const { datosCorreoSolicitud, notificarPsicologa, notificarRol, resumenSolicitud } = require('../bd/notificaciones');
+const { correoAsignacion, correoSolicitudNueva } = require('../correo/plantillas');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
 const { cancelarReunion, sincronizarReunion, validarEnlaceReunion } = require('../reuniones');
@@ -200,8 +201,11 @@ router.post('/', autenticar, requerirRol('analista'), async (req, res, next) => 
       mensaje: `Nueva solicitud ${resumenSolicitud(obtener(id))}`,
       enlace: `/solicitudes/${id}`,
     };
-    if (texto(profesionalResponsable)) notificarPsicologa(texto(profesionalResponsable), aviso);
-    else notificarRol('evaluador', aviso);
+    // Además del aviso en la campana, se envía un correo (Resend) a cada destinataria.
+    const datosCorreo = datosCorreoSolicitud(obtener(id));
+    const correo = { correo: ({ nombre }) => correoSolicitudNueva(datosCorreo, nombre) };
+    if (texto(profesionalResponsable)) notificarPsicologa(texto(profesionalResponsable), aviso, correo);
+    else notificarRol('evaluador', aviso, null, correo);
 
     res.status(201).json({
       ok: true,
@@ -245,11 +249,16 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   ).run(responsable, id);
 
   if (responsable && responsable !== actual.profesional_responsable) {
-    notificarPsicologa(responsable, {
-      tipo: 'asignacion',
-      mensaje: `Te asignaron la solicitud ${resumenSolicitud(obtener(id))}`,
-      enlace: `/solicitudes/${id}`,
-    });
+    const datosCorreo = datosCorreoSolicitud(obtener(id));
+    notificarPsicologa(
+      responsable,
+      {
+        tipo: 'asignacion',
+        mensaje: `Te asignaron la solicitud ${resumenSolicitud(obtener(id))}`,
+        enlace: `/solicitudes/${id}`,
+      },
+      { correo: ({ nombre }) => correoAsignacion(datosCorreo, nombre) },
+    );
   }
 
   res.json({ ok: true, mensaje: 'Solicitud actualizada.', solicitud: formatearSolicitud(obtener(id)) });

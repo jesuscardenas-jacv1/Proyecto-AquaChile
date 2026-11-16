@@ -40,6 +40,7 @@ npm run test:integracion     # API usada por el frontend (requiere BD sembrada)
 npm run test:ia              # ayudas de IA con un cliente simulado (sin costo)
 npm run test:cola            # cola del análisis automático del CV (turnos, límites, reintentos)
 npm run test:reuniones       # Google Calendar y Teams con respuestas simuladas
+npm run test:correo          # correos con Resend (cliente simulado, requiere BD sembrada)
 ```
 
 ---
@@ -121,6 +122,25 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 * `POST /api/notificaciones/leidas`: Marca todos como leídos.
 * `PATCH /api/notificaciones/:id/leida`: Marca uno como leído.
 * `GET /api/eventos`: Conexión abierta con Server-Sent Events. Envía `notificacion` cuando hay un aviso nuevo y `datos` cuando alguien cambia información. Funciona en memoria, para una sola instancia del servidor.
+
+---
+
+## ✉️ Avisos por correo (Resend)
+
+Además del aviso en la campana y en tiempo real, se envía un **correo** solo en dos eventos:
+
+| Evento | Destinatarios |
+|---|---|
+| Solicitud nueva | La psicóloga responsable o, sin responsable, todas las evaluadoras |
+| Asignación de psicóloga | La psicóloga asignada (reasignar a la misma no envía otro) |
+
+Postulaciones y candidatos nuevos siguen solo en la campana. El correo lleva el número de solicitud, el candidato, el cargo y un botón al detalle: nunca notas clínicas. El envío es en segundo plano: si Resend falla, se registra en la consola y la solicitud se guarda igual. Sin `RESEND_API_KEY` no se envía nada. Código en `src/correo/`.
+
+**Configurar** (`backend/.env` en local, Variables de entorno del App Service en Azure):
+1. Crea una cuenta en [resend.com](https://resend.com) y en **API Keys → Create API Key** genera una con permiso *Sending access*. No la pegues en el código, en el chat ni en el repositorio.
+2. Define `RESEND_API_KEY` con esa clave y `APP_URL` con la URL del frontend (en producción `https://jesuscardenas-jacv1.github.io/Proyecto-AquaChile`).
+3. Mientras no haya un dominio verificado en Resend, el remitente es `onboarding@resend.dev` y **solo se puede enviar al correo dueño de la cuenta**. Por eso, define `CORREO_DESTINO_PRUEBA` con ese correo: todos los avisos llegan ahí y el asunto indica a quién iban (`[Para: ignacia.valdes@aquachile.cl] Nueva solicitud #102`). Los usuarios de demostración `@aquachile.cl` son ficticios.
+4. Con un dominio propio verificado, cambia `CORREO_REMITENTE` (p. ej. `AquaChile Psicolaboral <avisos@tu-dominio.cl>`) y quita `CORREO_DESTINO_PRUEBA`.
 
 ### Administración (`/api/admin`, **exclusivo Administrador**)
 * `GET /api/admin/usuarios`: Usuarios de prueba (sin contraseñas).
@@ -240,7 +260,7 @@ La reunión se crea como evento del calendario de ese buzón con `isOnlineMeetin
 
 Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api** (grupo `rg-aquachile-chile`, plan **B1 Linux**, Node 22, región East US 2: la única que permiten las políticas de la suscripción Azure for Students de Duoc). El frontend de GitHub Pages se compila con `VITE_API_URL` apuntando ahí (`.github/workflows/pages.yml`).
 
-**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN` (con los alcances de Drive y Calendar), `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY` (y `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` para grabar y transcribir la entrevista). Comando de inicio: `node src/servidor.js`.
+**Configuración del App Service** (Variables de entorno): `NODE_ENV=production`, `JWT_SECRETO`, `BD_RUTA=/home/data/datos.sqlite`, `SEMILLA_DATOS=/home/site/wwwroot/datos-semilla`, `CORS_ORIGENES=https://jesuscardenas-jacv1.github.io`, `ALMACENAMIENTO=drive`, `GDRIVE_CLIENT_ID`, `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN` (con los alcances de Drive y Calendar), `GDRIVE_CARPETA_RAIZ=Evaluaciones Psicolaborales (producción)`, `SCM_DO_BUILD_DURING_DEPLOYMENT=true` y, para activar la IA, `ANTHROPIC_API_KEY` (y `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` para grabar y transcribir la entrevista) y, para los avisos por correo, `RESEND_API_KEY`, `APP_URL` y `CORREO_DESTINO_PRUEBA` (ver "Avisos por correo"). Comando de inicio: `node src/servidor.js`.
 
 Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
 

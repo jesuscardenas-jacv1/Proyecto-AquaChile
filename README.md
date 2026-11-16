@@ -110,8 +110,13 @@ npm run backend:dev                                 # API en http://localhost:30
 npm run dev                                         # app en http://localhost:5173
 ```
 
+En desarrollo el frontend llama a `/api` en su mismo origen y el **proxy de Vite**
+(`vite.config.js`) lo reenvía a `http://localhost:3001`: el navegador no hace peticiones entre
+orígenes y no aparecen errores de CORS. Otro backend local: `VITE_PROXY_BACKEND=http://...`.
+
 Sin backend, basta con `npm install` y `npm run dev`. Para apuntar a otro backend, construye con
-`VITE_API_URL=https://.../api`.
+`VITE_API_URL=https://.../api` (así se compila GitHub Pages contra Azure; ahí el backend
+acepta el origen con `CORS_ORIGENES`).
 
 El almacenamiento de documentos y las variables de entorno están explicados en
 [`backend/README.md`](backend/README.md), junto con el catálogo de endpoints.

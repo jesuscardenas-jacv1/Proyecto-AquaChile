@@ -18,7 +18,8 @@
     "drive:autorizar": "node --env-file-if-exists=.env src/almacenamiento/autorizarDrive.js",
     "test:ia": "node --test src/ia/ia.test.js",
     "test:cola": "node --test src/ia/colaAnalisis.test.js",
-    "test:reuniones": "node --test src/reuniones/reuniones.test.js"
+    "test:reuniones": "node --test src/reuniones/reuniones.test.js",
+    "test:correo": "node --test src/correo/correo.test.js"
   },
   "keywords": [
     "aquachile",
@@ -36,6 +37,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.13.0",
-    "pdfkit": "^0.15.2"
+    "pdfkit": "^0.15.2",
+    "resend": "^4.8.0"
   }
 }
