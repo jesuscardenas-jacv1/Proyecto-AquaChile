@@ -38,6 +38,7 @@ npm run test:auth            # clave de sesiones (JWT_SECRETO)
 npm run test:roles           # permisos de los 4 roles (requiere BD sembrada)
 npm run test:integracion     # API usada por el frontend (requiere BD sembrada)
 npm run test:ia              # ayudas de IA con un cliente simulado (sin costo)
+npm run test:cola            # cola del análisis automático del CV (turnos, límites, reintentos)
 npm run test:reuniones       # Google Calendar y Teams con respuestas simuladas
 ```
 
@@ -134,6 +135,7 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 
 ### Ayudas de IA (`/api/ia`)
 Requieren `ANTHROPIC_API_KEY` en el servidor; sin ella, `estado` responde `disponible: false` y las demás `503`. Son sugerencias: no cambian ningún dato del proceso. Limitadas por IP (20 cada 10 minutos).
+* **Análisis automático del CV:** al subir el CV desde el portal, la postulación entra a una cola (`cola_analisis_cv`) que el servidor procesa de a una, con 30 s de pausa entre análisis y topes de 20 por hora y 100 por día (`IA_COLA_*` en `.env.example`). Lo que excede el tope espera su turno; reintenta fallos transitorios hasta 3 veces, omite postulaciones sin CV o descartadas y se pausa si la IA responde «demasiadas solicitudes». Sobrevive a reinicios. La bandeja muestra «En cola», «Analizando…» o «No se pudo analizar» (`analisisCvCola`); el consumo queda registrado a nombre de «Análisis automático». Se apaga con `IA_ANALISIS_AUTOMATICO=no`.
 * `GET /api/ia/estado`: Si la IA está disponible, con qué modelo, y si la transcripción de voz (`voz`) está configurada.
 * `GET /api/ia/postulaciones/:id/analisis`: Último análisis guardado del CV (**Analista y Jefatura**).
 * `GET /api/ia/solicitudes/:id/analisis`: Último análisis del CV de la postulación que originó la solicitud (porcentaje, requisitos que cumple, brechas y por confirmar), para que la psicóloga prepare la entrevista. 404 si la solicitud no viene del portal o no se analizó (Analista, Evaluador y Jefatura).

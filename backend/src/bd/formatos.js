@@ -119,6 +119,8 @@ function formatearPostulacion(p) {
     solicitudId: p.solicitud_id ?? null,
     // Porcentaje del último análisis del CV con IA (null si no tiene análisis o no hubo requisitos evaluables).
     analisisCv: p.cv_analizado ? { porcentaje: p.cv_porcentaje ?? null } : null,
+    // Análisis automático: 'pendiente' (en cola), 'procesando', 'error' u 'omitido'; null si no entró a la cola.
+    analisisCvCola: p.cv_analizado ? null : (p.cv_cola_estado ?? null),
   };
 }
 
