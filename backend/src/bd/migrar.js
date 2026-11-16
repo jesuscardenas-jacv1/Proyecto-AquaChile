@@ -231,6 +231,23 @@ function migrar() {
       creado_en      TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  // Cola del análisis automático del CV al recibir una postulación (ver src/ia/colaAnalisis.js).
+  // Persistente: si el servidor se reinicia, retoma lo pendiente.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cola_analisis_cv (
+      postulacion_id  INTEGER PRIMARY KEY REFERENCES postulaciones(id) ON DELETE CASCADE,
+      estado          TEXT    NOT NULL DEFAULT 'pendiente'
+                      CHECK (estado IN ('pendiente', 'procesando', 'listo', 'error', 'omitido')),
+      turno           INTEGER NOT NULL DEFAULT 0,
+      intentos        INTEGER NOT NULL DEFAULT 0,
+      ultimo_error    TEXT    NOT NULL DEFAULT '',
+      proximo_intento TEXT    NOT NULL DEFAULT (datetime('now')),
+      creado_en       TEXT    NOT NULL DEFAULT (datetime('now')),
+      iniciado_en     TEXT,
+      terminado_en    TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_cola_analisis_estado ON cola_analisis_cv (estado, proximo_intento, turno);
+  `);
   // Consumo de IA (tokens de Claude y audio de Azure Speech) para el panel del administrador.
   // No se borra al restablecer los datos de demostración: es el registro de costos.
   db.exec(`

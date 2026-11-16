@@ -20,8 +20,22 @@ const COLOR_ESTADO = {
  * Porcentaje de cumplimiento de requisitos del último análisis del CV con IA.
  * Es un apoyo para elegir a quién evaluar: no descarta a nadie.
  */
-function CeldaAnalisisCv({ analisisCv }) {
-  if (!analisisCv) return <span className="small text-secondary text-nowrap">Sin analizar</span>;
+// Estado del análisis automático (cola del servidor) mientras la postulación no tiene análisis.
+const ESTADO_COLA = {
+  pendiente: { texto: 'En cola', titulo: 'El CV se analizará con IA en unos minutos (de a uno, con límite por hora).' },
+  procesando: { texto: 'Analizando…', titulo: 'La IA está analizando el CV.' },
+  error: { texto: 'No se pudo analizar', titulo: 'El análisis automático falló. Puedes analizarlo desde el detalle.' },
+};
+
+function CeldaAnalisisCv({ analisisCv, cola }) {
+  if (!analisisCv) {
+    const estado = ESTADO_COLA[cola];
+    return (
+      <span className="small text-secondary text-nowrap" title={estado?.titulo}>
+        {estado?.texto ?? 'Sin analizar'}
+      </span>
+    );
+  }
   const { porcentaje } = analisisCv;
   const tramo = tramoCumplimiento(porcentaje);
   if (!tramo)
@@ -214,7 +228,7 @@ export default function Postulaciones() {
                     <td className="d-none d-lg-table-cell">{formatearFecha(postulacion.fechaPostulacion)}</td>
                     <td className="d-none d-lg-table-cell small text-break">{postulacion.cvNombre || '—'}</td>
                     <td>
-                      <CeldaAnalisisCv analisisCv={postulacion.analisisCv} />
+                      <CeldaAnalisisCv analisisCv={postulacion.analisisCv} cola={postulacion.analisisCvCola} />
                     </td>
                     <td>
                       <span className={`badge ${COLOR_ESTADO[postulacion.estado]}`}>{postulacion.estado}</span>

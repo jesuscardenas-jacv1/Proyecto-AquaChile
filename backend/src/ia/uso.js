@@ -43,6 +43,11 @@ function conContextoUso(req, res, siguiente) {
   contexto.run({ usuario: req.usuario?.nombre ?? '', rol: req.usuario?.rol ?? '' }, siguiente);
 }
 
+/** Ejecuta `fn` como una tarea del sistema (p. ej. el análisis automático del CV), sin usuario. */
+function comoSistema(nombre, fn) {
+  return contexto.run({ usuario: nombre, rol: 'sistema' }, fn);
+}
+
 function guardar(fila) {
   const quien = contexto.getStore() ?? {};
   try {
@@ -166,4 +171,4 @@ function resumenUso({ desde, hasta, ultimas = 50 }) {
   };
 }
 
-module.exports = { conContextoUso, costoClaude, costoVoz, registrarClaude, registrarVoz, resumenUso, HORAS_GRATIS_VOZ };
+module.exports = { comoSistema, conContextoUso, costoClaude, costoVoz, registrarClaude, registrarVoz, resumenUso, HORAS_GRATIS_VOZ };

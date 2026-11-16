@@ -14,6 +14,7 @@ const {
   validarCvPortal,
 } = require('../almacenamiento/comun');
 const { limitarPorIp } = require('../middlewares/limite');
+const { encolar } = require('../ia/colaAnalisis');
 
 /**
  * Postulaciones del portal "Trabaja con nosotros".
@@ -35,8 +36,10 @@ const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
 // Cada postulación con el porcentaje de cumplimiento de su último análisis del CV, si lo tiene.
 const CONSULTA_POSTULACIONES = `
   SELECT p.*, a.postulacion_id IS NOT NULL AS cv_analizado,
-         json_extract(a.resultado, '$.cumplimiento.porcentaje') AS cv_porcentaje
-  FROM postulaciones p LEFT JOIN analisis_cv a ON a.postulacion_id = p.id`;
+         json_extract(a.resultado, '$.cumplimiento.porcentaje') AS cv_porcentaje,
+         c.estado AS cv_cola_estado
+  FROM postulaciones p LEFT JOIN analisis_cv a ON a.postulacion_id = p.id
+  LEFT JOIN cola_analisis_cv c ON c.postulacion_id = p.id`;
 
 const obtener = (id) => db.prepare(`${CONSULTA_POSTULACIONES} WHERE p.id = ?`).get(id);
 
@@ -189,6 +192,8 @@ router.post(
       { crear: true },
     );
     await almacenamiento.subirArchivo(carpeta, nombreArchivo('cv', req.query.nombre), contenido);
+    // Análisis con IA en segundo plano, por turnos y con límites (ver src/ia/colaAnalisis.js).
+    encolar(id);
 
     // No se devuelven ids ni rutas internas al público.
     res.status(201).json({ ok: true, mensaje: 'Currículum recibido.' });

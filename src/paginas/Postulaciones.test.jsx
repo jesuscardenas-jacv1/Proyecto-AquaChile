@@ -57,6 +57,21 @@ describe('Postulaciones (bandeja del analista)', () => {
     expect(within(screen.getAllByRole('row')[1]).getByText('Sin analizar')).toBeInTheDocument();
   });
 
+  it('mientras el análisis automático no termina, muestra su estado en la cola', () => {
+    const datos = structuredClone(datosPortal);
+    datos.postulaciones[0].analisisCvCola = 'pendiente';
+    renderConContexto(<Postulaciones />, { ruta: '/postulaciones', datosIniciales: datos, usuario: analista });
+    const celda = within(screen.getAllByRole('row')[1]).getByText('En cola');
+    expect(celda).toHaveAttribute('title', expect.stringMatching(/de a uno, con límite por hora/));
+  });
+
+  it('avisa si el análisis automático falló', () => {
+    const datos = structuredClone(datosPortal);
+    datos.postulaciones[0].analisisCvCola = 'error';
+    renderConContexto(<Postulaciones />, { ruta: '/postulaciones', datosIniciales: datos, usuario: analista });
+    expect(within(screen.getAllByRole('row')[1]).getByText('No se pudo analizar')).toBeInTheDocument();
+  });
+
   it('abre el detalle del postulante al pinchar su nombre o su fila', async () => {
     const usuario = userEvent.setup();
     renderFlujo('/postulaciones');

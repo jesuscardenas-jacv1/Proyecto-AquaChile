@@ -3,16 +3,11 @@ const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { limitarPorIp } = require('../middlewares/limite');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
-const {
-  categoriaDeArchivo,
-  claveCarpeta,
-  claveCarpetaPostulacion,
-  nombreArchivo,
-  nombreCarpeta,
-} = require('../almacenamiento/comun');
+const { claveCarpeta, nombreArchivo, nombreCarpeta } = require('../almacenamiento/comun');
 const { ErrorIa, iaDisponible, modeloIa } = require('../ia/cliente');
 const { buscarDescriptor, textoDeTranscripcion } = require('../ia/documentos');
-const { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
+const { analizarYGuardar } = require('../ia/analisisPostulacion');
+const { borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta } = require('../ia/tareas');
 const { emitirTokenVoz, transcribirAudio, vozDisponible } = require('../ia/voz');
 const { conContextoUso, registrarVoz } = require('../ia/uso');
 const { emitir } = require('../tiempoReal');
@@ -88,29 +83,7 @@ router.post(
   limite,
   manejar(async (req, res) => {
     const id = Number(req.params.id);
-    const postulacion = db.prepare('SELECT * FROM postulaciones WHERE id = ?').get(id);
-    if (!postulacion) throw new ErrorIa(`Postulación #${id} no encontrada.`, 404);
-    const oferta = db.prepare('SELECT * FROM ofertas WHERE id = ?').get(postulacion.oferta_id);
-
-    const almacenamiento = obtenerAlmacenamiento();
-    const carpeta = await almacenamiento.obtenerCarpeta(claveCarpetaPostulacion(id), null);
-    const archivoCv = carpeta
-      ? (await almacenamiento.listarArchivos(carpeta)).find((archivo) => categoriaDeArchivo(archivo.nombre) === 'cv')
-      : null;
-    if (!archivoCv) throw new ErrorIa('El postulante no tiene un CV cargado.', 404);
-    const cv = await almacenamiento.descargarArchivo(carpeta, archivoCv.id);
-    const descriptor = await buscarDescriptor({ cargo: oferta?.cargo, ofertaId: oferta?.id });
-
-    const { datos, modelo } = await analizarCv({ cv, descriptor, oferta });
-    db.prepare(
-      `INSERT INTO analisis_cv (postulacion_id, resultado, modelo, descriptor, creado_por, creado_en)
-       VALUES (?, ?, ?, ?, ?, datetime('now'))
-       ON CONFLICT(postulacion_id) DO UPDATE SET
-         resultado = excluded.resultado, modelo = excluded.modelo, descriptor = excluded.descriptor,
-         creado_por = excluded.creado_por, creado_en = excluded.creado_en`,
-    ).run(id, JSON.stringify(datos), modelo, descriptor?.nombre ?? '', req.usuario.nombre ?? '');
-
-    const fila = db.prepare('SELECT * FROM analisis_cv WHERE postulacion_id = ?').get(id);
+    const fila = await analizarYGuardar(id, { creadoPor: req.usuario.nombre ?? '' });
     // La bandeja de postulaciones muestra el porcentaje: que se actualice en todas las sesiones.
     emitir('datos', { ruta: req.originalUrl });
     res.status(201).json({ ok: true, analisis: formatearAnalisis(fila) });

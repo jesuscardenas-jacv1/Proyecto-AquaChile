@@ -97,6 +97,8 @@ if (require.main === module) {
   prepararBaseDatos()
     .then(() =>
       app.listen(PUERTO, () => {
+        // Análisis automático del CV de las postulaciones nuevas (por turnos y con límites).
+        require('./ia/colaAnalisis').iniciarCola();
         console.log(`🚀 Servidor backend AquaChile iniciado en http://localhost:${PUERTO}`);
         console.log(`   - Endpoint salud:        http://localhost:${PUERTO}/api/salud`);
         console.log(`   - Autenticación:         http://localhost:${PUERTO}/api/auth/login`);
