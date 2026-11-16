@@ -127,14 +127,16 @@ Cada cargo guarda un descriptor en su carpeta (`C0001 - Cargo`), para reutilizar
 
 ## ✉️ Avisos por correo (Resend)
 
-Además del aviso en la campana y en tiempo real, se envía un **correo** solo en dos eventos:
+Además del aviso en la campana y en tiempo real, se envía un **correo** en estos eventos:
 
 | Evento | Destinatarios |
 |---|---|
 | Solicitud nueva | La psicóloga responsable o, sin responsable, todas las evaluadoras |
 | Asignación de psicóloga | La psicóloga asignada (reasignar a la misma no envía otro) |
+| Postulación desde el portal | El postulante, cuando termina de subir su CV (sin CV, al registrarse). Una sola vez por postulación |
+| Candidato registrado a mano (Nuevo candidato) | El candidato: "Registramos tu postulación" al cargo |
 
-Postulaciones y candidatos nuevos siguen solo en la campana. El correo lleva el número de solicitud, el candidato, el cargo y un botón al detalle: nunca notas clínicas. El envío es en segundo plano: si Resend falla, se registra en la consola y la solicitud se guarda igual. Sin `RESEND_API_KEY` no se envía nada. Código en `src/correo/`.
+Los analistas siguen recibiendo las postulaciones y candidatos nuevos solo en la campana. Los correos internos llevan el número de solicitud, el candidato, el cargo y un botón al detalle: nunca notas clínicas. Los del postulante solo llevan cargo, oferta y fecha, sin ids ni enlaces internos. El envío es en segundo plano: si Resend falla, se registra en la consola y la solicitud se guarda igual. Sin `RESEND_API_KEY` no se envía nada. Código en `src/correo/`.
 
 **Configurar** (`backend/.env` en local, Variables de entorno del App Service en Azure):
 1. Crea una cuenta en [resend.com](https://resend.com) y en **API Keys → Create API Key** genera una con permiso *Sending access*. No la pegues en el código, en el chat ni en el repositorio.

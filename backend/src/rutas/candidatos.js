@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../bd/conexion');
 const { notificarRol } = require('../bd/notificaciones');
+const { enviarEnSegundoPlano } = require('../correo');
+const { correoConfirmacionPostulacion } = require('../correo/plantillas');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearCandidato } = require('../bd/formatos');
 
@@ -90,6 +92,17 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
     { tipo: 'candidato', mensaje: `Nuevo candidato registrado: ${candidato.nombre} · ${candidato.cargo}`, enlace: `/candidatos/${candidato.id}` },
     req.usuario.id,
   );
+
+  // Registro manual: se confirma al candidato por correo que su postulación quedó registrada.
+  enviarEnSegundoPlano({
+    para: candidato.correo,
+    ...correoConfirmacionPostulacion({
+      nombre: candidato.nombre,
+      cargo: candidato.cargo,
+      fecha: new Date().toISOString().slice(0, 10),
+      origen: 'manual',
+    }),
+  });
 
   res.status(201).json({
     ok: true,

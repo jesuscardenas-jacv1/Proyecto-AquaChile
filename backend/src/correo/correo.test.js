@@ -1,6 +1,7 @@
 /**
  * Pruebas de los correos con Resend (con un cliente simulado: nunca se llama a Resend real).
- * Solo la solicitud nueva y la asignación envían correo; el resto sigue solo en la campana.
+ * Correos internos: solicitud nueva y asignación. Correos al postulante: confirmación de la
+ * postulación (portal, al terminar de subir el CV) y del registro manual de un candidato.
  * Requiere la BD migrada y sembrada; al final restablece los datos de demostración.
  * Ejecutar con: npm run test:correo
  */
@@ -23,7 +24,7 @@ const {
   esperarCorreosPendientes,
   establecerClienteCorreo,
 } = require('./index');
-const { correoAsignacion, correoSolicitudNueva } = require('./plantillas');
+const { correoAsignacion, correoConfirmacionPostulacion, correoSolicitudNueva } = require('./plantillas');
 
 /** Cliente simulado con la misma forma que el SDK de Resend: `emails.send` → `{ data, error }`. */
 function clienteSimulado({ falla = false } = {}) {
@@ -93,6 +94,24 @@ describe('módulo de correo', () => {
     assert.match(nueva.texto, /Ver solicitud: https:\/\/ejemplo\.github\.io\/Proyecto-AquaChile\/solicitudes\/7/);
     assert.match(correoAsignacion(datos, 'Ignacia').asunto, /Te asignaron la solicitud #7/);
   });
+
+  it('la confirmación al postulante no lleva datos internos y muestra la fecha en formato chileno', () => {
+    process.env.APP_URL = 'https://ejemplo.github.io/Proyecto-AquaChile';
+    const portal = correoConfirmacionPostulacion({
+      nombre: 'Ana Pérez', cargo: 'Operario de Planta', oferta: 'Operario de Planta Calbuco', fecha: '2026-11-16', origen: 'portal',
+    });
+    assert.equal(portal.asunto, 'Recibimos tu postulación · Operario de Planta');
+    assert.match(portal.html, /Recibimos tu postulación/);
+    assert.match(portal.html, /16-11-2026/);
+    assert.match(portal.html, /Operario de Planta Calbuco/);
+    assert.match(portal.html, /\/trabaja-con-nosotros/);
+    assert.doesNotMatch(portal.html, /solicitudes\/|Ver solicitud/);
+    assert.match(portal.texto, /Ver otras ofertas: https:\/\/ejemplo\.github\.io\/Proyecto-AquaChile\/trabaja-con-nosotros/);
+
+    const manual = correoConfirmacionPostulacion({ nombre: 'Ana', cargo: 'Operario', fecha: '2026-11-16', origen: 'manual' });
+    assert.match(manual.html, /Registramos tu postulación/);
+    assert.doesNotMatch(manual.html, /<a href/, 'el registro manual no lleva botón');
+  });
 });
 
 describe('correos de la API (solo solicitud nueva y asignación)', () => {
@@ -126,7 +145,11 @@ describe('correos de la API (solo solicitud nueva y asignación)', () => {
     return cliente.enviados;
   };
 
+  let colaIaOriginal;
   before(async () => {
+    // Subir el CV encola el análisis con IA: en estas pruebas la cola queda apagada.
+    colaIaOriginal = process.env.IA_ANALISIS_AUTOMATICO;
+    process.env.IA_ANALISIS_AUTOMATICO = 'no';
     raizDocumentos = await fs.mkdtemp(path.join(os.tmpdir(), 'aquachile-correo-'));
     establecerAlmacenamiento(new AlmacenamientoLocal({ raiz: raizDocumentos }));
     establecerReuniones({ motivos: { google: 'Google Meet no está configurado en las pruebas.' } });
@@ -145,6 +168,8 @@ describe('correos de la API (solo solicitud nueva y asignación)', () => {
     establecerAlmacenamiento(null);
     establecerReuniones(null);
     await fs.rm(raizDocumentos, { recursive: true, force: true });
+    if (colaIaOriginal === undefined) delete process.env.IA_ANALISIS_AUTOMATICO;
+    else process.env.IA_ANALISIS_AUTOMATICO = colaIaOriginal;
   });
 
   it('la semilla tiene una psicóloga con correo para las pruebas', () => {
@@ -185,27 +210,70 @@ describe('correos de la API (solo solicitud nueva y asignación)', () => {
     assert.equal(correos.length, 1, 'misma responsable: sin correo nuevo');
   });
 
-  it('postulación y candidato nuevos no envían correo (solo campana)', async () => {
-    const postulacion = await pedir('/postulaciones', {
+  const postular = (extra = {}) =>
+    pedir('/postulaciones', {
       metodo: 'POST',
       cuerpo: {
         ofertaId: 1,
         nombre: 'Postulante Correo',
-        correo: `correo.${Date.now()}@correo.cl`,
+        correo: `postulante.${Date.now()}.${Math.random().toString(36).slice(2, 6)}@correo.cl`,
         telefono: '+56933334444',
         ciudad: 'Ancud',
         origen: 'Externo',
         consentimiento: true,
+        ...extra,
       },
     });
-    assert.equal(postulacion.status, 201);
+  const subirCv = (id) =>
+    fetch(`${base}/postulaciones/${id}/cv?nombre=cv.pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf', 'X-Candidato': encodeURIComponent('Postulante Correo') },
+      body: Buffer.from('%PDF-1.4 CV de prueba'),
+    });
+
+  it('portal con CV: confirma al postulante cuando el CV termina de subirse, una sola vez', async () => {
+    const creada = await postular({ cvNombre: 'cv.pdf' });
+    assert.equal(creada.status, 201);
+    assert.equal((await enviados()).length, 0, 'sin CV todavía no se confirma');
+
+    assert.equal((await subirCv(creada.datos.postulacion.id)).status, 201);
+    let correos = await enviados();
+    assert.equal(correos.length, 1);
+    assert.match(correos[0].to, /^postulante\./);
+    assert.match(correos[0].subject, /^Recibimos tu postulación · /);
+    assert.match(correos[0].html, /Postulante Correo/);
+
+    assert.equal((await subirCv(creada.datos.postulacion.id)).status, 201);
+    correos = await enviados();
+    assert.equal(correos.length, 1, 'volver a subir el CV no repite el correo');
+  });
+
+  it('portal sin CV: confirma al registrar la postulación', async () => {
+    const creada = await postular();
+    assert.equal(creada.status, 201);
+    const correos = await enviados();
+    assert.equal(correos.length, 1);
+    assert.match(correos[0].subject, /^Recibimos tu postulación/);
+  });
+
+  it('la postulación no envía correo a los analistas (siguen solo en la campana)', async () => {
+    await postular();
+    const correosAnalistas = db.prepare("SELECT correo FROM usuarios WHERE rol = 'analista'").all().map((u) => u.correo);
+    assert.equal((await enviados()).some((c) => correosAnalistas.includes(c.to)), false);
+  });
+
+  it('registro manual de un candidato: le confirma su postulación al cargo', async () => {
     const candidato = await pedir('/candidatos', {
       rol: 'analista',
       metodo: 'POST',
-      cuerpo: { nombre: 'Candidato Correo', correo: 'candidato.correo@correo.cl', telefono: '+56911112222', cargo: 'Operario', familiaCargo: 'Operario' },
+      cuerpo: { nombre: 'Candidato Manual', correo: 'candidato.manual@correo.cl', telefono: '+56911112222', cargo: 'Operario de Planta', familiaCargo: 'Operario' },
     });
     assert.equal(candidato.status, 201);
-    assert.equal((await enviados()).length, 0);
+    const correos = await enviados();
+    assert.equal(correos.length, 1);
+    assert.equal(correos[0].to, 'candidato.manual@correo.cl');
+    assert.equal(correos[0].subject, 'Recibimos tu postulación · Operario de Planta');
+    assert.match(correos[0].html, /Registramos tu postulación/);
   });
 
   it('sin RESEND_API_KEY no se intenta enviar y la solicitud se crea igual', async () => {

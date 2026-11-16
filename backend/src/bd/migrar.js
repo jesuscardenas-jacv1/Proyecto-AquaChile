@@ -183,6 +183,8 @@ function migrar() {
   // Las ofertas existentes ya están publicadas; una nueva puede partir como borrador (0).
   agregarColumna('ofertas', 'publicada', 'INTEGER NOT NULL DEFAULT 1');
   agregarColumna('ofertas', 'descriptor_nombre', "TEXT NOT NULL DEFAULT ''");
+  // Cuándo se envió al postulante el correo de confirmación (evita enviarlo dos veces).
+  agregarColumna('postulaciones', 'confirmacion_enviada_en', "TEXT NOT NULL DEFAULT ''");
   // Descriptor por cargo: se sube una vez y lo reutilizan sus ofertas y solicitudes.
   db.exec(`
     CREATE TABLE IF NOT EXISTS cargos (
