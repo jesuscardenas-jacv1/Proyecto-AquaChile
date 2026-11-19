@@ -2,26 +2,80 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import TarjetaConexion from './TarjetaConexion';
 import OndasMarea from './OndasMarea';
-import { conexionesDelRol, esAtajoMarea, primerNombre, subtituloBienvenida } from '../../dominio/marea';
+import ChipsOpciones from './ChipsOpciones';
+import TarjetaHoras from './TarjetaHoras';
+import TarjetaConfirmacion from './TarjetaConfirmacion';
+import TarjetaAnalisis from './TarjetaAnalisis';
+import TarjetaResumen from './TarjetaResumen';
+import CampanaMarea, { ListaAvisos } from './CampanaMarea';
+import {
+  accionConFoco,
+  conexionesDelRol,
+  esAtajoMarea,
+  primerNombre,
+  separarFuente,
+  subtituloBienvenida,
+} from '../../dominio/marea';
 
 const SELECTOR_ENFOCABLES = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 const movimientoReducido = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? true;
 
+/** Una tarjeta de la respuesta de Marea, según su tipo. */
+function Tarjeta({ tarjeta, alElegir, alUsarAviso, desactivado }) {
+  if (tarjeta.tipo === 'horas') return <TarjetaHoras tarjeta={tarjeta} alElegir={alElegir} desactivado={desactivado} />;
+  if (tarjeta.tipo === 'confirmacion') return <TarjetaConfirmacion tarjeta={tarjeta} alElegir={alElegir} desactivado={desactivado} />;
+  if (tarjeta.tipo === 'analisis') return <TarjetaAnalisis tarjeta={tarjeta} />;
+  if (tarjeta.tipo === 'opciones') return <ListaAvisos avisos={tarjeta.avisos ?? []} alUsar={alUsarAviso} desactivado={desactivado} />;
+  return <TarjetaResumen tarjeta={tarjeta} />;
+}
+
+/** Respuesta de Marea: texto, tarjetas, opciones y la fuente de los datos. */
+function MensajeMarea({ mensaje, activo, alElegir, alUsarAviso }) {
+  const { texto, fuente } = separarFuente(mensaje.texto);
+  return (
+    <div className="marea-msg-agente">
+      <span className="marea-orbe" aria-hidden="true" />
+      <div className="marea-msg-cuerpo">
+        <p>{texto}</p>
+        {(mensaje.tarjetas ?? []).map((tarjeta, indice) => (
+          <Tarjeta key={`${tarjeta.tipo}-${indice}`} tarjeta={tarjeta} alElegir={alElegir} alUsarAviso={alUsarAviso} desactivado={!activo} />
+        ))}
+        <ChipsOpciones opciones={mensaje.opciones ?? []} alElegir={alElegir} desactivado={!activo} />
+        {fuente && <span className="marea-fuente">Fuente: {fuente}</span>}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Panel de Marea (ventana modal): cabecera con campana, tema y nueva conversación; columna con las
- * funciones del rol; y la conversación. Esc o Ctrl K lo cierran, Enter envía y el foco queda dentro.
+ * funciones del rol; y la conversación con tarjetas y opciones. Esc o Ctrl K lo cierran, Enter envía
+ * y el foco queda dentro. Solo la última respuesta tiene botones activos.
  */
-export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCambiarTema, api, alCerrar }) {
+export default function PanelMarea({
+  usuario,
+  modulo,
+  noLeidas = 0,
+  tema,
+  alCambiarTema,
+  api,
+  alCerrar,
+  alCambiarAvisos = () => {},
+  alAgendar = () => {},
+}) {
   const [mensajes, setMensajes] = useState([]);
   const [foco, setFoco] = useState(null);
   const [conexionActiva, setConexionActiva] = useState(null);
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
   const [cerrando, setCerrando] = useState(false);
+  const [campanaAbierta, setCampanaAbierta] = useState(false);
   const refPanel = useRef(null);
   const refEntrada = useRef(null);
   const refConversacion = useRef(null);
   const refCerrar = useRef(null);
+  const refCampana = useRef(false);
+  refCampana.current = campanaAbierta;
 
   const conexiones = conexionesDelRol(usuario.rol);
   const subtitulo = useMemo(() => subtituloBienvenida(noLeidas), [noLeidas]);
@@ -33,12 +87,17 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
   };
   refCerrar.current = cerrar;
 
-  // Foco atrapado en el panel, Esc / Ctrl K cierran y, al cerrar, el foco vuelve a la barra.
+  // Foco atrapado en el panel; Esc cierra primero los avisos y luego el panel (también Ctrl K).
   useEffect(() => {
     const enfocadoAntes = document.activeElement;
     document.body.classList.add('marea-abierta');
     refEntrada.current?.focus();
     const alPresionarTecla = (evento) => {
+      if (evento.key === 'Escape' && refCampana.current) {
+        evento.preventDefault();
+        setCampanaAbierta(false);
+        return;
+      }
       if (evento.key === 'Escape' || esAtajoMarea(evento)) {
         evento.preventDefault();
         refCerrar.current();
@@ -70,17 +129,24 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
     if (caja) caja.scrollTop = caja.scrollHeight;
   }, [mensajes, pensando]);
 
-  /** Envía un mensaje escrito o una acción (función, aviso) y agrega la respuesta de Marea. */
-  async function enviar({ mensaje = '', accion = null, etiqueta = '' }) {
+  /**
+   * Envía un mensaje escrito o una acción (función, chip, hora, «Confirmar») y agrega la respuesta.
+   * `sinFoco`: empieza con otra persona (olvida de quién se venía hablando).
+   */
+  async function enviar({ mensaje = '', accion = null, etiqueta = '', sinFoco = false }) {
     const escrito = mensaje.trim();
     if ((!escrito && !accion) || pensando) return;
     setMensajes((actuales) => [...actuales, { de: 'usuario', texto: escrito || etiqueta }]);
     setTexto('');
     setPensando(true);
     try {
-      const respuesta = await api.enviar({ mensaje: escrito, foco, accion });
+      const respuesta = await api.enviar({ mensaje: escrito, foco: sinFoco ? null : foco, accion });
       setMensajes((actuales) => [...actuales, { de: 'marea', ...respuesta }]);
       setFoco(respuesta.foco ?? null);
+      // Quedó agendada: aviso en la esquina y las pantallas vuelven a traer sus datos.
+      if (accion?.tipo === 'confirmar_agenda' && respuesta.tarjetas?.some((t) => t.tipo === 'resumen')) {
+        alAgendar(respuesta.texto.split('\n')[0]);
+      }
     } catch (error) {
       setMensajes((actuales) => [...actuales, { de: 'marea', texto: error.message || 'No pude responder. Intenta de nuevo.' }]);
     } finally {
@@ -88,11 +154,38 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
     }
   }
 
+  const elegir = (accion, etiqueta, opcion = {}) => enviar({ accion, etiqueta, sinFoco: Boolean(opcion.sinFoco) });
+
+  // Al cambiar de función con alguien en el foco, se pregunta si se sigue con esa persona.
   const elegirConexion = (conexion) => {
+    if (pensando) return;
     setConexionActiva(conexion.id);
+    if (conexion.porPersona && foco?.nombre) {
+      setMensajes((actuales) => [
+        ...actuales,
+        { de: 'usuario', texto: conexion.nombre },
+        {
+          de: 'marea',
+          texto: `¿Seguimos con ${foco.nombre}?`,
+          opciones: [
+            { etiqueta: `Sí, con ${primerNombre(foco.nombre)}`, accion: accionConFoco(conexion, foco) },
+            { etiqueta: 'Otra persona', accion: conexion.accion, sinFoco: true },
+          ],
+        },
+      ]);
+      return;
+    }
     enviar({ accion: conexion.accion, etiqueta: conexion.nombre });
   };
-  const verAvisos = () => enviar({ accion: { tipo: 'avisos' }, etiqueta: 'Avisos' });
+
+  /** Un aviso (de la campana o de la conversación): se marca leído y se le pide a Marea su acción. */
+  const usarAviso = async (aviso, opcion) => {
+    if (!aviso.leida) await api.marcarLeido?.(aviso.id).catch(() => {});
+    alCambiarAvisos();
+    setCampanaAbierta(false);
+    enviar({ accion: opcion.accion, etiqueta: `${opcion.etiqueta}: ${aviso.mensaje}` });
+  };
+
   const nuevaConversacion = () => {
     if (pensando) return;
     setMensajes([]);
@@ -100,6 +193,8 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
     setConexionActiva(null);
     refEntrada.current?.focus();
   };
+
+  const ultimaRespuesta = mensajes.map((mensaje) => mensaje.de).lastIndexOf('marea');
 
   return createPortal(
     <div
@@ -120,8 +215,9 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
             type="button"
             className="marea-circulo"
             aria-label={noLeidas ? `Avisos, ${noLeidas} sin revisar` : 'Avisos'}
+            aria-expanded={campanaAbierta}
             title="Avisos"
-            onClick={verAvisos}
+            onClick={() => setCampanaAbierta((abierta) => !abierta)}
           >
             <i className="bi bi-bell" aria-hidden="true" />
             {noLeidas > 0 && <span className="marea-insignia">{noLeidas}</span>}
@@ -143,6 +239,8 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
             <i className="bi bi-x-lg" aria-hidden="true" />
           </button>
         </header>
+
+        {campanaAbierta && <CampanaMarea api={api} alUsar={usarAviso} alCambiar={alCambiarAvisos} />}
 
         <aside className="marea-costado" aria-label="Funciones de Marea">
           <div className="marea-bloque-conexiones">
@@ -187,7 +285,7 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
                 </h3>
                 {noLeidas > 0 ? (
                   <p>
-                    <button type="button" className="marea-enlace" onClick={verAvisos}>
+                    <button type="button" className="marea-enlace" onClick={() => setCampanaAbierta(true)}>
                       {subtitulo}
                     </button>
                   </p>
@@ -202,12 +300,13 @@ export default function PanelMarea({ usuario, modulo, noLeidas = 0, tema, alCamb
                   {mensaje.texto}
                 </div>
               ) : (
-                <div key={indice} className="marea-msg-agente">
-                  <span className="marea-orbe" aria-hidden="true" />
-                  <div className="marea-msg-cuerpo">
-                    <p>{mensaje.texto}</p>
-                  </div>
-                </div>
+                <MensajeMarea
+                  key={indice}
+                  mensaje={mensaje}
+                  activo={indice === ultimaRespuesta && !pensando}
+                  alElegir={elegir}
+                  alUsarAviso={usarAviso}
+                />
               ),
             )}
             {pensando && (

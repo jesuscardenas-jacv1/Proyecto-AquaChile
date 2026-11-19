@@ -7,6 +7,7 @@ import { obtenerToken } from '../../servicios/api';
 import { suscribirTiempoReal } from '../../servicios/tiempoReal';
 import { esAtajoMarea, guardarTema, leerTema, nombreModulo } from '../../dominio/marea';
 import PanelMarea from './PanelMarea';
+import AvisoEsquina from './AvisoEsquina';
 import './marea.css';
 
 /**
@@ -16,12 +17,14 @@ import './marea.css';
  */
 export default function BarraMarea({ api = apiAgente }) {
   const { usuarioActual } = useAuth();
-  const { modo } = useDatos();
+  const { modo, refrescar } = useDatos();
   const { pathname } = useLocation();
   const [abierto, setAbierto] = useState(false);
   const [noLeidas, setNoLeidas] = useState(0);
   const [tema, setTema] = useState(leerTema);
+  const [aviso, setAviso] = useState('');
   const refLanzador = useRef(null);
+  const cerrarAviso = useCallback(() => setAviso(''), []);
   const disponible = modo === 'api' && Boolean(usuarioActual) && Boolean(obtenerToken());
 
   const cargarAvisos = useCallback(async () => {
@@ -57,6 +60,11 @@ export default function BarraMarea({ api = apiAgente }) {
   const cambiarTema = (nuevo) => {
     setTema(nuevo);
     guardarTema(nuevo);
+  };
+  // Al agendar desde Marea: aviso en la esquina y datos al día en el Planner y demás pantallas.
+  const agendado = (texto) => {
+    setAviso(texto);
+    refrescar?.();
   };
   const cerrar = () => {
     setAbierto(false);
@@ -103,8 +111,11 @@ export default function BarraMarea({ api = apiAgente }) {
           alCambiarTema={cambiarTema}
           api={api}
           alCerrar={cerrar}
+          alCambiarAvisos={cargarAvisos}
+          alAgendar={agendado}
         />
       )}
+      {aviso && <AvisoEsquina texto={aviso} alCerrar={cerrarAviso} />}
     </div>
   );
 }

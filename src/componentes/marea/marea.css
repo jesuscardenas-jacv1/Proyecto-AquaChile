@@ -168,8 +168,82 @@ body.marea-abierta { overflow: hidden; }
 .marea-enviar { width: 42px; height: 42px; border-radius: 12px; border: none; background: var(--m-boton); color: var(--m-boton-texto); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .marea-enviar:disabled { opacity: .35; }
 
+/* ---------- Tarjetas y opciones ---------- */
+.marea-opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.marea-opcion { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--m-linea-fuerte); background: var(--m-fondo); color: var(--m-texto); font-size: 13px; transition: border-color .2s, background .2s; }
+.marea-opcion:hover:not(:disabled) { border-color: var(--m-brillo); background: var(--m-brillo-suave); }
+.marea-panel button:disabled { opacity: .55; cursor: default; }
+.marea-confirmar, .marea-ficha { border: 1px solid var(--m-linea-fuerte); background: var(--m-fondo-2); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.marea-confirmar h4, .marea-ficha h4 { font-family: var(--aqua-fuente-titulos); font-size: 15px; margin: 0; color: var(--m-texto); }
+.marea-ficha h5 { font-family: var(--m-mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--m-tenue); margin: 4px 0 6px; font-weight: 500; }
+.marea-detalle { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
+.marea-dia { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.marea-dia strong { font-size: 15px; text-transform: capitalize; }
+.marea-dia span { font-size: 12.5px; color: var(--m-tenue); }
+.marea-modalidades { display: flex; flex-wrap: wrap; gap: 6px; }
+.marea-modalidad { min-height: 36px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--m-linea-fuerte); background: transparent; color: var(--m-suave); font-size: 13px; }
+.marea-modalidad[aria-pressed="true"] { background: var(--m-boton); color: var(--m-boton-texto); border-color: var(--m-boton); }
+.marea-horas { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.marea-hora { min-height: 64px; border-radius: 14px; border: 1px solid var(--m-linea-fuerte); background: var(--m-fondo); color: var(--m-texto); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: border-color .2s, background .2s, transform .2s; }
+.marea-hora.marea-primera { border-color: rgba(var(--m-onda), 0.5); }
+.marea-etiqueta-primera { font-family: var(--m-mono); font-size: 9.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--m-brillo); }
+.marea-hora b { font-family: var(--aqua-fuente-titulos); font-size: 16px; font-variant-numeric: tabular-nums; }
+.marea-hora small:not(.marea-etiqueta-primera) { font-size: 11px; color: var(--m-tenue); }
+.marea-hora:hover:not(:disabled) { border-color: var(--m-brillo); background: var(--m-brillo-suave); transform: translateY(-2px); }
+.marea-error { margin: 0; color: var(--m-atencion); font-size: 13px; }
+.marea-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.marea-boton-principal { min-height: 40px; padding: 0 18px; border-radius: 10px; border: none; background: var(--m-boton); color: var(--m-boton-texto); font-weight: 700; font-size: 13.5px; }
+.marea-boton-secundario { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--m-linea-fuerte); background: transparent; color: var(--m-texto); font-size: 13.5px; }
+.marea-boton-secundario:hover:not(:disabled) { background: var(--m-fondo-3); }
+.marea-nota { margin: 0; font-size: 12.5px; color: var(--m-tenue); font-style: italic; }
+
+.marea-analisis { border: 1px solid var(--m-linea); border-radius: 16px; background: var(--m-fondo-2); overflow: hidden; }
+.marea-analisis-cabeza { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--m-linea); background: var(--m-fondo); }
+.marea-analisis-cabeza small { display: block; font-family: var(--m-mono); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--m-tenue); }
+.marea-analisis-cabeza strong { display: block; font-family: var(--aqua-fuente-titulos); font-size: 18px; }
+.marea-analisis-cabeza div > span { font-size: 12.5px; color: var(--m-tenue); }
+.marea-anillo { --pct: 0; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--m-brillo) calc(var(--pct) * 1%), var(--m-fondo-3) 0); }
+.marea-anillo span { width: 50px; height: 50px; border-radius: 50%; background: var(--m-fondo); display: grid; place-items: center; font-family: var(--aqua-fuente-titulos); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.marea-analisis-cuerpo { padding: 14px 18px 4px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.marea-analisis-cuerpo h4 { margin: 0 0 8px; font-family: var(--m-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--m-tenue); }
+.marea-analisis-cuerpo ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.marea-analisis .marea-nota { padding: 8px 18px 14px; }
+.marea-cargos { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.marea-cargo-fila { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 1.2fr); gap: 12px; align-items: center; font-size: 13.5px; }
+.marea-barra-pct { display: grid; grid-template-columns: minmax(60px, 1fr) 42px; gap: 10px; align-items: center; }
+.marea-barra-pct > span { height: 6px; border-radius: 4px; background: var(--m-fondo-3); overflow: hidden; }
+.marea-barra-pct i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #2c7f9c, var(--m-brillo)); }
+.marea-barra-pct b { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.marea-fuerte::before { content: "+ "; color: var(--m-bien); font-weight: 700; }
+.marea-debil::before { content: "\2013  "; color: var(--m-atencion); font-weight: 700; }
+.marea-ranking { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.marea-ranking li > span:first-child { display: block; }
+.marea-brecha { display: block; font-size: 12px; color: var(--m-atencion); }
+
+/* Avisos de la campana */
+.marea-avisos-pop { position: absolute; z-index: 5; top: 64px; right: 16px; width: min(400px, calc(100% - 32px)); max-height: 70%; overflow-y: auto; background: var(--m-fondo); border: 1px solid var(--m-linea-fuerte); border-radius: 16px; box-shadow: var(--m-sombra); padding: 8px; animation: marea-emerger .25s ease both; }
+.marea-avisos-pop header { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 10px; }
+.marea-avisos-pop header strong { font-size: 14px; }
+.marea-avisos-pop header button { border: none; background: none; color: var(--m-brillo); font-size: 12.5px; padding: 6px; }
+.marea-avisos { list-style: none; margin: 0; padding: 0; }
+.marea-notif { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; padding: 12px; }
+.marea-notif + .marea-notif { border-top: 1px solid var(--m-linea); }
+.marea-notif > i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--aqua-acento); }
+.marea-notif.marea-leida > i { background: transparent; border: 1px solid var(--m-tenue); }
+.marea-notif b { display: block; font-size: 13.5px; font-weight: 600; }
+.marea-notif time { display: block; font-family: var(--m-mono); font-size: 11px; color: var(--m-tenue); margin: 2px 0 8px; }
+.marea-notif .marea-boton-principal, .marea-notif .marea-boton-secundario { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
+.marea-vacio { margin: 0; padding: 8px 10px 12px; font-size: 13px; color: var(--m-tenue); }
+
+/* Aviso en la esquina */
+.marea-aviso-esquina { position: fixed; z-index: 1080; right: 16px; bottom: 16px; max-width: min(380px, calc(100% - 32px)); display: flex; align-items: center; gap: 10px; background: var(--m-fondo); color: var(--m-texto); border: 1px solid var(--m-linea-fuerte); border-radius: 12px; padding: 12px 14px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25); font-size: 13.5px; animation: marea-emerger .25s ease both; }
+.marea-aviso-esquina > i { color: var(--m-bien); font-size: 18px; }
+.marea-aviso-esquina span { flex: 1; }
+
 /* Teléfono: panel a pantalla completa y conexiones en fila */
 @media (max-width: 860px) {
+  .marea-analisis-cuerpo { grid-template-columns: minmax(0, 1fr); }
+  .marea-avisos-pop { top: 58px; right: 8px; width: calc(100% - 16px); }
   .marea-zona { padding-inline: 0; }
   .marea-estado, .marea-lanzador .marea-kbd, .marea-nuevos span { display: none; }
   .marea-capa { padding: 0; }

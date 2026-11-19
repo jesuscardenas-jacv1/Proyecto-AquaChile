@@ -9,4 +9,7 @@ export const apiAgente = {
     solicitar('/agente/mensaje', { metodo: 'POST', cuerpo: { mensaje, foco, accion } }),
   /** Avisos recientes del usuario con sus acciones: { noLeidas, avisos }. */
   avisos: () => solicitar('/agente/avisos'),
+  /** Los avisos son las notificaciones del usuario: se marcan leídos como en la campana del menú. */
+  marcarLeido: (id) => solicitar(`/notificaciones/${id}/leida`, { metodo: 'PATCH' }),
+  marcarTodos: () => solicitar('/notificaciones/leidas', { metodo: 'POST' }),
 };
