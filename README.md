@@ -70,6 +70,24 @@ Para la psicóloga:
 Todo es una sugerencia que el equipo revisa. Usa Claude Opus 5.5 con respuestas en un formato JSON fijo, y las
 instrucciones le indican tratar el contenido de los documentos como datos, no como órdenes.
 
+### Marea, el agente de reclutamiento
+
+Barra flotante arriba al centro de todas las pantallas internas (o **Ctrl K**). Abre un panel donde se le escribe o se
+elige una función, según el rol:
+
+| Rol | Puede pedirle |
+| --- | --- |
+| Psicóloga | Agendar o reagendar entrevistas (horas libres reales, Google Meet, Teams o presencial), resumen de una solicitud y guía de entrevista |
+| Analista | Ranking de postulantes de un cargo por % de requisitos, análisis completo de una persona, resumen y borrador de oferta |
+| Jefatura | Solo resúmenes y listados |
+| Administrador | Todo |
+
+Ejemplos: «agenda a Valentina Ríos» (pide el RUT, muestra las horas libres y agenda al pulsar **Confirmar**),
+«¿cómo va la solicitud 104?», «ranking de Técnico Eléctrico». La campana de Marea muestra los avisos con
+«Analizar y agendar» y «Resumen». Marea **no usa IA ni claves**: entiende con palabras clave y responde con los datos
+que el rol puede ver, así que no tiene costo. Solo cambia algo al pulsar Confirmar y nunca muestra notas clínicas.
+Necesita el backend (no aparece en la demo sin servidor). Detalle para el equipo: [`docs/MAREA.md`](docs/MAREA.md).
+
 ## Arquitectura
 
 ```mermaid
@@ -207,7 +225,7 @@ src/
 ├── App.jsx            # rutas y permisos por rol
 ├── paginas/           # una vista por ruta
 ├── componentes/       # admin, candidatos, comunes, dashboard, evaluacion, layout,
-│                      # ofertas, perfil, planner, portal, solicitudes
+│                      # marea, ofertas, perfil, planner, portal, solicitudes
 ├── dominio/           # lógica pura: validaciones, consultas, indicadores, planner
 ├── datos/             # contextos de autenticación y datos, catálogos y semilla
 ├── servicios/         # cliente de la API, documentos y tiempo real
@@ -219,6 +237,7 @@ backend/
 │   ├── rutas/         # endpoints de la API
 │   ├── middlewares/   # autenticación, roles, límites y errores
 │   ├── bd/            # conexión, migraciones, semilla y formatos de respuesta
+│   ├── agente/        # Marea: intérprete, herramientas, horarios y RUT
 │   └── almacenamiento/ # proveedores de documentos e informe PDF
 └── scripts/           # empaquetado para Azure y generación de descriptores
 ```
@@ -243,19 +262,21 @@ npm --prefix backend run test:roles              # permisos de los 4 roles (requ
 npm --prefix backend run test:integracion        # API usada por el frontend (requiere BD sembrada)
 npm --prefix backend run test:ia                 # ayudas de IA con un cliente simulado (sin costo)
 npm --prefix backend run test:reuniones          # Google Calendar y Teams con respuestas simuladas
+npm --prefix backend run test:agente             # Marea (BD temporal, sin IA)
 ```
 
 Resultados a noviembre de 2026:
 
-- **Frontend:** 563 pruebas en 71 archivos.
-- **Backend:** 129 pruebas entre almacenamiento, autenticación, roles, integración, IA y reuniones.
+- **Frontend:** 689 pruebas en 95 archivos.
+- **Backend:** 191 pruebas entre almacenamiento, autenticación, roles, integración, IA, cola de análisis, reuniones,
+  correo y Marea.
 
 | Cobertura del frontend (v8) | Actual | Mínimo |
 | --- | --- | --- |
-| Sentencias | 94,75 % | 80 % |
-| Ramas | 88,09 % | 75 % |
-| Funciones | 81,84 % | 80 % |
-| Líneas | 94,75 % | 80 % |
+| Sentencias | 94,99 % | 80 % |
+| Ramas | 88,66 % | 75 % |
+| Funciones | 81,24 % | 80 % |
+| Líneas | 94,99 % | 80 % |
 
 `npm run test:coverage` falla si la cobertura baja de esos mínimos, definidos en `vite.config.js`.
 
