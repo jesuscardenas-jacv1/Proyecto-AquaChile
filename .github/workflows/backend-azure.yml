@@ -1,0 +1,97 @@
+name: Desplegar backend en Azure
+
+# Publica el backend en Azure App Service cada vez que llega a main un cambio que lo afecta.
+# Siempre empaqueta desde main actualizado: el zip reemplaza todo el backend, no suma cambios.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'src/datos/**'
+      - 'public/descriptores/**'
+      - '.github/workflows/backend-azure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # inicio de sesión en Azure con OIDC, sin contraseñas guardadas
+
+# Un despliegue a la vez; si llegan dos merges seguidos, el segundo espera al primero.
+concurrency:
+  group: backend-azure
+  cancel-in-progress: false
+
+env:
+  GRUPO: rg-aquachile-chile
+  APP: aquachile-psicolaboral-api
+  URL_API: https://aquachile-psicolaboral-api.azurewebsites.net/api
+  # Identidad "github-aquachile-despliegue-backend" (Entra ID, sin contraseña). No son secretos:
+  # Azure solo acepta el token OIDC de este repo en el environment azure-backend, y la identidad
+  # solo tiene "Website Contributor" sobre este App Service.
+  AZURE_CLIENT_ID: e094ebed-2c1e-4ec6-a7c0-a431128d1c2f
+  AZURE_TENANT_ID: 72fd0b5a-8a6a-4cff-89f6-bde961f7e250
+  AZURE_SUBSCRIPTION_ID: fc45e825-158e-4071-85eb-95bf34da6f79
+
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # node:sqlite
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci --prefix backend
+
+      # Base de pruebas desechable, fuera del repositorio.
+      - run: echo "BD_RUTA=$RUNNER_TEMP/pruebas.sqlite" >> "$GITHUB_ENV"
+
+      - name: Base de pruebas sembrada
+        run: |
+          npm --prefix backend run db:migrar
+          npm --prefix backend run db:semilla
+
+      - name: Pruebas del backend
+        working-directory: backend
+        run: |
+          for prueba in almacenamiento auth roles integracion ia cola reuniones correo agente; do
+            echo "::group::test:$prueba"
+            npm run "test:$prueba"
+            echo "::endgroup::"
+          done
+
+  desplegar:
+    needs: probar
+    runs-on: ubuntu-latest
+    environment:
+      name: azure-backend
+      url: ${{ env.URL_API }}/salud
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Empaquetar
+        run: bash backend/scripts/empaquetar-azure.sh "$RUNNER_TEMP/despliegue-azure.zip"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Publicar en App Service
+        run: |
+          az webapp deploy -g "$GRUPO" -n "$APP" \
+            --src-path "$RUNNER_TEMP/despliegue-azure.zip" --type zip
+
+      - name: Comprobar que la API responde
+        run: |
+          for intento in $(seq 1 12); do
+            if curl -fsS -m 20 "$URL_API/salud"; then echo; exit 0; fi
+            echo "Intento $intento: la API aún no responde, se reintenta en 15 s"
+            sleep 15
+          done
+          echo "::error::La API no respondió después del despliegue"
+          exit 1

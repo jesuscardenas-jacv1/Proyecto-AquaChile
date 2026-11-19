@@ -135,7 +135,8 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   la semilla genera RUT ficticios); elegido desde un chip, un aviso o el foco, no.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
-  El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).
+  El backend también se publica solo al hacer merge a `main` (`.github/workflows/backend-azure.yml`: pruebas, empaquetado
+  y despliegue con OIDC). A mano, como respaldo: `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).
 
 ```
 src/paginas/        una vista por ruta (App.jsx define rutas y roles)
