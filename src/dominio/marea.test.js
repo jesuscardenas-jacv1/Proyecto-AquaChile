@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { conexionesDelRol, esAtajoMarea, guardarTema, leerTema, nombreModulo, primerNombre, subtituloBienvenida } from './marea';
+import {
+  conexionesDelRol,
+  esAtajoMarea,
+  guardarTema,
+  leerTema,
+  minimizarAlDesplazar,
+  nombreModulo,
+  primerNombre,
+  subtituloBienvenida,
+} from './marea';
 
 const almacen = (inicial = {}) => {
   const datos = { ...inicial };
@@ -35,6 +44,15 @@ describe('dominio de Marea', () => {
     const roto = { getItem: () => { throw new Error('bloqueado'); }, setItem: () => { throw new Error('bloqueado'); } };
     expect(leerTema(roto)).toBe('claro');
     expect(() => guardarTema('oscuro', roto)).not.toThrow();
+  });
+
+  it('minimiza la barra al bajar y la muestra al volver arriba de la página', () => {
+    expect(minimizarAlDesplazar({ y: 300, anterior: 200, minimizada: false })).toBe(true);
+    expect(minimizarAlDesplazar({ y: 250, anterior: 300, minimizada: true })).toBe(true);
+    expect(minimizarAlDesplazar({ y: 202, anterior: 200, minimizada: false })).toBe(false);
+    expect(minimizarAlDesplazar({ y: 10, anterior: 250, minimizada: true })).toBe(false);
+    // En una lista interna, estar arriba de la lista no muestra la barra.
+    expect(minimizarAlDesplazar({ y: 0, anterior: 30, minimizada: true, esPagina: false })).toBe(true);
   });
 
   it('arma la bienvenida con el primer nombre y los avisos pendientes', () => {
