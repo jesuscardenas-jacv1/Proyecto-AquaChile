@@ -136,4 +136,23 @@ ${transcripcion}
   });
 }
 
-module.exports = { analizarCv, borradorEvaluacion, extraerDatosCv, notasEntrevista, redactarOferta };
+/**
+ * Marea: clasifica el mensaje del usuario en una intención con sus parámetros. No consulta datos
+ * ni ejecuta nada: eso lo hacen las herramientas deterministas de src/agente con el rol del usuario.
+ * `foco` es de quién se venía hablando ({ nombre, solicitudId }), para entender "agéndale".
+ */
+async function interpretarMensaje({ mensaje, foco, rol, hoy }) {
+  const contexto = foco?.nombre
+    ? `Se venía hablando de ${foco.nombre}${foco.solicitudId ? ` (solicitud ${foco.solicitudId})` : ''}.`
+    : 'No se venía hablando de nadie en particular.';
+  return ejecutar('agenteMarea', {
+    datos: `Rol del usuario: ${rol}. Hoy es ${hoy}.
+${contexto}
+
+<mensaje_del_usuario>
+${mensaje}
+</mensaje_del_usuario>`,
+  });
+}
+
+module.exports = { analizarCv, borradorEvaluacion, extraerDatosCv, interpretarMensaje, notasEntrevista, redactarOferta };

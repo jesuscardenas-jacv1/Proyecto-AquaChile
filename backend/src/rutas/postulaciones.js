@@ -132,7 +132,8 @@ router.post('/', limitePostular, (req, res) => {
     notificarRol('analista', {
       tipo: 'postulacion',
       mensaje: `Nueva postulación: ${texto(datos.nombre)} a ${oferta.titulo}`,
-      enlace: '/postulaciones',
+      // El número de la postulación le permite a Marea ofrecer «Analizar» desde el aviso.
+      enlace: `/postulaciones?postulacion=${Number(lastInsertRowid)}`,
     });
     // Con CV, la confirmación se envía cuando el CV termina de subirse; sin CV, ahora.
     if (!texto(datos.cvNombre)) confirmarAlPostulante(Number(lastInsertRowid));

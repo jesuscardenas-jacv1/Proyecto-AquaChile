@@ -1272,7 +1272,7 @@ describe('API integrada (Hito 2)', () => {
     const delAnalista = await pedirComo(ANALISTA, 'analista', '/notificaciones');
     assert.equal(delAnalista.datos.noLeidas, 1);
     assert.match(delAnalista.datos.notificaciones[0].mensaje, /Nueva postulación: Rocío Aguilar Mena/);
-    assert.equal(delAnalista.datos.notificaciones[0].enlace, '/postulaciones');
+    assert.equal(delAnalista.datos.notificaciones[0].enlace, `/postulaciones?postulacion=${postulacion.datos.postulacion.id}`);
     assert.equal((await pedirComo(PSICOLOGA, 'evaluador', '/notificaciones')).datos.noLeidas, 0);
 
     // Solicitud sin responsable → psicólogas.
