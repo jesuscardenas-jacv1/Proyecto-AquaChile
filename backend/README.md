@@ -266,11 +266,13 @@ Backend publicado en **https://aquachile-psicolaboral-api.azurewebsites.net/api*
 
 Al arrancar, el servidor aplica las migraciones y, si la BD está vacía, carga los datos de demostración. La BD vive en `/home/data`, que es persistente entre reinicios y despliegues.
 
-**Publicar una nueva versión** (con la Azure CLI y `az login`):
+**Publicación automática:** al hacer merge a `main` de un cambio en `backend/`, `src/datos/` o `public/descriptores/`, el workflow `.github/workflows/backend-azure.yml` corre las pruebas del backend sobre una base sembrada, empaqueta desde `main` y lo publica en el App Service (entra a Azure con OIDC, sin contraseñas: identidad `github-aquachile-despliegue-backend`, rol *Website Contributor* solo sobre esta app). También se puede lanzar a mano desde **Actions → Desplegar backend en Azure → Run workflow**.
+
+**Publicar a mano** (respaldo, con la Azure CLI y `az login`):
 ```bash
 bash backend/scripts/empaquetar-azure.sh
 az webapp deploy -g rg-aquachile-chile -n aquachile-psicolaboral-api --src-path backend/despliegue-azure.zip --type zip
 ```
 
-Se ejecuta desde la raíz del repositorio. Si un cambio afecta también al frontend, despliega primero el backend y después fusiona a `main`.
+Se ejecuta desde la raíz del repositorio y siempre desde `main` actualizado: el zip reemplaza todo el backend.
 
