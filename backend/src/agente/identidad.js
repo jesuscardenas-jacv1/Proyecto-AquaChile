@@ -64,25 +64,43 @@ function rutFicticio(id) {
   return formatearRut(`${cuerpo}-${digitoVerificador(cuerpo)}`);
 }
 
+const palabrasDe = (texto) => new Set(normalizar(texto).split(/[^a-z0-9]+/).filter(Boolean));
+
 /**
- * Personas cuyo nombre calza con lo escrito. Todas las palabras escritas deben aparecer en el
- * nombre ("valentina rios" calza con "Valentina Ríos Ojeda"). Primero las coincidencias exactas.
+ * Personas nombradas dentro de un mensaje ("agenda a valentina rios mañana"). Primero las que
+ * aparecen con nombre y algún apellido; si no hay, las que calzan solo por el primer nombre.
  * @param {Array<{ nombre: string }>} personas
  */
-function buscarPorNombre(personas, texto) {
-  const palabras = normalizar(texto).split(' ').filter((palabra) => palabra.length > 1);
-  if (!palabras.length) return [];
-  const buscado = palabras.join(' ');
-  return personas
-    .filter((persona) => {
-      const nombre = normalizar(persona.nombre).split(' ');
-      return palabras.every((palabra) => nombre.includes(palabra));
-    })
-    .sort((a, b) => Number(normalizar(b.nombre) === buscado) - Number(normalizar(a.nombre) === buscado));
+function buscarEnTexto(personas, texto) {
+  const palabras = palabrasDe(texto);
+  const partes = (persona) => normalizar(persona.nombre).split(' ');
+  const completas = personas.filter((persona) => {
+    const [nombre, ...apellidos] = partes(persona);
+    return palabras.has(nombre) && apellidos.some((apellido) => palabras.has(apellido));
+  });
+  return completas.length ? completas : personas.filter((persona) => palabras.has(partes(persona)[0]));
 }
 
+/** Nombres (cargos) cuyas palabras de más de 3 letras aparecen todas en el texto. */
+function nombresEnTexto(nombres, texto) {
+  const palabras = palabrasDe(texto);
+  return nombres.filter((nombre) => {
+    const clave = normalizar(nombre).split(/[^a-z0-9]+/).filter((palabra) => palabra.length > 3);
+    return clave.length > 0 && clave.every((palabra) => palabras.has(palabra));
+  });
+}
+
+/** Si el texto parece traer un nombre propio (una palabra con mayúscula que no es la primera). */
+const pareceNombre = (texto = '') =>
+  String(texto)
+    .split(/\s+/)
+    .slice(1)
+    .some((palabra) => /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}/.test(palabra) && !/^(Google|Meet|Teams|RUT|Presencial)/.test(palabra));
+
 module.exports = {
-  buscarPorNombre,
+  buscarEnTexto,
+  nombresEnTexto,
+  pareceNombre,
   digitoVerificador,
   formatearRut,
   mismoRut,

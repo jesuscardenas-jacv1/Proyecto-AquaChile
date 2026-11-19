@@ -312,18 +312,6 @@ function migrar() {
   agregarColumna('entrevistas', 'segundos_reportados', 'REAL NOT NULL DEFAULT 0');
   // RUT del candidato: Marea lo usa para confirmar de quién se habla antes de agendar.
   agregarColumna('candidatos', 'rut', "TEXT NOT NULL DEFAULT ''");
-  // Ajuste del CV de un candidato a otros cargos abiertos (Marea, «análisis completo»). Guarda la
-  // clasificación por requisito para no volver a pagar el análisis; el % lo calcula cumplimiento.js.
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS ajuste_cargo (
-      candidato_id INTEGER NOT NULL REFERENCES candidatos(id) ON DELETE CASCADE,
-      oferta_id    INTEGER NOT NULL REFERENCES ofertas(id) ON DELETE CASCADE,
-      resultado    TEXT    NOT NULL,
-      modelo       TEXT    NOT NULL DEFAULT '',
-      creado_en    TEXT    NOT NULL DEFAULT (datetime('now')),
-      PRIMARY KEY (candidato_id, oferta_id)
-    );
-  `);
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

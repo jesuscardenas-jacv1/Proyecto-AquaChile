@@ -1,8 +1,8 @@
 /**
  * Herramientas de Marea: una función determinista por intención, con los roles que la pueden usar.
- * Leen la BD con las mismas reglas que el resto de la API y reutilizan su lógica (análisis de CV y
- * % de cumplimiento, Planner, ofertas). La IA solo eligió la intención; aquí no se llama a Claude,
- * salvo el análisis de CV contra otros cargos y la redacción de ofertas, que usan las tareas existentes.
+ * Leen la BD con las mismas reglas que el resto de la API y reutilizan su lógica (% de cumplimiento,
+ * Planner). Ninguna llama a un servicio de IA: Marea es gratis. El análisis de CV solo se lee si ya
+ * existe (lo hizo el analista en Postulaciones).
  *
  * Cada herramienta recibe el contexto { usuario, parametros, foco, origen, ahora } y devuelve
  * { texto, tarjetas, opciones, foco }. Nunca devuelve notas clínicas ni la pauta de la entrevista.
@@ -10,19 +10,14 @@
  */
 const db = require('../bd/conexion');
 const { cambiarEtapa } = require('../bd/planner');
-const { analizarCv, redactarOferta } = require('../ia/tareas');
-const { buscarDescriptor } = require('../ia/documentos');
-const { cvDePostulacion } = require('../ia/analisisPostulacion');
 const { calcularCumplimiento, normalizarCriterios } = require('../ia/cumplimiento');
 const { ahoraEnChile, horaDisponible, horasLibres, sumarDias } = require('./horarios');
-const { buscarPorNombre, formatearRut, mismoRut, rutEnTexto, rutValido } = require('./identidad');
+const { buscarEnTexto, formatearRut, mismoRut, nombresEnTexto, pareceNombre, rutEnTexto, rutValido } = require('./identidad');
 const { frase } = require('./frases');
 
 const MODALIDADES = ['Google Meet', 'Teams', 'Presencial'];
 const ETAPAS = { recibida: 'Evaluación recibida', agendada: 'Entrevista agendada', realizada: 'Entrevista realizada', informe: 'Informe enviado' };
 const MAXIMO_OPCIONES = 4;
-// Análisis contra otros cargos abiertos por persona (cada uno es una llamada a la IA, ~USD 0,08).
-const MAXIMO_CARGOS_EXTRA = 2;
 
 const respuesta = ({ texto, tarjetas = [], opciones = [], foco = null }) => ({ texto, tarjetas, opciones, foco });
 const opcion = (etiqueta, accion) => ({ etiqueta, accion });
@@ -102,7 +97,7 @@ const opcionesRecientes = (usuario, tipo, extra = {}) =>
 
 /**
  * Identifica a la persona. Orden: número de solicitud, postulación o candidato (de una opción o
- * un aviso), nombre escrito, y por último el foco de la conversación.
+ * un aviso), nombre escrito en el mensaje, y por último el foco de la conversación.
  * Con `exigirRut`, un nombre escrito por primera vez debe confirmarse con su RUT.
  * @returns {{ persona } | { respuesta }}
  */
@@ -127,9 +122,10 @@ function identificar(ctx, { tipo, exigirRut = false }) {
     return exigirRut && !elegida ? pedirRut(ctx, persona) : { persona: { ...persona, verificado: true } };
   }
 
-  if (parametros.persona) {
-    const coincidencias = buscarPorNombre(personasVisibles(usuario), parametros.persona);
-    if (!coincidencias.length) return { respuesta: noEncontrada(ctx, tipo) };
+  const coincidencias = parametros.persona ? buscarEnTexto(personasVisibles(usuario), parametros.persona) : [];
+  // Escribió un nombre que no está entre sus solicitudes: no se usa el foco por error.
+  if (!coincidencias.length && pareceNombre(parametros.persona)) return { respuesta: noEncontrada(ctx, tipo) };
+  if (coincidencias.length) {
     if (coincidencias.length > 1) {
       return {
         respuesta: respuesta({
@@ -415,74 +411,37 @@ function resumenSolicitud(ctx) {
   });
 }
 
-/** Ajustes ya calculados: análisis de las postulaciones de la persona y los guardados contra otros cargos. */
-function ajustesGuardados(candidatoId) {
-  const dePostulaciones = db
+/** Análisis de CV ya hechos de la persona: uno por cada cargo al que postuló. */
+function analisisDePersona(candidatoId) {
+  return db
     .prepare(
-      `SELECT o.id AS oferta_id, o.cargo, a.resultado FROM postulaciones p
+      `SELECT o.cargo, a.resultado FROM postulaciones p
        JOIN ofertas o ON o.id = p.oferta_id JOIN analisis_cv a ON a.postulacion_id = p.id
        WHERE p.candidato_id = ?`,
     )
-    .all(candidatoId);
-  const deOtrosCargos = db
-    .prepare(
-      `SELECT o.id AS oferta_id, o.cargo, j.resultado FROM ajuste_cargo j JOIN ofertas o ON o.id = j.oferta_id
-       WHERE j.candidato_id = ?`,
-    )
-    .all(candidatoId);
-  return [...dePostulaciones, ...deOtrosCargos].map((fila) => ({ ofertaId: fila.oferta_id, cargo: fila.cargo, ...JSON.parse(fila.resultado) }));
-}
-
-/**
- * Analiza el CV de la persona contra hasta MAXIMO_CARGOS_EXTRA cargos abiertos a los que no postuló,
- * con la misma tarea y el mismo cálculo de cumplimiento que el análisis de Postulaciones.
- * Guarda el resultado en ajuste_cargo para no repetir el costo.
- */
-async function analizarOtrosCargos(candidatoId, conocidos) {
-  const postulacion = db
-    .prepare("SELECT id FROM postulaciones WHERE candidato_id = ? AND cv_nombre <> '' ORDER BY id DESC LIMIT 1")
-    .get(candidatoId);
-  if (!postulacion) return [];
-  const ofertas = db
-    .prepare("SELECT * FROM ofertas WHERE estado = 'Abierta' AND publicada = 1 AND requisitos <> '[]' ORDER BY fecha_publicacion DESC")
-    .all()
-    .filter((oferta) => !conocidos.has(oferta.id))
-    .slice(0, MAXIMO_CARGOS_EXTRA);
-  if (!ofertas.length) return [];
-  const cv = await cvDePostulacion(postulacion.id);
-  if (!cv) return [];
-
-  const nuevos = [];
-  for (const oferta of ofertas) {
-    const descriptor = await buscarDescriptor({ cargo: oferta.cargo, ofertaId: oferta.id });
-    const { datos, modelo } = await analizarCv({ cv, descriptor, oferta });
-    db.prepare(
-      `INSERT INTO ajuste_cargo (candidato_id, oferta_id, resultado, modelo) VALUES (?, ?, ?, ?)
-       ON CONFLICT (candidato_id, oferta_id) DO UPDATE SET resultado = excluded.resultado, modelo = excluded.modelo, creado_en = datetime('now')`,
-    ).run(candidatoId, oferta.id, JSON.stringify(datos), modelo);
-    nuevos.push({ ofertaId: oferta.id, cargo: oferta.cargo, ...datos });
-  }
-  return nuevos;
+    .all(candidatoId)
+    .map((fila) => ({ cargo: fila.cargo, ...JSON.parse(fila.resultado) }));
 }
 
 /** El % siempre se recalcula con cumplimiento.js desde los criterios guardados (nunca lo da la IA). */
 const porcentajeDe = (analisis) => calcularCumplimiento(normalizarCriterios(analisis.criterios)).porcentaje;
 
-async function analizarCandidato(ctx) {
+function analizarCandidato(ctx) {
   const identificada = identificar(ctx, { tipo: 'analizar_candidato' });
   if (identificada.respuesta) return identificada.respuesta;
   const { persona } = identificada;
   const { usuario } = ctx;
 
-  const guardados = ajustesGuardados(persona.candidatoId);
-  const extra = await analizarOtrosCargos(persona.candidatoId, new Set(guardados.map((a) => a.ofertaId)));
-  const cargos = [...guardados, ...extra]
+  const cargos = analisisDePersona(persona.candidatoId)
     .map((analisis) => ({ ...analisis, porcentaje: porcentajeDe(analisis) }))
     .filter((analisis) => Number.isFinite(analisis.porcentaje))
     .sort((a, b) => b.porcentaje - a.porcentaje);
 
   const foco = focoDe(persona, persona.verificado);
-  if (!cargos.length) return respuesta({ texto: frase(usuario.id, 'sinAnalisis', { nombre: persona.nombre }), foco });
+  if (!cargos.length) {
+    return respuesta({ texto: `${frase(usuario.id, 'sinAnalisis', { nombre: persona.nombre })}
+Se analiza desde Postulaciones.`, foco });
+  }
 
   const [mayor] = cargos;
   const criterios = normalizarCriterios(mayor.criterios);
@@ -542,10 +501,10 @@ function guiaEntrevista(ctx) {
 function rankingCargo(ctx) {
   const { usuario, parametros } = ctx;
   const cargos = db.prepare("SELECT DISTINCT cargo FROM ofertas WHERE estado = 'Abierta' ORDER BY cargo").all().map((f) => f.cargo);
-  const cargo = parametros.cargo ? buscarPorNombre(cargos.map((nombre) => ({ nombre })), parametros.cargo)[0]?.nombre : '';
+  const [cargo] = parametros.cargo ? nombresEnTexto(cargos, parametros.cargo) : [];
   if (!cargo) {
     return respuesta({
-      texto: parametros.cargo ? `No encontré ofertas abiertas de "${parametros.cargo}". ¿Es alguna de estas?` : '¿De qué cargo? Elige uno:',
+      texto: '¿De qué cargo? Elige uno de las ofertas abiertas:',
       opciones: cargos.slice(0, MAXIMO_OPCIONES).map((nombre) => opcion(nombre, { tipo: 'ranking_cargo', cargo: nombre })),
     });
   }
@@ -574,20 +533,38 @@ function rankingCargo(ctx) {
   });
 }
 
-async function redactarOfertaMarea(ctx) {
-  const cargo = (ctx.parametros.cargo ?? '').trim();
-  if (cargo.length < 2) return respuesta({ texto: '¿Para qué cargo redacto la oferta?' });
-  const oferta = { cargo, familiaCargo: '', area: '', ubicacion: '', jornada: '' };
-  const descriptor = await buscarDescriptor({ cargo });
-  const { datos } = await redactarOferta({ oferta, descriptor });
+/**
+ * Borrador de oferta con una plantilla (sin IA): parte de la última oferta del mismo cargo si existe.
+ * No guarda nada; la analista lo revisa y lo publica desde Ofertas.
+ */
+function redactarOfertaMarea(ctx) {
+  const cargos = db.prepare('SELECT DISTINCT cargo FROM ofertas UNION SELECT nombre FROM cargos').all().map((f) => f.cargo);
+  const [cargo] = nombresEnTexto(cargos, ctx.parametros.cargo ?? '');
+  if (!cargo) {
+    return respuesta({
+      texto: '¿Para qué cargo redacto la oferta? Elige uno:',
+      opciones: cargos.slice(0, MAXIMO_OPCIONES).map((nombre) => opcion(nombre, { tipo: 'redactar_oferta', cargo: nombre })),
+    });
+  }
+  const anterior = db.prepare('SELECT * FROM ofertas WHERE cargo = ? ORDER BY fecha_publicacion DESC LIMIT 1').get(cargo);
+  let requisitos = [];
+  try {
+    requisitos = JSON.parse(anterior?.requisitos ?? '[]');
+  } catch {
+    requisitos = [];
+  }
   return respuesta({
-    texto: `${frase(ctx.usuario.id, 'oferta', { cargo })}\nFuente: ${descriptor ? 'Descriptor del cargo' : 'Sin descriptor del cargo'}`,
+    texto: `${frase(ctx.usuario.id, 'oferta', { cargo })}
+Fuente: ${anterior ? `Oferta anterior "${anterior.titulo}"` : 'Plantilla de Marea'}`,
     tarjetas: [
       {
         tipo: 'resumen',
-        titulo: datos.titulo,
-        lineas: [datos.descripcion],
-        secciones: [{ titulo: 'Requisitos', lineas: datos.requisitos }],
+        titulo: anterior?.ubicacion ? `${cargo} - ${anterior.ubicacion}` : cargo,
+        lineas: [
+          `Buscamos ${cargo} para sumarse a nuestro equipo${anterior?.area ? ` del área ${anterior.area}` : ''}.`,
+          'Completa aquí el propósito del cargo y sus funciones principales.',
+        ],
+        secciones: [{ titulo: 'Requisitos', lineas: requisitos.length ? requisitos : ['Formación y experiencia que pide el descriptor del cargo.'] }],
         fuente: 'Borrador para revisar en Ofertas (no se publicó nada)',
       },
     ],

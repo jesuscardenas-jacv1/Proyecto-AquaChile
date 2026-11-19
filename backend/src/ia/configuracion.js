@@ -102,7 +102,6 @@ function camposDelEsquema(esquema) {
       const item = definicion.items;
       return item.type === 'object' ? `${campo}: lista de { ${Object.keys(item.properties).join(', ')} }` : `${campo}: lista de textos`;
     }
-    if (definicion.type === 'object') return `${campo}: { ${Object.keys(definicion.properties).join(', ')} }`;
     if (definicion.enum) return `${campo}: una de ${definicion.enum.join(' · ')}`;
     return `${campo}: texto`;
   });

@@ -1,5 +1,5 @@
 /**
- * Pruebas de Marea con un cliente de IA simulado: no llaman a la API real ni tienen costo.
+ * Pruebas de Marea. Marea no usa servicios de IA: un cliente simulado comprueba que nunca se llama.
  * Usan una BD y una carpeta de documentos temporales (no tocan datos.sqlite).
  * Ejecutar con: npm run test:agente
  */
@@ -17,8 +17,9 @@ const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const { BLOQUES, horasLibres, horaDisponible, sumarDias } = require('./horarios');
-const { buscarPorNombre, digitoVerificador, formatearRut, rutEnTexto, rutFicticio, rutValido } = require('./identidad');
+const { buscarEnTexto, digitoVerificador, nombresEnTexto, pareceNombre, formatearRut, rutEnTexto, rutFicticio, rutValido } = require('./identidad');
 const { FRASES, elegirVariante, frase } = require('./frases');
+const { interpretar } = require('./interprete');
 
 // Viernes 20-11-2026, 10:00 en Chile (UTC-3 en verano).
 const VIERNES_10 = new Date('2026-11-20T13:00:00Z');
@@ -80,11 +81,14 @@ describe('identidad de Marea', () => {
     assert.equal(rutFicticio(101), rutFicticio(101));
   });
 
-  it('busca por nombre sin tildes y con todas las palabras', () => {
+  it('encuentra a la persona dentro del mensaje, sin tildes', () => {
     const personas = [{ nombre: 'Valentina Ríos Ojeda' }, { nombre: 'Valentina Uribe Rodríguez' }];
-    assert.deepEqual(buscarPorNombre(personas, 'valentina rios'), [personas[0]]);
-    assert.equal(buscarPorNombre(personas, 'Valentina').length, 2);
-    assert.deepEqual(buscarPorNombre(personas, 'Tomás'), []);
+    assert.deepEqual(buscarEnTexto(personas, 'agenda a valentina rios mañana'), [personas[0]]);
+    assert.equal(buscarEnTexto(personas, 'agenda a Valentina').length, 2);
+    assert.deepEqual(buscarEnTexto(personas, 'agenda a Tomás'), []);
+    assert.equal(pareceNombre('agenda a Tomás Leal'), true);
+    assert.equal(pareceNombre('agéndale por Teams'), false);
+    assert.deepEqual(nombresEnTexto(['Técnico Eléctrico', 'Jefe de Turno'], 'ranking de tecnico electrico'), ['Técnico Eléctrico']);
   });
 });
 
@@ -100,14 +104,44 @@ describe('frases de Marea', () => {
   });
 });
 
+describe('intérprete local (sin IA)', () => {
+  const HOY = '2026-11-20';
+  it('reconoce cada intención por palabras clave', () => {
+    const casos = [
+      ['Agenda a Valentina Ríos', 'agendar'],
+      ['¿Me puedes reagendar a Tomás?', 'reagendar'],
+      ['Analiza a Paula y agéndale', 'analizar_candidato'],
+      ['ranking de Técnico Eléctrico', 'ranking_cargo'],
+      ['¿Qué le pregunto a Matías? Dame la guía', 'guia_entrevista'],
+      ['Redacta una oferta para Jefe de Turno', 'redactar_oferta'],
+      ['¿Tengo avisos nuevos?', 'avisos'],
+      ['¿Cómo va la solicitud 104?', 'resumen_solicitud'],
+      ['Muéstrame mis solicitudes pendientes', 'listar_solicitudes'],
+      ['Hola', 'ayuda'],
+      ['¿Qué tiempo hace?', 'fuera_de_alcance'],
+    ];
+    for (const [mensaje, intencion] of casos) assert.equal(interpretar(mensaje, HOY).intencion, intencion, mensaje);
+  });
+
+  it('saca RUT, número de solicitud, fecha, hora y modalidad', () => {
+    const { parametros } = interpretar('Agenda la solicitud 104 mañana a las 9 por Meet, rut 11.111.111-1', HOY);
+    assert.equal(parametros.solicitudId, 104);
+    assert.equal(parametros.rut, '11.111.111-1');
+    assert.equal(parametros.fecha, '2026-11-21');
+    assert.equal(parametros.hora, '09:00');
+    assert.equal(parametros.modalidad, 'Google Meet');
+    assert.equal(interpretar('agenda el 23/11 a las 15:30 presencial', HOY).parametros.fecha, '2026-11-23');
+    assert.equal(interpretar('Analiza a Paula y agéndale', HOY).parametros.tambienAgendar, true);
+  });
+});
+
 describe('Marea en la API', () => {
   const { establecerClienteIa } = require('../ia/cliente');
   const db = require('../bd/conexion');
   let app;
   let servidor;
   let base;
-  let intencion;
-  let llamadasIa;
+  let llamadasIa = 0;
 
   const USUARIOS = {
     analista: { id: 1, nombre: 'Carolina Muñoz', rol: 'analista' },
@@ -124,16 +158,6 @@ describe('Marea en la API', () => {
     return { status: res.status, datos: await res.json() };
   };
   const solicitud = (id) => db.prepare('SELECT * FROM solicitudes WHERE id = ?').get(id);
-  const clasificar = (datos) => {
-    intencion = {
-      intencion: 'agendar',
-      faltante: '',
-      respuesta: '',
-      ...datos,
-      parametros: { persona: '', rut: '', solicitudId: 0, cargo: '', fecha: '', hora: '', modalidad: '', tambienAgendar: false, ...datos.parametros },
-    };
-  };
-
   before(async () => {
     await require('../bd/semilla').sembrar({ silencioso: true });
     app = require('../servidor');
@@ -147,45 +171,28 @@ describe('Marea en la API', () => {
     fs.rmSync(temporal, { recursive: true, force: true });
   });
   beforeEach(() => {
-    llamadasIa = 0;
-    establecerClienteIa({
-      beta: {
-        messages: {
-          create: async () => {
-            llamadasIa += 1;
-            return { model: 'claude-opus-5-5', stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(intencion) }] };
-          },
-        },
-      },
-    });
+    // Si Marea llamara a la IA, esta prueba lo detecta (y no habría costo: el cliente es simulado).
+    establecerClienteIa({ beta: { messages: { create: async () => { llamadasIa += 1; throw new Error('Marea no debe llamar a la IA'); } } } });
   });
+  after(() => assert.equal(llamadasIa, 0, 'Marea nunca llama a la IA'));
 
-  it('sin clave de IA Marea no responde', async () => {
-    establecerClienteIa(null);
+  it('funciona sin clave de IA: Marea es gratis', async () => {
     const clave = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
-    assert.equal((await conversar('evaluador', { mensaje: 'hola' })).status, 503);
+    const respuesta = await conversar('evaluador', { mensaje: 'hola' });
+    assert.equal(respuesta.status, 200);
+    assert.ok(respuesta.datos.opciones.length > 0);
     if (clave) process.env.ANTHROPIC_API_KEY = clave;
   });
 
-  it('la tarea agenteMarea aparece en la Configuración de IA del admin', () => {
-    const { listarConfiguracion } = require('../ia/configuracion');
-    const tarea = listarConfiguracion({ modeloServidor: 'x' }).tareas.find((t) => t.id === 'agenteMarea');
-    assert.ok(tarea);
-    assert.equal(tarea.vigente.esfuerzo, 'low');
-  });
-
   it('evaluadora: agenda por nombre, pide el RUT, muestra horas y agenda solo al confirmar', async () => {
-    clasificar({ intencion: 'agendar', parametros: { persona: 'Valentina Ríos' } });
     const pide = await conversar('evaluador', { mensaje: 'agenda a Valentina Ríos' });
     assert.equal(pide.status, 200);
     assert.match(pide.datos.texto, /RUT/);
     assert.equal(pide.datos.foco.pendiente, 'rut');
-    assert.equal(llamadasIa, 1);
 
     const invalido = await conversar('evaluador', { mensaje: '11.111.111-2', foco: pide.datos.foco });
     assert.match(invalido.datos.texto, /no (es válido|cuadra)/);
-    assert.equal(llamadasIa, 1, 'responder el RUT no llama a la IA');
 
     const horas = await conversar('evaluador', { mensaje: rutFicticio(101), foco: invalido.datos.foco });
     const [tarjeta] = horas.datos.tarjetas;
@@ -218,8 +225,7 @@ describe('Marea en la API', () => {
   });
 
   it('jefatura solo obtiene resúmenes: intentar agendar responde amable y no hace nada', async () => {
-    clasificar({ intencion: 'agendar', parametros: { persona: 'Tomás Barrientos' } });
-    const pide = await conversar('jefatura', { mensaje: 'agenda a Tomás' });
+    const pide = await conversar('jefatura', { mensaje: 'agenda a Tomás Barrientos' });
     assert.equal(pide.status, 200);
     assert.deepEqual(pide.datos.tarjetas, []);
     assert.ok(pide.datos.opciones.length > 0);
@@ -257,7 +263,6 @@ describe('Marea en la API', () => {
     assert.equal(tarjeta.nota, 'La decisión es tuya.');
     assert.deepEqual(tarjeta.fortalezas, ['Técnico en acuicultura']);
     assert.match(respuesta.datos.texto, /agenda es de la psicóloga/);
-    assert.equal(llamadasIa, 0, 'los botones no llaman a la IA');
     assert.doesNotMatch(JSON.stringify(respuesta.datos), /contratar|descartar/i);
   });
 
@@ -280,7 +285,6 @@ describe('Marea en la API', () => {
   });
 
   it('si no entiende, ofrece caminos según el rol', async () => {
-    clasificar({ intencion: 'fuera_de_alcance', respuesta: '' });
     const respuesta = await conversar('analista', { mensaje: '¿qué tiempo hace?' });
     assert.match(respuesta.datos.texto, /no lo capté|No te entendí/);
     assert.ok(respuesta.datos.opciones.every((o) => o.accion.tipo !== 'agendar'));

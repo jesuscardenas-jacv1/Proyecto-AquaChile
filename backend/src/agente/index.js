@@ -1,14 +1,14 @@
 /**
  * Marea: agente de reclutamiento. Enrutador de intenciones con herramientas deterministas, no un chat libre.
  *
- *   1. Interpreta: con `accion` (chips y botones) no se llama a la IA; con texto, Claude clasifica el
- *      mensaje una sola vez (tarea agenteMarea).
+ *   1. Interpreta: con `accion` (chips y botones) se usa tal cual; con texto, el intérprete local de
+ *      palabras clave (interprete.js) elige la intención. No se llama a ningún servicio de IA: es gratis.
  *   2. Valida el rol del usuario contra la herramienta (RBAC en el backend, no solo en la pantalla).
  *   3. Ejecuta la herramienta y arma { texto, tarjetas, opciones, foco }.
  *
  * `foco` es la memoria corta que guarda el frontend: de quién se habla y si su RUT ya se confirmó.
  */
-const { interpretarMensaje } = require('../ia/tareas');
+const { interpretar } = require('./interprete');
 const { ahoraEnChile } = require('./horarios');
 const { rutEnTexto } = require('./identidad');
 const { frase } = require('./frases');
@@ -41,9 +41,9 @@ function limpiarParametros(datos = {}) {
     solicitudId: numero(datos.solicitudId),
     candidatoId: numero(datos.candidatoId),
     postulacionId: numero(datos.postulacionId),
-    persona: texto(datos.persona),
+    persona: texto(datos.persona, LARGO_MAXIMO_MENSAJE),
     rut: texto(datos.rut, 20),
-    cargo: texto(datos.cargo),
+    cargo: texto(datos.cargo, LARGO_MAXIMO_MENSAJE),
     fecha: /^\d{4}-\d{2}-\d{2}$/.test(datos.fecha) ? datos.fecha : '',
     hora: /^([01]\d|2[0-3]):[0-5]\d$/.test(datos.hora) ? datos.hora : '',
     desde: /^\d{4}-\d{2}-\d{2}$/.test(datos.desde) ? datos.desde : '',
@@ -84,13 +84,12 @@ async function procesarMensaje({ usuario, mensaje = '', foco: focoEntrada = null
     parametros = limpiarParametros({ rut: rutEnTexto(escrito) });
   } else {
     if (!escrito) return { texto: frase(usuario.id, 'ayuda'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
-    const { datos } = await interpretarMensaje({ mensaje: escrito, foco, rol: usuario.rol, hoy: ahoraEnChile(ahora).fecha });
-    if (datos.intencion === 'ayuda' || datos.intencion === 'fuera_de_alcance' || !HERRAMIENTAS[datos.intencion]) {
-      const clave = datos.intencion === 'ayuda' ? 'ayuda' : 'noEntiende';
-      return { texto: texto(datos.respuesta, 400) || frase(usuario.id, clave), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
+    const { intencion, parametros: interpretados } = interpretar(escrito, ahoraEnChile(ahora).fecha);
+    if (!HERRAMIENTAS[intencion]) {
+      return { texto: frase(usuario.id, intencion === 'ayuda' ? 'ayuda' : 'noEntiende'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
     }
-    tipo = datos.intencion;
-    parametros = limpiarParametros(datos.parametros);
+    tipo = intencion;
+    parametros = limpiarParametros(interpretados);
   }
 
   if (!HERRAMIENTAS[tipo]) return { texto: frase(usuario.id, 'noEntiende'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
