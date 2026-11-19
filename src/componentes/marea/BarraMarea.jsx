@@ -5,8 +5,9 @@ import { useDatos } from '../../datos/DatosContext';
 import { apiAgente } from '../../servicios/apiAgente';
 import { obtenerToken } from '../../servicios/api';
 import { suscribirTiempoReal } from '../../servicios/tiempoReal';
-import { esAtajoMarea, guardarTema, leerTema, nombreModulo } from '../../dominio/marea';
+import { esAtajoMarea, guardarTema, leerTema, minimizarAlDesplazar, nombreModulo } from '../../dominio/marea';
 import PanelMarea from './PanelMarea';
+import LogoMarea from './LogoMarea';
 import AvisoEsquina from './AvisoEsquina';
 import './marea.css';
 
@@ -23,6 +24,7 @@ export default function BarraMarea({ api = apiAgente }) {
   const [noLeidas, setNoLeidas] = useState(0);
   const [tema, setTema] = useState(leerTema);
   const [aviso, setAviso] = useState('');
+  const [minimizada, setMinimizada] = useState(false);
   const refLanzador = useRef(null);
   const cerrarAviso = useCallback(() => setAviso(''), []);
   const disponible = modo === 'api' && Boolean(usuarioActual) && Boolean(obtenerToken());
@@ -54,6 +56,24 @@ export default function BarraMarea({ api = apiAgente }) {
     return () => document.removeEventListener('keydown', alPresionarTecla);
   }, [disponible, abierto]);
 
+  // Al bajar con la rueda (en la página o en una lista) la barra se minimiza para no estorbar.
+  // Se escucha en captura porque el evento scroll no sube desde las listas internas.
+  useEffect(() => {
+    if (!disponible) return undefined;
+    const posiciones = new WeakMap();
+    const alDesplazar = (evento) => {
+      const elemento = evento.target === document ? document.scrollingElement : evento.target;
+      if (!elemento || elemento.closest?.('.marea-capa')) return;
+      const y = elemento.scrollTop;
+      const anterior = posiciones.get(elemento) ?? 0;
+      posiciones.set(elemento, y);
+      const esPagina = elemento === document.scrollingElement;
+      setMinimizada((actual) => minimizarAlDesplazar({ y, anterior, minimizada: actual, esPagina }));
+    };
+    document.addEventListener('scroll', alDesplazar, { capture: true, passive: true });
+    return () => document.removeEventListener('scroll', alDesplazar, { capture: true });
+  }, [disponible]);
+
   if (!disponible) return null;
 
   const modulo = nombreModulo(pathname);
@@ -78,13 +98,19 @@ export default function BarraMarea({ api = apiAgente }) {
       <button
         ref={refLanzador}
         type="button"
-        className={`marea-lanzador marea-tema-${tema}${abierto ? ' marea-oculto' : ''}`}
-        aria-haspopup="dialog"
-        aria-expanded={abierto}
-        aria-label={`Abrir Marea, tu agente de reclutamiento${noLeidas ? `. ${noLeidas} avisos nuevos` : ''} (Ctrl K)`}
-        onClick={() => setAbierto(true)}
+        className={`marea-lanzador marea-tema-${tema}${abierto ? ' marea-oculto' : ''}${minimizada ? ' marea-mini' : ''}`}
+        aria-haspopup={minimizada ? undefined : 'dialog'}
+        aria-expanded={minimizada ? undefined : abierto}
+        aria-label={
+          minimizada
+            ? `Mostrar Marea${noLeidas ? `. ${noLeidas} avisos nuevos` : ''}`
+            : `Abrir Marea, tu agente de reclutamiento${noLeidas ? `. ${noLeidas} avisos nuevos` : ''} (Ctrl K)`
+        }
+        // Minimizada, el primer clic solo la vuelve a mostrar; el siguiente abre el panel.
+        onClick={() => (minimizada ? setMinimizada(false) : setAbierto(true))}
       >
-        <span className="marea-orbe" aria-hidden="true" />
+        <LogoMarea tamano={34} />
+        {minimizada && noLeidas > 0 && <span className="marea-punto-avisos" aria-hidden="true" />}
         <span className="marea-lanzador-textos">
           <span className="marea-lanzador-nombre">Marea</span>
           <span className="marea-lanzador-sub">Pregúntame o pídeme ayuda con {modulo}</span>

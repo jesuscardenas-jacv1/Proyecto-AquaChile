@@ -88,5 +88,19 @@ export function separarFuente(texto = '') {
     : { texto, fuente: '' };
 }
 
+const ARRIBA_PX = 40;
+const UMBRAL_BAJADA_PX = 6;
+
+/**
+ * ¿La barra queda minimizada tras un scroll? Bajar la minimiza; volver arriba de la página la
+ * muestra entera. Subir sin llegar arriba la deja como estaba (se abre pinchando el logo).
+ * `esPagina`: el scroll es de la página (no de una lista interna, que no cuenta para "arriba").
+ */
+export function minimizarAlDesplazar({ y, anterior, minimizada, esPagina = true }) {
+  if (esPagina && y <= ARRIBA_PX) return false;
+  if (y - anterior > UMBRAL_BAJADA_PX) return true;
+  return minimizada;
+}
+
 /** Porcentaje entre 0 y 100 para dibujar barras y anillos. */
 export const porcentajeVisible = (valor) => Math.min(100, Math.max(0, Math.round(Number(valor) || 0)));

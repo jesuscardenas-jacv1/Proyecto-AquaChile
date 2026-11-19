@@ -67,6 +67,24 @@ describe('BarraMarea', () => {
     expect(screen.getByRole('button', { name: /Abrir Marea/, hidden: true })).toHaveClass('marea-tema-oscuro');
   });
 
+  it('al bajar con la rueda se minimiza al logo y al pincharla vuelve a mostrarse', async () => {
+    const usuario = userEvent.setup();
+    renderBarra(crearApi(2));
+    const barra = await screen.findByRole('button', { name: /Abrir Marea/ });
+
+    // Una lista de la pantalla (p. ej. una columna del Planner) baja 400 px.
+    const lista = document.body.appendChild(document.createElement('div'));
+    Object.defineProperty(lista, 'scrollTop', { value: 400, configurable: true });
+    fireEvent.scroll(lista);
+    const mini = await screen.findByRole('button', { name: 'Mostrar Marea. 2 avisos nuevos' });
+    expect(mini).toHaveClass('marea-mini');
+
+    await usuario.click(mini);
+    expect(barra).not.toHaveClass('marea-mini');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    lista.remove();
+  });
+
   it('actualiza la insignia cuando llega un aviso en tiempo real', async () => {
     const api = crearApi(0);
     renderBarra(api);

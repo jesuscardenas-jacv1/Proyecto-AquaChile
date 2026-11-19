@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import TarjetaConexion from './TarjetaConexion';
 import OndasMarea from './OndasMarea';
+import LogoMarea from './LogoMarea';
 import ChipsOpciones from './ChipsOpciones';
 import TarjetaHoras from './TarjetaHoras';
 import TarjetaConfirmacion from './TarjetaConfirmacion';
@@ -34,7 +35,7 @@ function MensajeMarea({ mensaje, activo, alElegir, alUsarAviso }) {
   const { texto, fuente } = separarFuente(mensaje.texto);
   return (
     <div className="marea-msg-agente">
-      <span className="marea-orbe" aria-hidden="true" />
+      <LogoMarea tamano={26} />
       <div className="marea-msg-cuerpo">
         <p>{texto}</p>
         {(mensaje.tarjetas ?? []).map((tarjeta, indice) => (
@@ -206,7 +207,7 @@ export default function PanelMarea({
       <section ref={refPanel} className="marea-panel" role="dialog" aria-modal="true" aria-labelledby="marea-titulo">
         <OndasMarea tema={tema} />
         <header className="marea-cabecera">
-          <span className="marea-orbe" aria-hidden="true" />
+          <LogoMarea tamano={40} />
           <div className="marea-cab-textos">
             <h2 id="marea-titulo">Marea</h2>
             <span>leyendo: {modulo}</span>
