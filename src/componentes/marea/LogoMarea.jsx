@@ -1,8 +1,8 @@
 import { useId } from 'react';
 
 /**
- * Logo de Marea: círculo en el azul pizarra de AquaChile con dos ondas (la marea) y una chispa
- * naranja (el acento de la marca), que lo identifica como agente de IA. Es decorativo.
+ * Logo de Marea ("Marea líquida"): círculo negro con una ola de luz (turquesa → blanco → violeta) y
+ * una luna naranja, el acento de AquaChile, que late suave como señal de agente vivo. Es decorativo.
  */
 export default function LogoMarea({ tamano = 34, className = '' }) {
   const id = useId();
@@ -16,21 +16,20 @@ export default function LogoMarea({ tamano = 34, className = '' }) {
       focusable="false"
     >
       <defs>
-        <linearGradient id={`${id}-fondo`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#5b7586" />
-          <stop offset="0.55" stopColor="#425563" />
-          <stop offset="1" stopColor="#1f2b34" />
+        <linearGradient id={`${id}-ola`} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor="#2fd3c6" />
+          <stop offset="0.6" stopColor="#e9fffd" />
+          <stop offset="1" stopColor="#7a5cff" />
         </linearGradient>
-        <radialGradient id={`${id}-brillo`} cx="0.3" cy="0.22" r="0.6">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+        <radialGradient id={`${id}-fondo`} cx="0.35" cy="0.3" r="0.75">
+          <stop offset="0" stopColor="#151b1f" />
+          <stop offset="1" stopColor="#050607" />
         </radialGradient>
       </defs>
       <circle cx="20" cy="20" r="20" fill={`url(#${id}-fondo)`} />
-      <circle cx="20" cy="20" r="20" fill={`url(#${id}-brillo)`} />
-      <path d="M8.5 24.5c2.6-3.2 5.1-3.2 7.7 0s5.1 3.2 7.7 0 5.1-3.2 7.7 0" fill="none" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M8.5 30.5c2.6-3.2 5.1-3.2 7.7 0s5.1 3.2 7.7 0 5.1-3.2 7.7 0" fill="none" stroke="#9cc9d8" strokeWidth="2.2" strokeLinecap="round" opacity="0.85" />
-      <path d="M27 6.5l1.5 3.8 3.8 1.5-3.8 1.5-1.5 3.8-1.5-3.8-3.8-1.5 3.8-1.5z" fill="#fe5000" />
+      <circle cx="20" cy="20" r="19.3" fill="none" stroke="#22292d" />
+      <path d="M8 23c3-4 6-4 8 0s5 4 8 0 5-4 8 0" fill="none" stroke={`url(#${id}-ola)`} strokeWidth="2.6" strokeLinecap="round" />
+      <circle className="marea-luna" cx="27.5" cy="12.5" r="2.2" fill="#fe5000" />
     </svg>
   );
 }
