@@ -122,16 +122,27 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   Azure AI Speech (`backend/src/ia/voz.js`, `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`; `establecerTranscriptor` en
   pruebas), guarda el texto como **Pauta** (confidencial) y la tarea `notasEntrevista` propone notas por competencia que
   pasan al borrador. **El audio nunca se guarda.** No depender de las transcripciones de Teams/Meet (piden licencias).
+- **Marea (agente de reclutamiento, `backend/src/agente/`, `src/componentes/marea/`):** barra flotante arriba al centro en
+  las pantallas internas (Ctrl K) que abre un panel con chat, tarjetas y avisos. **No usa IA ni claves (gratis):** un
+  intérprete de palabras clave (`interprete.js`) elige la intención y una herramienta determinista por intención
+  (`herramientas.js`, con su RBAC en el backend) responde `{ texto, tarjetas, opciones, foco }` vía
+  `POST /api/agente/mensaje`; los botones mandan `accion` directa. Solo escribe al pulsar «Confirmar» (agenda con
+  `cambiarEtapa`, `backend/src/bd/planner.js`, el mismo flujo del Planner). Lee el % del análisis de CV ya guardado; no
+  analiza. Nunca muestra notas clínicas ni la pauta. Se oculta en modo local. Guía para el equipo: `docs/MAREA.md`.
+  **Reglas de agenda:** bloques de 45 min (09:00, 10:00, 11:00, 12:00, 14:30, 15:30, 16:30) de lunes a viernes; hoy solo
+  los que empiezan en 30 min o más; una hora que se cruza con otra entrevista no se ofrece; sin horas, el siguiente día
+  hábil (hasta 15 días). Un nombre escrito por primera vez se confirma con el RUT (módulo 11, columna `candidatos.rut`;
+  la semilla genera RUT ficticios); elegido desde un chip, un aviso o el foco, no.
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend se publica a mano con `backend/scripts/empaquetar-azure.sh` + `az webapp deploy` (ver `backend/README.md`).
 
 ```
 src/paginas/        una vista por ruta (App.jsx define rutas y roles)
-src/componentes/    layout, comunes, candidatos, solicitudes, evaluacion, dashboard, planner
+src/componentes/    layout, comunes, candidatos, solicitudes, evaluacion, dashboard, planner, marea
 src/dominio/        lógica pura (consultas, indicadores, validaciones, planner)
 src/datos/          contextos (Auth, Datos), constantes, semilla
-backend/src/        servidor, rutas, middlewares, bd, almacenamiento, ia, reuniones
+backend/src/        servidor, rutas, middlewares, bd, almacenamiento, ia, reuniones, agente (Marea)
 ```
 
 ## IA (Claude + Azure Speech) — referencia rápida
@@ -150,6 +161,7 @@ Mejora sobre el alcance (evolución futura del caso). La IA **solo sugiere**: na
 | Consumo | `backend/src/ia/uso.js` | Tabla `uso_ia` (tokens, segundos de audio, costo estimado, usuario); panel en `/administracion` (`GET /api/admin/uso-ia`) |
 | Rutas | `backend/src/rutas/ia.js` | `/api/ia/*`, límite 20 llamadas cada 10 min por IP; análisis de CV guardado en `analisis_cv` |
 | Frontend | `src/servicios/apiIa.js` | `useIaDisponible()` oculta las opciones si el servidor no tiene clave |
+| Marea | `backend/src/agente/` | **No usa Claude** (sin costo): intérprete de palabras clave + herramientas. Para darle IA, solo cambia el paso de interpretar (ver `docs/MAREA.md`; versión con Claude en el commit `4db230b`) |
 
 **Qué puede cambiar el admin** (sección Configuración de IA en `/administracion`): las indicaciones de cada tarea, el modelo
 (Opus, Sonnet o Haiku 5.5, o el del servidor) y el esfuerzo (bajo, medio, alto). **Fijos:** rol, `REGLAS_COMUNES`, límites
@@ -188,6 +200,7 @@ npm --prefix backend run test:integracion      # API usada por el frontend integ
 npm --prefix backend run test:reuniones        # Google Calendar (Meet) y Teams con respuestas simuladas
 npm --prefix backend run test:ia               # ayudas de IA con un cliente simulado
 npm --prefix backend run test:correo           # correos con Resend (cliente simulado)
+npm --prefix backend run test:agente           # Marea (BD temporal; comprueba que nunca llama a la IA)
 ```
 
 Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).

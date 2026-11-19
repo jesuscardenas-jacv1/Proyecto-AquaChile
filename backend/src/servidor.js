@@ -15,6 +15,7 @@ const rutaNotificaciones = require('./rutas/notificaciones');
 const rutaEventos = require('./rutas/eventos');
 const rutaIa = require('./rutas/ia');
 const rutaEntrevistas = require('./rutas/entrevistas');
+const rutaAgente = require('./rutas/agente');
 const { emitir } = require('./tiempoReal');
 
 const app = express();
@@ -35,9 +36,10 @@ app.use(cors(origenes.length ? { origin: origenes } : undefined));
 app.use(express.json({ limit: '1mb' }));
 
 // Tras cada cambio exitoso, las pantallas abiertas vuelven a traer sus datos al instante.
-// Se excluyen avisos, sesión, sugerencias de IA y el guardado automático del panel de entrevista,
+// Se excluyen avisos, sesión, sugerencias de IA, Marea (avisa ella misma cuando agenda) y el guardado
+// automático del panel de entrevista,
 // que no cambian la información del proceso.
-const RUTAS_SIN_AVISO = ['/api/notificaciones', '/api/auth', '/api/ia', '/api/entrevistas'];
+const RUTAS_SIN_AVISO = ['/api/notificaciones', '/api/auth', '/api/ia', '/api/entrevistas', '/api/agente'];
 app.use('/api', (req, res, next) => {
   const escribe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
   if (escribe && !RUTAS_SIN_AVISO.some((ruta) => req.originalUrl.startsWith(ruta))) {
@@ -71,6 +73,7 @@ app.use('/api/eventos', rutaEventos);
 app.use('/api/admin', rutaAdmin);
 app.use('/api/ia', rutaIa);
 app.use('/api/entrevistas', rutaEntrevistas);
+app.use('/api/agente', rutaAgente);
 app.use('/api/solicitudes', rutaSolicitudes);
 app.use('/api/evaluaciones', rutaEvaluaciones);
 

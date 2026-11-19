@@ -310,6 +310,8 @@ function migrar() {
   // Segundos de audio en vivo ya informados al consumo, para no contarlos dos veces si la
   // entrevista se cierra más de una vez (p. ej. al generar las notas después de marcarla realizada).
   agregarColumna('entrevistas', 'segundos_reportados', 'REAL NOT NULL DEFAULT 0');
+  // RUT del candidato: Marea lo usa para confirmar de quién se habla antes de agendar.
+  agregarColumna('candidatos', 'rut', "TEXT NOT NULL DEFAULT ''");
   console.log('✅ Migración completada: tablas creadas exitosamente.');
 }
 

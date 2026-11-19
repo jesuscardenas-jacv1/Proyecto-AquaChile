@@ -19,7 +19,8 @@
     "test:ia": "node --test src/ia/ia.test.js",
     "test:cola": "node --test src/ia/colaAnalisis.test.js",
     "test:reuniones": "node --test src/reuniones/reuniones.test.js",
-    "test:correo": "node --test src/correo/correo.test.js"
+    "test:correo": "node --test src/correo/correo.test.js",
+    "test:agente": "node --test src/agente/agente.test.js"
   },
   "keywords": [
     "aquachile",

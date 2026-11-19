@@ -11,6 +11,7 @@ const { pathToFileURL } = require('url');
 const bcrypt = require('bcryptjs');
 const db = require('./conexion');
 const { migrar } = require('./migrar');
+const { rutFicticio } = require('../agente/identidad');
 
 // Datos de demostración compartidos con el frontend (src/datos). En el paquete de despliegue
 // van copiados aparte y se indica su carpeta con SEMILLA_DATOS.
@@ -57,10 +58,11 @@ async function sembrar({ silencioso = false } = {}) {
     );
 
     const candidato = db.prepare(`
-      INSERT INTO candidatos (id, nombre, correo, telefono, cargo, familia_cargo, origen)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      INSERT INTO candidatos (id, nombre, correo, telefono, cargo, familia_cargo, origen, rut)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    // La semilla no trae RUT: se genera uno ficticio y válido por candidato.
     datos.candidatos.forEach((c) =>
-      candidato.run(c.id, c.nombre, c.correo, c.telefono, c.cargo, c.familiaCargo, c.origen || 'Externo'),
+      candidato.run(c.id, c.nombre, c.correo, c.telefono, c.cargo, c.familiaCargo, c.origen || 'Externo', c.rut || rutFicticio(c.id)),
     );
 
     const solicitud = db.prepare(`

@@ -5,9 +5,10 @@ import Navbar from './Navbar';
 import PiePagina from './PiePagina';
 import EstadoServidor from '../comunes/EstadoServidor';
 import ScrollAlInicio from './ScrollAlInicio';
+import BarraMarea from '../marea/BarraMarea';
 import { moduloDeRuta } from '../../dominio/modulos';
 
-/** Estructura general: barra lateral, contenido principal y pie de página. */
+/** Estructura general: barra lateral, Marea (agente), contenido principal y pie de página. */
 export default function Layout() {
   const { pathname } = useLocation();
   const { refrescar } = useDatos();
@@ -23,6 +24,7 @@ export default function Layout() {
       <Navbar />
       <div className="app-contenido">
         <main className="app-principal flex-grow-1">
+          <BarraMarea />
           <EstadoServidor />
           <Outlet />
         </main>
