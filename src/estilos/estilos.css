@@ -2581,3 +2581,66 @@ body,
     overflow: hidden;
   }
 }
+
+/* ---------- Ventanas emergentes con la geometría recta ----------
+   El tema anterior les daba 10px de radio y la "X" mostraba un anillo de foco grueso
+   y redondeado (con el filtro que la vuelve blanca se veía gris). */
+.modal {
+  --bs-modal-border-radius: 2px;
+  --bs-modal-inner-border-radius: 2px;
+}
+.modal .modal-content {
+  border-radius: 2px !important;
+  box-shadow: 0 10px 30px rgba(36, 48, 58, 0.25) !important;
+}
+.btn-close {
+  border-radius: 2px;
+}
+.btn-close:focus {
+  box-shadow: none;
+}
+.btn-close:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.modal .modal-header .btn-close:focus-visible {
+  outline-color: #000000; /* con el filtro invert queda blanco sobre la cabecera pizarra */
+}
+
+/* ---------- Resto de piezas con la geometría recta (2px) ----------
+   El informe oficial (.hoja-informe) queda como está: imita una hoja de papel. */
+.planner-columna-vacia,
+.planner-contador,
+.planner-avatar,
+.grafico-tooltip,
+.carpeta-documentos,
+.documentos-archivo,
+.barra-avatar,
+.barra-perfil,
+.selector-rueda-lista,
+.panel-entrevista-turno,
+.panel-entrevista-acordeon {
+  border-radius: 2px !important;
+}
+.grafico-muestra,
+.grafico-barras-fila,
+.grafico-columnas-columna {
+  border-radius: 1px;
+}
+.grafico-barras-barra .grafico-segmento:last-child {
+  border-radius: 0 1px 1px 0;
+}
+.grafico-columnas-pila .grafico-segmento:first-child {
+  border-radius: 1px 1px 0 0;
+}
+
+/* Aviso de notificación al instante: recto, borde naranjo fino y sombra suave (como el prototipo). */
+.aviso-tiempo-real {
+  border-radius: 2px;
+  border-left-width: 3px;
+  background: var(--ac-pizarra-profundo);
+  box-shadow: 0 8px 22px rgba(36, 48, 58, 0.3);
+}
+.aviso-tiempo-real .btn {
+  border-radius: 2px;
+}
