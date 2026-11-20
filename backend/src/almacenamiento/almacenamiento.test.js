@@ -453,7 +453,7 @@ describe('portal de postulación: CV público y paso a evaluación', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ofertaId: 1,
+        ofertaId: 9, // oferta real abierta en la semilla (las de ejemplo 1-8 quedan cerradas)
         nombre: 'Camilo Fuentealba',
         correo,
         telefono: '+56911112222',
