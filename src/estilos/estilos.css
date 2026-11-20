@@ -1938,3 +1938,568 @@ h1, h2, h3, h4, h5, h6,
   min-width: 4.5rem;
   max-width: 6rem;
 }
+
+/* ==========================================================================
+   Identidad AquaChile (nov. 2026), según el sitio corporativo aquachile.com:
+   austera, orgánica y arquitectónica.
+   1. Pizarra 7545 C (#425563) como protagonista, con curvas batimétricas sutiles.
+   2. Geometría recta: radio de 2px, líneas de 1px y sin sombras difusas.
+   3. Riel vertical de navegación con un tramo naranjo 021 C en la sección activa.
+   4. Rótulo pequeño en naranjo sobre un título liviano (peso 300).
+   5. Tipografía humanista: Fira Sans.
+   Va al final para sobrescribir las capas anteriores (Austral y paleta inicial).
+   ========================================================================== */
+:root {
+  --ac-pizarra: #425563;
+  --ac-pizarra-oscuro: #2e3d48;
+  --ac-pizarra-profundo: #24303a;
+  --ac-naranjo: #fe5000;
+  --ac-naranjo-oscuro: #c93f00;
+  --ac-naranjo-claro: #ff8c5a;
+  --ac-fondo: #eee9e4;
+  --ac-fondo-claro: #f5f3f0;
+  --ac-borde: #d7d2cb;
+  --ac-texto-secundario: #6e6259;
+  --ac-verde-suave: #ebf2ee;
+  --ac-verde-texto: #2a5c44;
+  --ac-ambar-suave: #f7efe1;
+  --ac-ambar-texto: #7f5715;
+  --ac-fuente: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ac-ondas: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 800' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='white'%3E%3Cpath d='M-40,120 C80,90 140,210 290,170' stroke-width='1.2'/%3E%3Cpath d='M-40,160 C80,130 140,250 290,210'/%3E%3Cpath d='M-40,200 C80,170 140,290 290,250' stroke-width='.9'/%3E%3Cpath d='M-40,520 C110,470 170,610 290,560' stroke-width='1.2'/%3E%3Cpath d='M-40,565 C110,515 170,655 290,605'/%3E%3C/g%3E%3C/svg%3E");
+  --ac-ondas-banda: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='white'%3E%3Cpath d='M0,30 C300,110 650,-10 1200,85' stroke-width='1.2'/%3E%3Cpath d='M0,75 C320,145 700,25 1200,115'/%3E%3C/g%3E%3C/svg%3E");
+
+  --bs-body-font-family: var(--ac-fuente);
+  --bs-border-radius: 2px;
+  --bs-border-radius-sm: 2px;
+  --bs-border-radius-lg: 2px;
+  --bs-border-radius-xl: 2px;
+}
+
+body,
+.btn,
+.form-control,
+.form-select,
+.barra-enlace,
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+.navbar-brand,
+.card-title {
+  font-family: var(--ac-fuente);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Contenido: fondo cálido claro, superficies blancas y bordes Warm Gray 1 C. */
+.app-principal,
+.portal-contenido,
+.modal {
+  --austral-fondo: var(--ac-fondo-claro);
+  --austral-superficie: var(--ac-fondo);
+  --austral-elevada: var(--ac-fondo-claro);
+  --austral-activa: var(--ac-fondo);
+  --austral-borde: var(--ac-borde);
+  --austral-borde-activo: var(--ac-pizarra);
+  --austral-texto: var(--ac-pizarra-profundo);
+  --austral-texto-suave: var(--ac-texto-secundario);
+  --austral-titulo: var(--ac-pizarra);
+  --austral-enlace: var(--ac-pizarra);
+  --bs-border-color: var(--ac-borde);
+  --bs-card-border-color: var(--ac-borde);
+  --bs-table-border-color: var(--ac-borde);
+  --bs-table-hover-bg: var(--ac-fondo-claro);
+  --bs-link-color: var(--ac-pizarra);
+  --bs-link-hover-color: var(--ac-naranjo-oscuro);
+}
+
+/* ---------- 2. Geometría recta: 2px y sin sombras ---------- */
+.card,
+.modal-content,
+.btn,
+.form-control,
+.form-select,
+.input-group-text,
+.dropdown-menu,
+.alert,
+.list-group,
+.toast,
+.badge,
+.progress,
+.nav-pills .nav-link {
+  border-radius: 2px !important;
+}
+.app-principal .card,
+.portal-contenido .card {
+  box-shadow: none !important;
+  border: 1px solid var(--ac-borde) !important;
+}
+.app-principal .card-header,
+.app-principal .card-footer {
+  background-color: #ffffff;
+  border-color: var(--ac-borde);
+}
+.app-principal {
+  border-top: 0;
+}
+
+/* Botones: el naranjo 021 C de la capa Austral queda para la acción principal. */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ac-pizarra);
+  box-shadow: none;
+}
+
+/* ---------- 1 y 3. Barra lateral pizarra con curvas y riel ---------- */
+.barra-lateral {
+  background-color: var(--ac-pizarra);
+  background-image: var(--ac-ondas);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-blend-mode: normal;
+  border-color: var(--ac-pizarra-oscuro) !important;
+  color: #ffffff;
+  position: relative;
+}
+/* Las curvas van al 12 %: se pintan en una capa aparte para no aclarar el texto. */
+.barra-lateral {
+  background-image: none;
+}
+.barra-lateral::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--ac-ondas);
+  background-size: 100% 100%;
+  opacity: 0.12;
+  pointer-events: none;
+}
+.barra-lateral > * {
+  position: relative;
+}
+.barra-lateral .barra-cabecera {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+.barra-modulo {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+.barra-titulo {
+  display: none;
+}
+.barra-lateral .nav {
+  gap: 0 !important;
+  margin-top: 1.5rem;
+  margin-left: 4px;
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
+}
+.barra-enlace {
+  position: relative;
+  border-radius: 0;
+  border-left: 0;
+  padding: 0.65rem 0.9rem 0.65rem 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.barra-enlace i {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+.barra-enlace:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.barra-enlace.active,
+.app-shell a.barra-enlace.active {
+  color: #ffffff;
+  font-weight: 600;
+  background-color: rgba(36, 48, 58, 0.35);
+  box-shadow: none;
+}
+/* Tramo naranjo sobre el riel, como el menú "Nuestra empresa" del sitio. */
+.barra-enlace.active::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--ac-naranjo);
+}
+.barra-colapsar {
+  color: rgba(255, 255, 255, 0.7) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+.barra-colapsar:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+.barra-usuario {
+  margin: 0 -1rem -1.5rem;
+  padding: 1rem;
+  background-color: rgba(36, 48, 58, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.barra-usuario .text-secondary {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+.barra-usuario .btn-outline-secondary {
+  --bs-btn-color: rgba(255, 255, 255, 0.85);
+  --bs-btn-border-color: rgba(255, 255, 255, 0.24);
+  --bs-btn-hover-bg: var(--ac-pizarra-oscuro);
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.24);
+  --bs-btn-hover-color: #ffffff;
+  background-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+.barra-campana {
+  color: #ffffff;
+}
+
+/* ---------- 4. Encabezado de página: banda pizarra, rótulo naranjo y título liviano ---------- */
+.app-principal header:has(> h1.h4),
+.app-principal header:has(> div > h1.h4) {
+  position: relative;
+  isolation: isolate;
+  margin: 0 -1rem;
+  padding: 1.4rem 1rem;
+  background-color: var(--ac-pizarra);
+  border-bottom: 1px solid var(--ac-pizarra-oscuro);
+  color: #ffffff;
+  align-items: flex-end !important;
+}
+@media (min-width: 992px) {
+  .app-principal header:has(> h1.h4),
+  .app-principal header:has(> div > h1.h4) {
+    margin: 0 -2rem;
+    padding: 1.4rem 2rem;
+  }
+}
+.app-principal header:has(> h1.h4)::before,
+.app-principal header:has(> div > h1.h4)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--ac-ondas-banda);
+  background-size: 100% 100%;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.app-principal h1.h4 {
+  padding-left: 0;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+.app-principal h1.h4::before {
+  content: var(--ac-rotulo, 'Gestión psicolaboral');
+  position: static;
+  display: table;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  margin-bottom: 0.3rem;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--ac-naranjo);
+  color: var(--ac-naranjo-claro);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.app-principal header:has(h1.h4) p,
+.app-principal header:has(h1.h4) .text-secondary {
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-weight: 300;
+}
+.app-principal header:has(h1.h4) .btn-outline-primary,
+.app-principal header:has(h1.h4) .btn-outline-secondary {
+  --bs-btn-color: #ffffff;
+  --bs-btn-border-color: rgba(255, 255, 255, 0.35);
+  --bs-btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.5);
+  background-color: transparent;
+}
+/* La acción principal del encabezado va en naranjo, como "Conoce más" del sitio. */
+.app-principal header:has(h1.h4) .btn-primary {
+  --bs-btn-bg: var(--ac-naranjo);
+  --bs-btn-border-color: var(--ac-naranjo);
+  --bs-btn-hover-bg: var(--ac-naranjo-oscuro);
+  --bs-btn-hover-border-color: var(--ac-naranjo-oscuro);
+  --bs-btn-active-bg: var(--ac-naranjo-oscuro);
+  font-weight: 600;
+}
+
+/* Rótulo de cada módulo. */
+.app-shell[data-modulo='dashboard'] { --ac-rotulo: 'Resumen del proceso'; }
+.app-shell[data-modulo='ofertas'] { --ac-rotulo: 'Trabaja con nosotros'; }
+.app-shell[data-modulo='postulaciones'] { --ac-rotulo: 'Bandeja de entrada'; }
+.app-shell[data-modulo='candidatos'] { --ac-rotulo: 'Nómina de postulantes'; }
+.app-shell[data-modulo='solicitudes'] { --ac-rotulo: 'Requerimientos'; }
+.app-shell[data-modulo='planner'] { --ac-rotulo: 'Flujo de evaluación'; }
+.app-shell[data-modulo='administracion'] { --ac-rotulo: 'Configuración'; }
+
+/* ---------- Tablas austeras ---------- */
+.app-principal .table > thead th,
+.app-principal .table-light th {
+  background-color: var(--ac-fondo) !important;
+  color: var(--ac-texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--ac-borde);
+}
+.app-principal .table > tbody > tr:hover > * {
+  --bs-table-bg-state: var(--ac-fondo-claro);
+}
+
+/* ---------- Insignias de estado ---------- */
+.badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 0.25em 0.6em;
+}
+.badge.bg-secondary,
+.badge.text-bg-secondary {
+  background-color: var(--ac-fondo) !important;
+  color: var(--ac-pizarra-oscuro) !important;
+  border: 1px solid var(--ac-borde);
+}
+.badge.bg-warning,
+.badge.text-bg-warning {
+  background-color: var(--ac-ambar-suave) !important;
+  color: var(--ac-ambar-texto) !important;
+  border: 1px solid #e5d4b3;
+}
+.badge.bg-success,
+.badge.text-bg-success {
+  background-color: var(--ac-verde-suave) !important;
+  color: var(--ac-verde-texto) !important;
+  border: 1px solid #c9ddd1;
+}
+.badge.bg-danger,
+.badge.text-bg-danger {
+  background-color: rgba(254, 80, 0, 0.07) !important;
+  color: var(--ac-naranjo-oscuro) !important;
+  border: 1px solid rgba(254, 80, 0, 0.35);
+}
+
+/* ---------- Planner: carriles sobre fondo cálido ---------- */
+.planner-columna {
+  background-color: var(--ac-fondo) !important;
+  border: 1px solid var(--ac-borde) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+/* ---------- Indicadores del dashboard: cifra protagonista, sin círculos de ícono ---------- */
+.app-principal .tarjeta-indicador .rounded-circle,
+.app-principal .card-body > .rounded-circle:first-child {
+  display: none !important;
+}
+.app-principal .tarjeta-indicador {
+  border-left: 1px solid var(--ac-borde) !important;
+}
+.app-principal .tarjeta-indicador .h4 {
+  font-size: 30px;
+  font-weight: 300;
+  color: var(--ac-pizarra);
+  font-variant-numeric: tabular-nums;
+}
+.app-principal .tarjeta-indicador:hover {
+  transform: none;
+  box-shadow: none !important;
+  border-color: var(--ac-pizarra) !important;
+}
+.app-principal .tarjeta-indicador-activa {
+  box-shadow: inset 0 -2px 0 var(--ac-naranjo) !important;
+}
+
+/* ---------- Banda del encabezado desde el borde superior ----------
+   Marea (desarrollo de Jesús, no se modifica aquí) flota sobre la banda pizarra:
+   la banda sube bajo su zona (60px) para que no quede un hueco claro arriba. */
+.app-principal {
+  padding-top: 0 !important;
+}
+/* Solo cuando el encabezado es lo primero de la página (no en las que parten con migas). */
+.app-principal > div > header:first-child:has(h1.h4) {
+  margin-top: -60px;
+  padding-top: calc(60px + 1.4rem);
+}
+
+/* Banda compacta: el rótulo parte apenas bajo Marea y el título es más bajo. */
+.app-principal header:has(> h1.h4),
+.app-principal header:has(> div > h1.h4) {
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+.app-principal > div > header:first-child:has(h1.h4) {
+  padding-top: calc(60px + 0.1rem);
+}
+.app-principal h1.h4 {
+  font-size: 24px;
+  margin-bottom: 0.15rem !important;
+}
+.app-principal h1.h4::before {
+  margin-bottom: 0.15rem;
+}
+
+/* Pantallas anchas: rótulo y título suben a la franja de Marea, a su izquierda.
+   El título se limita al espacio libre entre el borde y Marea (560px, centrada);
+   si no cabe, salta de línea sin pasar por debajo de ella. */
+@media (min-width: 1500px) {
+  .app-principal > div > header:first-child:has(h1.h4) {
+    padding-top: 0.9rem;
+  }
+  .app-principal > div > header:first-child:has(h1.h4) h1.h4 {
+    max-width: calc((100vw - 260px - 560px) / 2 - 48px);
+    min-height: calc(60px - 0.9rem - 1.5rem);
+  }
+}
+
+/* Campana y botón de menú sobre la pizarra: transparentes y sin marco. */
+.barra-lateral .barra-campana,
+.barra-lateral .barra-toggler {
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 2px;
+  color: #ffffff;
+}
+.barra-lateral .barra-campana:hover,
+.barra-lateral .barra-toggler:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.barra-campana-contador {
+  border-radius: 2px !important;
+}
+
+/* Páginas de detalle: el enlace "Volver a…" (miga de pan) va dentro de la banda pizarra,
+   que sube bajo Marea igual que en las demás pantallas. */
+.app-principal > div > nav[aria-label='miga de pan']:first-child {
+  position: relative;
+  isolation: isolate;
+  margin: -60px -1rem -1rem;
+  padding: calc(60px + 0.4rem) 1rem 0;
+  background-color: var(--ac-pizarra);
+}
+@media (min-width: 992px) {
+  .app-principal > div > nav[aria-label='miga de pan']:first-child {
+    margin: -60px -2rem -1rem;
+    padding: calc(60px + 0.4rem) 2rem 0;
+  }
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--ac-ondas-banda);
+  background-size: 100% 100%;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item::before {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link:hover,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a:hover {
+  color: #ffffff !important;
+}
+/* El encabezado que sigue continúa la misma banda, sin franja clara entre ambos. */
+.app-principal > div > nav[aria-label='miga de pan']:first-child + header:has(h1.h4) {
+  margin-top: 0;
+  padding-top: 0.5rem;
+  border-top: 0;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child + header:has(h1.h4)::before {
+  background-position: 0 -40px;
+}
+
+/* ---------- Barra de Marea integrada a la identidad (propuesta C) ----------
+   Solo color: pizarra oscura translúcida y el anillo animado de Marea en naranjo 021 C.
+   No cambia su tamaño, posición ni comportamiento (marea.css es de Jesús y no se toca).
+   Lleva .marea-zona delante para ganarle a marea.css, que se carga después. */
+.marea-zona .marea-lanzador {
+  background: rgba(46, 61, 72, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(20, 28, 34, 0.25), 0 8px 22px -10px rgba(254, 80, 0, 0.35);
+}
+.marea-zona .marea-lanzador::before {
+  background: conic-gradient(
+    from var(--marea-giro),
+    rgba(255, 255, 255, 0.14) 0deg,
+    rgba(255, 255, 255, 0.14) 220deg,
+    #fe5000 290deg,
+    #ffb38f 320deg,
+    rgba(255, 255, 255, 0.14) 360deg
+  );
+}
+.marea-zona .marea-lanzador::after {
+  box-shadow: 0 8px 22px 0 rgba(254, 80, 0, 0.25);
+}
+.marea-zona .marea-lanzador:hover,
+.marea-zona .marea-lanzador:focus-visible {
+  box-shadow: 0 8px 22px rgba(20, 28, 34, 0.3), 0 10px 26px -10px rgba(254, 80, 0, 0.45);
+}
+.marea-zona .marea-lanzador:focus-visible {
+  outline-color: #fe5000;
+}
+.marea-zona .marea-lanzador .marea-estado,
+.marea-zona .marea-lanzador .marea-kbd {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Banda de las pantallas principales en dos líneas (rótulo y título): la descripción
+   se oculta a la vista, pero queda para lectores de pantalla. En los detalles
+   (con "Volver a…") se mantiene, porque ahí muestra el cargo y la familia. */
+.app-principal > div > header:first-child:has(h1.h4) h1.h4 + p {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.app-principal > div > header:first-child:has(h1.h4) {
+  padding-bottom: 0.8rem;
+}
+
+/* Pestañas (nav-pills): la activa en pizarra, no en el azul de Bootstrap. */
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--ac-pizarra);
+  --bs-nav-pills-link-active-color: #ffffff;
+  --bs-nav-link-color: var(--ac-pizarra-profundo);
+  --bs-nav-link-hover-color: var(--ac-naranjo-oscuro);
+}
