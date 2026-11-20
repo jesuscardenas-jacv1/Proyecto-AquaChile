@@ -100,6 +100,10 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
 - **Documentos** (mejora acotada): carpeta por solicitud (`S0001 - Nombre`), creada al crear la solicitud, con CV,
   descriptor, informe PDF (con competencias) y pauta de entrevista (confidencial: solo la ve la psicóloga). Proveedor `local` (disco), `drive` (Google Drive, recomendado) o `graph`
   (OneDrive/SharePoint) vía `backend/.env`. Google Drive: `npm --prefix backend run drive:autorizar`.
+- **Ofertas del portal = avisos reales de AquaChile** (`src/datos/ofertasAquaChile.js`, ids 9-32): copiados de su portal
+  público trabajos.aquachile.com (20-11-2026) para que el análisis de CV compare con requisitos verdaderos. Requisitos tal
+  cual el aviso (los deseables empiezan con "Deseable:"); descripción resumida; `idPortal` = ID del aviso. Las ofertas
+  ficticias 1-8 quedan cerradas en la semilla (conservan sus postulaciones de ejemplo). Son avisos públicos: sin datos de personas.
 - **Descriptor de cargo:** se guarda por cargo (tabla `cargos`, carpeta `C0001 - Cargo`): se sube una vez y lo reutilizan
   sus ofertas y solicitudes, cada solicitud con su copia. Los cargos del catálogo traen un PDF ficticio en `public/descriptores`.
 - **IA:** análisis del CV contra los requisitos del cargo en Postulaciones (con % de cumplimiento y brechas; la psicóloga lo ve

@@ -2,6 +2,7 @@
 import { EVALUADORES } from './constantes.js';
 import { candidatosDemoPlanner, solicitudesDemoPlanner } from './demoPlanner.js';
 import { candidatosDemoPostulaciones, ofertasDemo, postulacionesDemo } from './demoPostulaciones.js';
+import { ofertasAquaChile } from './ofertasAquaChile.js';
 
 /**
  * Arma los datos semilla a partir de la BD simulada (bdSimulada.json).
@@ -22,7 +23,9 @@ export function construirSemilla(bdSimulada) {
     candidatos: [...bdSimulada.candidatos, ...candidatosDemoPlanner, ...candidatosDemoPostulaciones],
     solicitudes: [...solicitudesHistoricas, ...solicitudesDemoPlanner],
     evaluaciones: bdSimulada.evaluaciones,
-    ofertas: ofertasDemo,
+    // Las ofertas ficticias quedan cerradas (conservan sus postulaciones de ejemplo) y el portal
+    // muestra las ofertas reales del portal de empleo de AquaChile.
+    ofertas: [...ofertasDemo.map((oferta) => ({ ...oferta, estado: 'Cerrada' })), ...ofertasAquaChile],
     postulaciones: postulacionesDemo,
   };
 }
