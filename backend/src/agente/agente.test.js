@@ -266,6 +266,63 @@ describe('Marea en la API', () => {
     assert.doesNotMatch(JSON.stringify(respuesta.datos), /contratar|descartar/i);
   });
 
+  it('encuentra el análisis aunque el postulante esté registrado dos veces (portal y a mano)', async () => {
+    const criterios = [{ requisito: 'Técnico en acuicultura', tipo: 'obligatorio', nivel: 'cumple', evidencia: 'Título' }];
+    const oferta = db.prepare('SELECT id, cargo FROM ofertas LIMIT 1').get();
+    const enPortal = db
+      .prepare("INSERT INTO candidatos (nombre, correo, telefono, cargo, familia_cargo, origen) VALUES ('Yasmín Trujillo Soto', 'yasmin.prueba@correo.cl', '', ?, '', 'Portal')")
+      .run(oferta.cargo).lastInsertRowid;
+    const postulacion = db
+      .prepare("INSERT INTO postulaciones (oferta_id, candidato_id, fecha_postulacion, estado) VALUES (?, ?, '2026-11-18', 'En evaluación')")
+      .run(oferta.id, enPortal).lastInsertRowid;
+    db.prepare('INSERT INTO analisis_cv (postulacion_id, resultado) VALUES (?, ?)').run(postulacion, JSON.stringify({ criterios }));
+    // La misma persona registrada otra vez a mano, con su solicitud.
+    const aMano = db
+      .prepare("INSERT INTO candidatos (nombre, correo, telefono, cargo, familia_cargo, origen) VALUES ('Yasmín Trujillo Soto', 'YASMIN.prueba@correo.cl', '', ?, '', 'Externo')")
+      .run(oferta.cargo).lastInsertRowid;
+    const solicitudId = db
+      .prepare("INSERT INTO solicitudes (candidato_id, cargo, familia_cargo, fecha_solicitud, estado, etapa) VALUES (?, ?, 'Producción', '2026-11-18', 'Pendiente', 'recibida')")
+      .run(aMano, oferta.cargo).lastInsertRowid;
+
+    const respuesta = await conversar('analista', { accion: { tipo: 'analizar_candidato', solicitudId: Number(solicitudId), tambienAgendar: true } });
+    const tarjeta = respuesta.datos.tarjetas.find((t) => t.tipo === 'analisis');
+    assert.ok(tarjeta, respuesta.datos.texto);
+    assert.equal(tarjeta.mayorAjuste.porcentaje, 100);
+  });
+
+  it('muestra los análisis con el formato anterior (sin %) en vez de decir que no hay', async () => {
+    const oferta = db.prepare('SELECT id, cargo FROM ofertas LIMIT 1').get();
+    const candidato = db
+      .prepare("INSERT INTO candidatos (nombre, correo, telefono, cargo, familia_cargo, origen) VALUES ('Rocío Antiguo Paz', 'rocio.prueba@correo.cl', '', ?, '', 'Portal')")
+      .run(oferta.cargo).lastInsertRowid;
+    const postulacion = db
+      .prepare("INSERT INTO postulaciones (oferta_id, candidato_id, fecha_postulacion, estado) VALUES (?, ?, '2026-11-18', 'Recibida')")
+      .run(oferta.id, candidato).lastInsertRowid;
+    db.prepare('INSERT INTO analisis_cv (postulacion_id, resultado) VALUES (?, ?)').run(
+      postulacion,
+      JSON.stringify({ coincidencias: [{ requisito: 'Licencia clase B', evidencia: 'x' }], brechas: [{ requisito: 'Inglés intermedio', detalle: 'y' }] }),
+    );
+    const respuesta = await conversar('analista', { accion: { tipo: 'analizar_candidato', postulacionId: Number(postulacion) } });
+    const tarjeta = respuesta.datos.tarjetas.find((t) => t.tipo === 'analisis');
+    assert.ok(tarjeta, respuesta.datos.texto);
+    assert.equal(tarjeta.mayorAjuste.porcentaje, null);
+    assert.deepEqual(tarjeta.fortalezas, ['Licencia clase B']);
+    assert.deepEqual(tarjeta.aConfirmar, ['Inglés intermedio']);
+  });
+
+  it('si el CV está en la cola de análisis, avisa que se está analizando', async () => {
+    const oferta = db.prepare('SELECT id, cargo FROM ofertas LIMIT 1').get();
+    const candidato = db
+      .prepare("INSERT INTO candidatos (nombre, correo, telefono, cargo, familia_cargo, origen) VALUES ('Tomasa Encola Ruiz', 'tomasa.prueba@correo.cl', '', ?, '', 'Portal')")
+      .run(oferta.cargo).lastInsertRowid;
+    const postulacion = db
+      .prepare("INSERT INTO postulaciones (oferta_id, candidato_id, fecha_postulacion, estado) VALUES (?, ?, '2026-11-18', 'Recibida')")
+      .run(oferta.id, candidato).lastInsertRowid;
+    db.prepare("INSERT INTO cola_analisis_cv (postulacion_id, estado) VALUES (?, 'pendiente')").run(postulacion);
+    const respuesta = await conversar('analista', { accion: { tipo: 'analizar_candidato', postulacionId: Number(postulacion) } });
+    assert.match(respuesta.datos.texto, /se está analizando/);
+  });
+
   it('nunca muestra notas clínicas ni la pauta', async () => {
     const evaluacion = db.prepare('SELECT * FROM evaluaciones WHERE observaciones <> \'\' LIMIT 1').get();
     const respuesta = await conversar('admin', { accion: { tipo: 'resumen_solicitud', solicitudId: evaluacion.solicitud_id } });
