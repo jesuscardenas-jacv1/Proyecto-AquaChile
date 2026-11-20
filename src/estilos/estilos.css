@@ -2524,3 +2524,49 @@ body,
 .pie-pagina a {
   color: #ffffff;
 }
+
+/* ---------- Encabezado sin banda (pedido del equipo) ----------
+   Se quita el fondo pizarra con curvas; quedan el rótulo naranjo y el título liviano,
+   ahora en pizarra sobre el fondo claro. Se mantienen los espacios que evitan Marea. */
+.app-principal header:has(> h1.h4),
+.app-principal header:has(> div > h1.h4),
+.app-principal > div > nav[aria-label='miga de pan']:first-child {
+  background-color: transparent;
+  border-bottom: 0;
+  color: inherit;
+}
+.app-principal header:has(> h1.h4)::before,
+.app-principal header:has(> div > h1.h4)::before,
+.app-principal > div > nav[aria-label='miga de pan']:first-child::before {
+  content: none;
+}
+.app-principal h1.h4 {
+  color: var(--ac-pizarra);
+}
+.app-principal h1.h4::before {
+  color: var(--ac-naranjo-oscuro);
+}
+.app-principal header:has(h1.h4) p,
+.app-principal header:has(h1.h4) .text-secondary {
+  color: var(--ac-texto-secundario) !important;
+  font-weight: 400;
+}
+.app-principal header:has(h1.h4) .btn-outline-primary,
+.app-principal header:has(h1.h4) .btn-outline-secondary {
+  --bs-btn-color: var(--ac-pizarra);
+  --bs-btn-border-color: var(--ac-borde);
+  --bs-btn-hover-bg: var(--ac-fondo);
+  --bs-btn-hover-color: var(--ac-pizarra-profundo);
+  --bs-btn-hover-border-color: var(--ac-pizarra);
+  background-color: #ffffff;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item::before {
+  color: var(--ac-pizarra) !important;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link:hover,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a:hover {
+  color: var(--ac-naranjo-oscuro) !important;
+}
