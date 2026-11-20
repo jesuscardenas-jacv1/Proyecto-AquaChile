@@ -411,20 +411,66 @@ function resumenSolicitud(ctx) {
   });
 }
 
-/** Análisis de CV ya hechos de la persona: uno por cada cargo al que postuló. */
-function analisisDePersona(candidatoId) {
+/**
+ * Análisis de CV ya hechos de la persona: uno por cada postulación. Busca por el candidato, por su
+ * correo o RUT (un mismo postulante puede quedar registrado dos veces, desde el portal y a mano)
+ * y por la postulación que originó la solicitud.
+ */
+function analisisDePersona(persona, postulacionId = null) {
+  const candidato = db.prepare('SELECT correo, rut FROM candidatos WHERE id = ?').get(persona.candidatoId) ?? {};
   return db
     .prepare(
-      `SELECT o.cargo, a.resultado FROM postulaciones p
+      `SELECT p.id AS postulacion_id, o.cargo, a.resultado FROM postulaciones p
        JOIN ofertas o ON o.id = p.oferta_id JOIN analisis_cv a ON a.postulacion_id = p.id
-       WHERE p.candidato_id = ?`,
+       JOIN candidatos c ON c.id = p.candidato_id
+       WHERE p.candidato_id = ?
+          OR (? <> '' AND lower(c.correo) = lower(?))
+          OR (? <> '' AND c.rut = ?)
+          OR (? IS NOT NULL AND p.solicitud_id = ?)
+          OR p.id = ?
+       ORDER BY a.creado_en DESC`,
     )
-    .all(candidatoId)
-    .map((fila) => ({ cargo: fila.cargo, ...JSON.parse(fila.resultado) }));
+    .all(
+      persona.candidatoId,
+      candidato.correo ?? '', candidato.correo ?? '',
+      candidato.rut ?? '', candidato.rut ?? '',
+      persona.solicitudId ?? null, persona.solicitudId ?? null,
+      Number(postulacionId) || 0,
+    )
+    .map((fila) => ({ postulacionId: fila.postulacion_id, cargo: fila.cargo, ...JSON.parse(fila.resultado) }));
 }
 
-/** El % siempre se recalcula con cumplimiento.js desde los criterios guardados (nunca lo da la IA). */
-const porcentajeDe = (analisis) => calcularCumplimiento(normalizarCriterios(analisis.criterios)).porcentaje;
+/**
+ * El % siempre se recalcula con cumplimiento.js desde los criterios guardados (nunca lo da la IA).
+ * Los análisis guardados antes de los criterios (con coincidencias y brechas) no tienen %: null.
+ */
+const porcentajeDe = (analisis) =>
+  Array.isArray(analisis.criterios) && analisis.criterios.length
+    ? calcularCumplimiento(normalizarCriterios(analisis.criterios)).porcentaje
+    : null;
+
+/** Fortalezas y lo que hay que confirmar, con el formato actual (criterios) o el anterior. */
+function puntosDe(analisis) {
+  if (Array.isArray(analisis.criterios) && analisis.criterios.length) {
+    const criterios = normalizarCriterios(analisis.criterios);
+    return {
+      fortalezas: criterios.filter((c) => c.nivel === 'cumple').map((c) => c.requisito),
+      aConfirmar: criterios.filter((c) => c.nivel !== 'cumple').map((c) => c.requisito),
+    };
+  }
+  const requisitos = (lista) => (Array.isArray(lista) ? lista.map((item) => item?.requisito).filter(Boolean) : []);
+  return { fortalezas: requisitos(analisis.coincidencias), aConfirmar: requisitos(analisis.brechas) };
+}
+
+/** ¿El CV de la persona está en la cola de análisis automático? */
+function analisisEnCola(persona) {
+  return db
+    .prepare(
+      `SELECT 1 FROM cola_analisis_cv q JOIN postulaciones p ON p.id = q.postulacion_id
+       WHERE q.estado IN ('pendiente', 'procesando') AND (p.candidato_id = ? OR (? IS NOT NULL AND p.solicitud_id = ?))`,
+    )
+    .get(persona.candidatoId, persona.solicitudId ?? null, persona.solicitudId ?? null);
+}
 
 function analizarCandidato(ctx) {
   const identificada = identificar(ctx, { tipo: 'analizar_candidato' });
@@ -432,29 +478,36 @@ function analizarCandidato(ctx) {
   const { persona } = identificada;
   const { usuario } = ctx;
 
-  const cargos = analisisDePersona(persona.candidatoId)
-    .map((analisis) => ({ ...analisis, porcentaje: porcentajeDe(analisis) }))
-    .filter((analisis) => Number.isFinite(analisis.porcentaje))
-    .sort((a, b) => b.porcentaje - a.porcentaje);
+  // Un análisis por cargo (el más reciente); los que no tienen % quedan al final.
+  const porCargo = new Map();
+  for (const analisis of analisisDePersona(persona, ctx.parametros.postulacionId)) {
+    if (!porCargo.has(analisis.cargo)) porCargo.set(analisis.cargo, { ...analisis, porcentaje: porcentajeDe(analisis) });
+  }
+  const cargos = [...porCargo.values()].sort((a, b) => (b.porcentaje ?? -1) - (a.porcentaje ?? -1));
 
   const foco = focoDe(persona, persona.verificado);
   if (!cargos.length) {
-    return respuesta({ texto: `${frase(usuario.id, 'sinAnalisis', { nombre: persona.nombre })}
-Se analiza desde Postulaciones.`, foco });
+    const texto = analisisEnCola(persona)
+      ? `El CV de ${persona.nombre} se está analizando ahora. Vuelve a pedírmelo en un par de minutos.`
+      : `${frase(usuario.id, 'sinAnalisis', { nombre: persona.nombre })}\nSe analiza desde Postulaciones.`;
+    return respuesta({ texto, foco });
   }
 
   const [mayor] = cargos;
-  const criterios = normalizarCriterios(mayor.criterios);
+  const { fortalezas, aConfirmar } = puntosDe(mayor);
+  const conPorcentaje = Number.isFinite(mayor.porcentaje);
   const resultado = respuesta({
-    texto: `${frase(usuario.id, 'analisis', { nombre: primerNombre(persona.nombre), cargo: mayor.cargo, porcentaje: mayor.porcentaje })}\nFuente: Análisis de CV`,
+    texto: conPorcentaje
+      ? `${frase(usuario.id, 'analisis', { nombre: primerNombre(persona.nombre), cargo: mayor.cargo, porcentaje: mayor.porcentaje })}\nFuente: Análisis de CV`
+      : `Este es el análisis del CV de ${primerNombre(persona.nombre)} para ${mayor.cargo}. Se hizo sin requisitos con los que calcular el %.\nFuente: Análisis de CV`,
     tarjetas: [
       {
         tipo: 'analisis',
         nombre: persona.nombre,
         mayorAjuste: { cargo: mayor.cargo, porcentaje: mayor.porcentaje },
         cargos: cargos.map(({ cargo, porcentaje }) => ({ cargo, porcentaje })),
-        fortalezas: criterios.filter((c) => c.nivel === 'cumple').map((c) => c.requisito).slice(0, 4),
-        aConfirmar: criterios.filter((c) => c.nivel !== 'cumple').map((c) => c.requisito).slice(0, 4),
+        fortalezas: fortalezas.slice(0, 4),
+        aConfirmar: aConfirmar.slice(0, 4),
         nota: 'La decisión es tuya.',
       },
     ],

@@ -32,4 +32,12 @@ describe('TarjetaAnalisis', () => {
     expect(screen.queryByText('% de requisitos por cargo')).toBeNull();
     expect(screen.getByText('Nada pendiente.')).toBeInTheDocument();
   });
+
+  it('sin % (análisis sin requisitos evaluables) muestra «—» y «Sin %», no 0 %', () => {
+    const sinPct = { ...tarjeta, mayorAjuste: { cargo: 'Técnico Eléctrico', porcentaje: null }, cargos: [{ cargo: 'Técnico Eléctrico', porcentaje: null }, { cargo: 'Monitor Producción', porcentaje: 60 }] };
+    render(<TarjetaAnalisis tarjeta={sinPct} />);
+    expect(screen.getByRole('img', { name: 'Sin % de requisitos' })).toHaveTextContent('—');
+    expect(screen.getByText('Sin %')).toBeInTheDocument();
+    expect(screen.queryByText('0%')).toBeNull();
+  });
 });

@@ -1,7 +1,11 @@
 import { porcentajeVisible } from '../../dominio/marea';
 
+/** Un análisis guardado sin requisitos evaluables (o con el formato anterior) no tiene %. */
+const tienePorcentaje = (valor) => valor !== null && valor !== undefined && Number.isFinite(Number(valor));
+
 /** Barra horizontal con el % de requisitos de un cargo. */
 export function BarraPorcentaje({ porcentaje }) {
+  if (!tienePorcentaje(porcentaje)) return <span className="marea-barra-pct"><b>Sin %</b></span>;
   const valor = porcentajeVisible(porcentaje);
   return (
     <span className="marea-barra-pct">
@@ -19,6 +23,7 @@ export function BarraPorcentaje({ porcentaje }) {
  */
 export default function TarjetaAnalisis({ tarjeta }) {
   const { mayorAjuste } = tarjeta;
+  const conPorcentaje = tienePorcentaje(mayorAjuste.porcentaje);
   return (
     <div className="marea-analisis">
       <div className="marea-analisis-cabeza">
@@ -29,11 +34,11 @@ export default function TarjetaAnalisis({ tarjeta }) {
         </div>
         <div
           className="marea-anillo"
-          style={{ '--pct': porcentajeVisible(mayorAjuste.porcentaje) }}
+          style={{ '--pct': conPorcentaje ? porcentajeVisible(mayorAjuste.porcentaje) : 0 }}
           role="img"
-          aria-label={`${porcentajeVisible(mayorAjuste.porcentaje)}% de los requisitos`}
+          aria-label={conPorcentaje ? `${porcentajeVisible(mayorAjuste.porcentaje)}% de los requisitos` : 'Sin % de requisitos'}
         >
-          <span>{porcentajeVisible(mayorAjuste.porcentaje)}%</span>
+          <span>{conPorcentaje ? `${porcentajeVisible(mayorAjuste.porcentaje)}%` : '—'}</span>
         </div>
       </div>
       <div className="marea-analisis-cuerpo">
