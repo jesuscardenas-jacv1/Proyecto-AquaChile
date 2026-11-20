@@ -2570,3 +2570,14 @@ body,
 .app-principal > div > nav[aria-label='miga de pan']:first-child a:hover {
   color: var(--ac-naranjo-oscuro) !important;
 }
+
+/* La barra lateral queda fija al hacer scroll en escritorio (la capa de identidad le había
+   puesto position: relative para las curvas; sticky también sirve de referencia para ellas). */
+@media (min-width: 992px) {
+  .barra-lateral {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
+}
