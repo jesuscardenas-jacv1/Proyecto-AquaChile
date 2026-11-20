@@ -2449,9 +2449,8 @@ h1, h2, h3, h4, h5, h6,
    No cambia su tamaño, posición ni comportamiento (marea.css es de Jesús y no se toca).
    Lleva .marea-zona delante para ganarle a marea.css, que se carga después. */
 .marea-zona .marea-lanzador {
-  background: rgba(46, 61, 72, 0.82);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  /* Sin backdrop-filter: en una barra fija obliga a redibujar el desenfoque en cada scroll. */
+  background: rgba(46, 61, 72, 0.92);
   box-shadow: 0 6px 18px rgba(20, 28, 34, 0.25), 0 8px 22px -10px rgba(254, 80, 0, 0.35);
 }
 .marea-zona .marea-lanzador::before {
@@ -2502,4 +2501,83 @@ h1, h2, h3, h4, h5, h6,
   --bs-nav-pills-link-active-color: #ffffff;
   --bs-nav-link-color: var(--ac-pizarra-profundo);
   --bs-nav-link-hover-color: var(--ac-naranjo-oscuro);
+}
+
+/* ---------- Fondo de la app y pie de página ----------
+   Bajo la barra lateral (páginas más largas que la pantalla) se ve el fondo de la app:
+   pizarra, para que la columna siga continua y no asome el tono oscuro del tema anterior. */
+body,
+.app-shell {
+  background-color: var(--ac-pizarra);
+}
+.app-contenido {
+  background-color: var(--ac-fondo-claro);
+}
+.pie-pagina {
+  background-color: var(--ac-pizarra-oscuro);
+  border-top: 1px solid var(--ac-pizarra-profundo);
+  color: rgba(255, 255, 255, 0.7);
+}
+.pie-pagina .text-secondary {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.pie-pagina a {
+  color: #ffffff;
+}
+
+/* ---------- Encabezado sin banda (pedido del equipo) ----------
+   Se quita el fondo pizarra con curvas; quedan el rótulo naranjo y el título liviano,
+   ahora en pizarra sobre el fondo claro. Se mantienen los espacios que evitan Marea. */
+.app-principal header:has(> h1.h4),
+.app-principal header:has(> div > h1.h4),
+.app-principal > div > nav[aria-label='miga de pan']:first-child {
+  background-color: transparent;
+  border-bottom: 0;
+  color: inherit;
+}
+.app-principal header:has(> h1.h4)::before,
+.app-principal header:has(> div > h1.h4)::before,
+.app-principal > div > nav[aria-label='miga de pan']:first-child::before {
+  content: none;
+}
+.app-principal h1.h4 {
+  color: var(--ac-pizarra);
+}
+.app-principal h1.h4::before {
+  color: var(--ac-naranjo-oscuro);
+}
+.app-principal header:has(h1.h4) p,
+.app-principal header:has(h1.h4) .text-secondary {
+  color: var(--ac-texto-secundario) !important;
+  font-weight: 400;
+}
+.app-principal header:has(h1.h4) .btn-outline-primary,
+.app-principal header:has(h1.h4) .btn-outline-secondary {
+  --bs-btn-color: var(--ac-pizarra);
+  --bs-btn-border-color: var(--ac-borde);
+  --bs-btn-hover-bg: var(--ac-fondo);
+  --bs-btn-hover-color: var(--ac-pizarra-profundo);
+  --bs-btn-hover-border-color: var(--ac-pizarra);
+  background-color: #ffffff;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item,
+.app-principal > div > nav[aria-label='miga de pan']:first-child .breadcrumb-item::before {
+  color: var(--ac-pizarra) !important;
+}
+.app-principal > div > nav[aria-label='miga de pan']:first-child .btn-link:hover,
+.app-principal > div > nav[aria-label='miga de pan']:first-child a:hover {
+  color: var(--ac-naranjo-oscuro) !important;
+}
+
+/* La barra lateral queda fija al hacer scroll en escritorio (la capa de identidad le había
+   puesto position: relative para las curvas; sticky también sirve de referencia para ellas). */
+@media (min-width: 992px) {
+  .barra-lateral {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+  }
 }
