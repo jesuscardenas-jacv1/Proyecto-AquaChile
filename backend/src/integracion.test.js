@@ -43,6 +43,12 @@ describe('API integrada (Hito 2)', () => {
     establecerReuniones({ motivos: { google: 'Google Meet no está configurado en las pruebas.' } });
     servidor = app.listen(0);
     base = `http://localhost:${servidor.address().port}/api`;
+    // Las pruebas usan las ofertas de ejemplo 1 y 2 (requisitos conocidos). En la semilla quedan
+    // cerradas para que el portal muestre las ofertas reales de AquaChile: aquí se reabren, y
+    // `after` restablece los datos de demostración.
+    for (const id of [1, 2]) {
+      await pedir(`/ofertas/${id}/estado`, { rol: 'analista', metodo: 'PATCH', cuerpo: { estado: 'Abierta' } });
+    }
   });
 
   after(async () => {
@@ -546,7 +552,7 @@ describe('API integrada (Hito 2)', () => {
   it('publica las ofertas abiertas sin sesión', async () => {
     const { status, datos } = await pedir('/ofertas');
     assert.equal(status, 200);
-    assert.equal(datos.ofertas.length, 8);
+    assert.equal(datos.ofertas.length, 26, '24 ofertas reales de AquaChile + las 2 de ejemplo reabiertas');
     assert.ok(Array.isArray(datos.ofertas[0].requisitos));
     assert.equal((await pedir('/ofertas/999')).status, 404);
   });
@@ -1259,7 +1265,7 @@ describe('API integrada (Hito 2)', () => {
     const postulacion = await pedir('/postulaciones', {
       metodo: 'POST',
       cuerpo: {
-        ofertaId: 1,
+        ofertaId: 9, // oferta real abierta en la semilla (la 1 se cierra al restablecer los datos)
         nombre: 'Rocío Aguilar Mena',
         correo: 'rocio.aguilar@correo.cl',
         telefono: '+56933334444',

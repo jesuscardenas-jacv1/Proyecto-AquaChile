@@ -214,7 +214,7 @@ describe('correos de la API (solo solicitud nueva y asignación)', () => {
     pedir('/postulaciones', {
       metodo: 'POST',
       cuerpo: {
-        ofertaId: 1,
+        ofertaId: 9, // oferta real abierta en la semilla
         nombre: 'Postulante Correo',
         correo: `postulante.${Date.now()}.${Math.random().toString(36).slice(2, 6)}@correo.cl`,
         telefono: '+56933334444',
