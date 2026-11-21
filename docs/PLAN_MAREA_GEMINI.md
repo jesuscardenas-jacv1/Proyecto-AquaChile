@@ -212,12 +212,13 @@ herramienta nueva, respaldo al intérprete si Gemini falla o pasa el tope, ning�
 
 ## 9. Por confirmar antes o durante la codificación
 
-1. Con Jesús y el docente: la IA está como "evolución futura" en el caso (ver `CLAUDE.md`). ¿Suma o resta para el
-   Hito 2 (23-28 nov) y el Hito 3 (30 nov - 5 dic)? Programarlo con respaldo sin IA evita riesgos en la evaluación.
-2. Qué roles ven `buscar_candidatos` (tabla 5.3).
-3. Con AquaChile (si se usa con datos reales): aprobación para enviar CVs a Google; usar el plan **pagado** de la API
+> El proyecto ya está en la **fase de implementación de IA** (21-11-2026): la IA dejó de ser solo "evolución futura".
+> El respaldo al intérprete local se mantiene igual, pero por robustez (fallas o tope de gasto), no por alcance.
+
+1. Qué roles ven `buscar_candidatos` (tabla 5.3).
+2. Con AquaChile (si se usa con datos reales): aprobación para enviar CVs a Google; usar el plan **pagado** de la API
    (en el gratuito Google puede usar los datos para mejorar sus productos). Ley 21.719.
-4. ¿El perfil también se extrae de los candidatos registrados a mano (sin portal) cuando se sube su CV en la solicitud?
+3. ¿El perfil también se extrae de los candidatos registrados a mano (sin portal) cuando se sube su CV en la solicitud?
    Propuesta: sí, con la misma cola.
 
 ## 10. Para empezar mañana
