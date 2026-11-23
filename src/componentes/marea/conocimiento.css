@@ -1,0 +1,31 @@
+/* Tarjetas de la base de conocimiento de Marea. Usan los tokens de tema de marea.css (claro y oscuro). */
+.marea-personas,
+.marea-conteo,
+.marea-actividad,
+.marea-habilidades { list-style: none; margin: 0; padding: 0; }
+
+.marea-personas { display: flex; flex-direction: column; }
+.marea-personas > li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-top: 1px solid var(--m-linea); font-size: 13.5px; }
+.marea-personas > li:first-child { border-top: 0; padding-top: 0; }
+.marea-persona-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.marea-persona-cabeza strong { color: var(--m-texto); font-weight: 600; }
+.marea-persona-estado { font-size: 12px; color: var(--m-suave); white-space: nowrap; }
+.marea-persona-dato { font-size: 12.5px; color: var(--m-tenue); }
+.marea-persona-evidencia { font-size: 12.5px; color: var(--m-suave); }
+.marea-persona-evidencia b { color: var(--m-bien); font-weight: 600; }
+
+.marea-perfil-resumen { margin: 0; font-size: 13.5px; color: var(--m-suave); line-height: 1.5; }
+.marea-habilidades { display: flex; flex-wrap: wrap; gap: 6px; }
+.marea-habilidades li { font-size: 12.5px; color: var(--m-texto); background: var(--m-fondo-3); border: 1px solid var(--m-linea); border-radius: 4px; padding: 2px 8px; }
+
+.marea-conteo { display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+.marea-conteo li { display: grid; grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) 2.5rem; align-items: center; gap: 10px; }
+.marea-conteo b { text-align: right; font-variant-numeric: tabular-nums; color: var(--m-texto); }
+.marea-conteo-barra { height: 6px; background: var(--m-fondo-3); }
+.marea-conteo-barra i { display: block; height: 100%; background: var(--m-brillo); }
+
+.marea-actividad { display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; }
+.marea-actividad li { display: flex; flex-direction: column; }
+.marea-actividad strong { font-weight: 600; color: var(--m-texto); }
+.marea-actividad span { color: var(--m-suave); }
+.marea-actividad small { color: var(--m-tenue); }

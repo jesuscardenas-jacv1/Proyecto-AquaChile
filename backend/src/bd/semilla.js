@@ -12,6 +12,9 @@ const bcrypt = require('bcryptjs');
 const db = require('./conexion');
 const { migrar } = require('./migrar');
 const { rutFicticio } = require('../agente/identidad');
+const { normalizarCiudad } = require('../conocimiento/ciudades');
+const { escribirPerfil } = require('../conocimiento/perfiles');
+const { PERFILES_DEMO } = require('../conocimiento/perfilesDemo');
 
 // Datos de demostración compartidos con el frontend (src/datos). En el paquete de despliegue
 // van copiados aparte y se indica su carpeta con SEMILLA_DATOS.
@@ -46,7 +49,7 @@ async function sembrar({ silencioso = false } = {}) {
   db.exec('BEGIN TRANSACTION;');
   try {
     // Orden inverso por claves foráneas.
-    ['cola_analisis_cv', 'analisis_cv', 'entrevistas', 'postulaciones', 'evaluaciones', 'solicitudes', 'ofertas', 'candidatos', 'fotos_usuario', 'notificaciones', 'cargos', 'usuarios'].forEach((tabla) =>
+    ['cola_perfiles', 'habilidades_candidato', 'perfiles_candidato', 'eventos', 'cola_analisis_cv', 'analisis_cv', 'entrevistas', 'postulaciones', 'evaluaciones', 'solicitudes', 'ofertas', 'candidatos', 'fotos_usuario', 'notificaciones', 'cargos', 'usuarios'].forEach((tabla) =>
       db.exec(`DELETE FROM ${tabla};`),
     );
 
@@ -108,14 +111,16 @@ async function sembrar({ silencioso = false } = {}) {
 
     const postulacion = db.prepare(`
       INSERT INTO postulaciones (
-        id, oferta_id, candidato_id, fecha_postulacion, estado, ciudad, cv_nombre, solicitud_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+        id, oferta_id, candidato_id, fecha_postulacion, estado, ciudad, cv_nombre, solicitud_id, ciudad_normalizada
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     datos.postulaciones.forEach((p) =>
       postulacion.run(
         p.id, p.ofertaId, p.candidatoId, p.fechaPostulacion, p.estado, sinNulo(p.ciudad),
-        sinNulo(p.cvNombre), p.solicitudId ?? null,
+        sinNulo(p.cvNombre), p.solicitudId ?? null, normalizarCiudad(p.ciudad).ciudad,
       ),
     );
+    // Perfiles ficticios de los postulantes de ejemplo: Marea puede buscar sin IA ni costo.
+    PERFILES_DEMO.forEach(({ candidatoId, ...perfil }) => escribirPerfil(candidatoId, perfil));
 
     db.exec('COMMIT;');
   } catch (error) {

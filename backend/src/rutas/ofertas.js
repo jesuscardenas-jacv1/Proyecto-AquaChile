@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
+const { registrarEvento } = require('../bd/eventos');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearOferta, formatearOfertaGestion } = require('../bd/formatos');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
@@ -28,6 +29,9 @@ const CAMPOS_PARA_PUBLICAR = {
 const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
 const hoy = () => new Date().toISOString().slice(0, 10);
 const obtener = (id) => db.prepare('SELECT * FROM ofertas WHERE id = ?').get(id);
+
+const eventoOferta = (tipo, id, req) =>
+  registrarEvento({ tipo, entidad: 'oferta', entidadId: id, usuario: req.usuario.nombre, detalle: obtener(Number(id))?.titulo });
 
 const limpiarRequisitos = (requisitos) =>
   Array.isArray(requisitos) ? requisitos.map(texto).filter(Boolean) : [];
@@ -116,6 +120,7 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
       campos.jornada,
       publicar ? 1 : 0,
     );
+  if (publicar) eventoOferta('oferta_publicada', lastInsertRowid, req);
   res.status(201).json({ ok: true, oferta: formatearOfertaGestion(obtener(Number(lastInsertRowid))) });
 });
 
@@ -153,6 +158,7 @@ router.put('/:id', autenticar, requerirRol('analista'), (req, res) => {
     actual.fecha_publicacion || (publicar ? hoy() : ''),
     id,
   );
+  if (publicar && actual.publicada !== 1) eventoOferta('oferta_publicada', id, req);
   res.json({ ok: true, oferta: formatearOfertaGestion(obtener(id)) });
 });
 
@@ -183,6 +189,7 @@ router.patch('/:id/estado', autenticar, requerirRol('analista'), (req, res) => {
     actual.fecha_publicacion || hoy(),
     id,
   );
+  eventoOferta(estado === 'Cerrada' ? 'oferta_cerrada' : 'oferta_publicada', id, req);
   res.json({ ok: true, oferta: formatearOfertaGestion(obtener(id)) });
 });
 

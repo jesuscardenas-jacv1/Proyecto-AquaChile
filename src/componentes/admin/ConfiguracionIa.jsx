@@ -30,6 +30,11 @@ function DetalleTarea({ tarea, configuracion, api, alGuardar }) {
     setConfirmando(false);
   }, [tarea]);
 
+  // Cada tarea usa los modelos de su proveedor (Claude o Gemini).
+  const esGemini = tarea.proveedor === 'gemini';
+  const modelos = (esGemini ? configuracion.modelosGemini : configuracion.modelos) ?? [];
+  const modeloServidor = esGemini ? configuracion.modeloServidorGemini : configuracion.modeloServidor;
+
   const error = validarIndicaciones(formulario.indicaciones, configuracion.largoMaximo);
   const cambiado = hayCambios(formulario, tarea.vigente);
   const cambiar = (campo) => (evento) => setFormulario((previo) => ({ ...previo, [campo]: evento.target.value }));
@@ -125,15 +130,15 @@ function DetalleTarea({ tarea, configuracion, api, alGuardar }) {
                 Modelo
               </label>
               <select id={`modelo-${tarea.id}`} className="form-select form-select-sm" value={formulario.modelo} onChange={cambiar('modelo')}>
-                <option value="">{nombreModelo('', configuracion.modelos, configuracion.modeloServidor)}</option>
-                {configuracion.modelos.map((modelo) => (
+                <option value="">{nombreModelo('', modelos, modeloServidor)}</option>
+                {modelos.map((modelo) => (
                   <option key={modelo.id} value={modelo.id}>
                     {modelo.nombre}
                   </option>
                 ))}
               </select>
               <small className="text-secondary">
-                {configuracion.modelos.find((modelo) => modelo.id === formulario.modelo)?.detalle ?? 'El modelo configurado en el servidor.'}
+                {modelos.find((modelo) => modelo.id === formulario.modelo)?.detalle ?? 'El modelo configurado en el servidor.'}
               </small>
             </div>
             <div className="col-12 col-sm-5">

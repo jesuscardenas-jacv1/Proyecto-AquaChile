@@ -82,6 +82,13 @@
         análisis del CV se guarda solo el resultado; los archivos no se guardan en otro lugar.
       </p>
       <p>
+        <strong>Búsqueda de candidatos.</strong> Si el servidor tiene activada la API de Gemini, de Google, el CV se envía
+        una sola vez para extraer el perfil profesional: ciudad, formación, experiencia, idiomas y habilidades. No se
+        extraen ni se guardan edad, género, estado civil, nacionalidad, religión ni datos de salud, y no se puede buscar
+        por ellos. Cuando una persona del equipo le escribe a la asistente Marea, su mensaje se envía a Gemini sin RUT,
+        correos ni teléfonos, solo para entender qué pide. El perfil se borra al eliminar a la persona candidata.
+      </p>
+      <p>
         <strong>Grabación y transcripción de la entrevista.</strong> Solo con el consentimiento explícito del postulante,
         que la psicóloga confirma en la aplicación (queda registrado quién lo confirmó y cuándo), se puede grabar la
         entrevista. El audio se envía a Azure AI Speech, de Microsoft, solo para transcribirlo, y <strong>no se guarda</strong>

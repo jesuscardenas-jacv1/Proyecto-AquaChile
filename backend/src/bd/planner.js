@@ -10,6 +10,7 @@
  */
 const db = require('./conexion');
 const { formatearSolicitud } = require('./formatos');
+const { EVENTO_DE_ETAPA, registrarEventoSolicitud } = require('./eventos');
 const { claveCarpeta } = require('../almacenamiento/comun');
 const { sincronizarReunion, validarEnlaceReunion } = require('../reuniones');
 
@@ -38,7 +39,7 @@ const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
  * Volver a "recibida" deja la entrevista nuevamente por coordinar (y cancela su evento).
  * @returns {Promise<{ solicitud: object, avisoReunion: string | null }>}
  */
-async function cambiarEtapa(id, { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista, enlaceReunion } = {}) {
+async function cambiarEtapa(id, { etapa, fechaEntrevista, horaEntrevista, modalidadEntrevista, enlaceReunion } = {}, usuario = '') {
   const actual = obtener(id);
   if (!actual) throw new ErrorPlanner(`Solicitud #${id} no encontrada.`, 404);
   if (actual.motivo_cierre) {
@@ -98,6 +99,13 @@ async function cambiarEtapa(id, { etapa, fechaEntrevista, horaEntrevista, modali
     etapa, ESTADO_DE_ETAPA[etapa], agenda.fecha, agenda.hora, agenda.modalidad,
     reunion.enlace, reunion.eventoId, reunion.proveedor, etapa, id,
   );
+
+  // Historial: cuando cambia de etapa o se mueve la hora de la entrevista.
+  const reagendada = etapa === 'agendada' && (agenda.fecha !== actual.fecha_entrevista || agenda.hora !== actual.hora_entrevista);
+  if (etapa !== actual.etapa || reagendada) {
+    const cuando = etapa === 'agendada' && agenda.fecha ? `${agenda.fecha} ${agenda.hora}`.trim() : '';
+    registrarEventoSolicitud(EVENTO_DE_ETAPA[etapa], id, usuario, cuando);
+  }
 
   return { solicitud: formatearSolicitud(obtener(id)), avisoReunion: reunion.aviso };
 }

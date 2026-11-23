@@ -1,7 +1,7 @@
 /**
  * Herramientas de Marea: una función determinista por intención, con los roles que la pueden usar.
  * Leen la BD con las mismas reglas que el resto de la API y reutilizan su lógica (% de cumplimiento,
- * Planner). Ninguna llama a un servicio de IA: Marea es gratis. El análisis de CV solo se lee si ya
+ * Planner). Ninguna llama a un servicio de IA. El análisis de CV solo se lee si ya
  * existe (lo hizo el analista en Postulaciones).
  *
  * Cada herramienta recibe el contexto { usuario, parametros, foco, origen, ahora } y devuelve
@@ -14,6 +14,7 @@ const { calcularCumplimiento, normalizarCriterios } = require('../ia/cumplimient
 const { ahoraEnChile, horaDisponible, horasLibres, sumarDias } = require('./horarios');
 const { buscarEnTexto, formatearRut, mismoRut, nombresEnTexto, pareceNombre, rutEnTexto, rutValido } = require('./identidad');
 const { frase } = require('./frases');
+const { crearHerramientas } = require('./conocimiento');
 
 const MODALIDADES = ['Google Meet', 'Teams', 'Presencial'];
 const ETAPAS = { recibida: 'Evaluación recibida', agendada: 'Entrevista agendada', realizada: 'Entrevista realizada', informe: 'Informe enviado' };
@@ -319,7 +320,7 @@ async function confirmarAgenda(ctx) {
     fechaEntrevista: fecha,
     horaEntrevista: hora,
     modalidadEntrevista: modalidad,
-  });
+  }, ctx.usuario.nombre);
   const nombre = primerNombre(solicitud.nombre);
   return {
     ...respuesta({
@@ -704,6 +705,8 @@ const HERRAMIENTAS = {
   redactar_oferta: { roles: ['analista'], nombre: 'Redactar ofertas', ejecutar: redactarOfertaMarea },
   listar_solicitudes: { roles: TODOS, nombre: 'Solicitudes recientes', ejecutar: listarSolicitudes },
   avisos: { roles: TODOS, nombre: 'Avisos', ejecutar: avisos },
+  // Base de conocimiento de candidatos (ver conocimiento.js).
+  ...crearHerramientas({ respuesta, opcion, identificar, focoDe, analisisDePersona, porcentajeDe }),
 };
 
 const puedeUsar = (rol, herramienta) => rol === 'admin' || Boolean(HERRAMIENTAS[herramienta]?.roles.includes(rol));
@@ -713,6 +716,7 @@ const ATAJOS = [
   ['agendar', 'Agendar una entrevista'],
   ['avisos', 'Ver avisos'],
   ['listar_solicitudes', 'Solicitudes recientes'],
+  ['buscar_candidatos', 'Buscar candidatos'],
   ['ranking_cargo', 'Ranking por cargo'],
   ['redactar_oferta', 'Redactar una oferta'],
 ];

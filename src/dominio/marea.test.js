@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   conexionesDelRol,
+  fechaHoraCorta,
   esAtajoMarea,
   guardarTema,
   leerTema,
@@ -24,10 +25,15 @@ describe('dominio de Marea', () => {
 
   it('muestra a cada rol solo sus funciones (el admin ve todas)', () => {
     const ids = (rol) => conexionesDelRol(rol).map((c) => c.id);
-    expect(ids('evaluador')).toEqual(['agenda', 'solicitudes', 'guia']);
-    expect(ids('analista')).toEqual(['cv', 'solicitudes', 'ofertas']);
+    expect(ids('evaluador')).toEqual(['agenda', 'buscar', 'solicitudes', 'guia']);
+    expect(ids('analista')).toEqual(['buscar', 'cv', 'solicitudes', 'ofertas']);
     expect(ids('jefatura')).toEqual(['solicitudes']);
-    expect(ids('admin')).toHaveLength(5);
+    expect(ids('admin')).toHaveLength(6);
+  });
+
+  it('muestra la fecha del historial en la hora de Chile', () => {
+    expect(fechaHoraCorta('2026-11-23 18:05:00')).toBe('23-11 15:05');
+    expect(fechaHoraCorta('')).toBe('');
   });
 
   it('reconoce Ctrl K y Cmd K', () => {

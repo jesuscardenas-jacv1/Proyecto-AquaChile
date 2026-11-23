@@ -25,6 +25,7 @@ export const nombreModulo = (ruta) => NOMBRES_MODULO[moduloDeRuta(ruta)];
  */
 export const CONEXIONES = [
   { id: 'agenda', nombre: 'Agenda y Google Meet', detalle: 'Agendar entrevistas', icono: 'bi-calendar-event', roles: ['evaluador'], accion: { tipo: 'agendar' }, porPersona: true },
+  { id: 'buscar', nombre: 'Buscar candidatos', detalle: 'Por ciudad, habilidad o cargo', icono: 'bi-search', roles: ['analista', 'evaluador'], accion: { tipo: 'buscar_candidatos' } },
   { id: 'cv', nombre: 'Análisis de CV', detalle: 'Ranking por % de requisitos', icono: 'bi-file-earmark-bar-graph', roles: ['analista'], accion: { tipo: 'ranking_cargo' } },
   { id: 'solicitudes', nombre: 'Solicitudes y Planner', detalle: 'Resumen de una solicitud', icono: 'bi-clipboard-check', roles: ['analista', 'evaluador', 'jefatura'], accion: { tipo: 'listar_solicitudes' } },
   { id: 'guia', nombre: 'Guía de entrevista', detalle: 'Preguntas desde las brechas', icono: 'bi-chat-square-text', roles: ['evaluador'], accion: { tipo: 'guia_entrevista' }, porPersona: true },
@@ -77,6 +78,18 @@ export function fechaLarga(fecha) {
   const [anio, mes, dia] = fecha.split('-').map(Number);
   const nombre = new Intl.DateTimeFormat('es-CL', { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(anio, mes - 1, dia)));
   return `${nombre} ${fecha.slice(8, 10)}-${fecha.slice(5, 7)}`;
+}
+
+/** "2026-11-23 18:05:00" (UTC, como lo guarda SQLite) → "23-11 15:05" en la hora de Chile. */
+export function fechaHoraCorta(fecha) {
+  const instante = new Date(`${String(fecha ?? '').replace(' ', 'T')}Z`);
+  if (Number.isNaN(instante.getTime())) return '';
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(instante)
+      .map(({ type, value }) => [type, value]),
+  );
+  return `${partes.day}-${partes.month} ${partes.hour}:${partes.minute}`;
 }
 
 /** Separa la última línea "Fuente: …" del texto de Marea, para mostrarla aparte. */

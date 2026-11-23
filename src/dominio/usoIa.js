@@ -6,6 +6,8 @@ export const NOMBRES_TAREA = {
   redactarOferta: 'Redactar oferta',
   borradorEvaluacion: 'Borrador de evaluación',
   notasEntrevista: 'Notas de la entrevista',
+  perfilCandidato: 'Perfil del candidato',
+  agenteMarea: 'Marea: entender un mensaje',
   transcripcion: 'Transcripción de audio',
   transcripcionVivo: 'Transcripción en vivo',
 };

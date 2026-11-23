@@ -57,7 +57,7 @@ jobs:
       - name: Pruebas del backend
         working-directory: backend
         run: |
-          for prueba in almacenamiento auth roles integracion ia cola reuniones correo agente; do
+          for prueba in almacenamiento auth roles integracion ia cola reuniones correo agente perfil gemini; do
             echo "::group::test:$prueba"
             npm run "test:$prueba"
             echo "::endgroup::"

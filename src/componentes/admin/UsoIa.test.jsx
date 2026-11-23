@@ -36,6 +36,13 @@ describe('UsoIa', () => {
     expect(api.usoIa).toHaveBeenCalledWith(expect.objectContaining({ desde: expect.stringMatching(/-01$/) }));
   });
 
+  it('muestra cuánto del tope de Gemini se ha usado', async () => {
+    const conGemini = { ...uso, gemini: { llamadas: 4, gastoAcumuladoUsd: 15, topeUsd: 60 } };
+    render(<UsoIa api={{ usoIa: vi.fn().mockResolvedValue(conGemini) }} />);
+    expect(await screen.findByText(/USD 15,00 de USD 60,00 del tope/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Tope de gasto de Gemini usado' })).toHaveAttribute('aria-valuenow', '25');
+  });
+
   it('vuelve a consultar al cambiar el rango de fechas', async () => {
     const usuario = userEvent.setup();
     const api = { usoIa: vi.fn().mockResolvedValue(uso) };

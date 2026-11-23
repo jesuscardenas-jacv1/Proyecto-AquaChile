@@ -230,6 +230,9 @@ export const apiAdmin = {
   /** Consumo de IA entre dos fechas YYYY-MM-DD (por defecto, el mes actual). */
   usoIa: async ({ desde, hasta } = {}) =>
     (await solicitar(`/admin/uso-ia?${new URLSearchParams({ ...(desde && { desde }), ...(hasta && { hasta }) })}`)).uso,
+  /** Base de conocimiento de Marea: perfiles, cola y habilidades por sumar al catálogo. */
+  conocimiento: async () => (await solicitar('/admin/conocimiento')).conocimiento,
+  procesarConocimiento: () => solicitar('/admin/conocimiento/procesar', { metodo: 'POST' }),
   /** Configuración de las ayudas de IA: partes fijas, editables, originales e historial. */
   configIa: async () => (await solicitar('/admin/config-ia')).configuracion,
   guardarConfigIa: async (tarea, datos) =>

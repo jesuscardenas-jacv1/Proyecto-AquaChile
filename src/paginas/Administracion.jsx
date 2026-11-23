@@ -12,6 +12,7 @@ import {
 import Mensaje from '../componentes/comunes/Mensaje';
 import GestionUsuarios from '../componentes/admin/GestionUsuarios';
 import UsoIa from '../componentes/admin/UsoIa';
+import BaseConocimiento from '../componentes/admin/BaseConocimiento';
 import ConfiguracionIa from '../componentes/admin/ConfiguracionIa';
 
 const CATALOGOS = [
@@ -61,6 +62,7 @@ export default function Administracion() {
       <GestionUsuarios conServidor={modo === 'api'} idUsuarioActual={usuarioActual?.id} />
 
       {modo === 'api' ? <UsoIa /> : null}
+      {modo === 'api' ? <BaseConocimiento /> : null}
       {modo === 'api' ? <ConfiguracionIa /> : null}
 
       <section aria-labelledby="titulo-roles">

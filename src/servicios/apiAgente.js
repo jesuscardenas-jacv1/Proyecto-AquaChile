@@ -1,5 +1,5 @@
 /**
- * Cliente de Marea (/api/agente). Marea no usa servicios de IA: solo necesita sesión en el servidor.
+ * Cliente de Marea (/api/agente). Solo necesita sesión en el servidor (Gemini es opcional y vive en el backend).
  */
 import { solicitar } from './api';
 

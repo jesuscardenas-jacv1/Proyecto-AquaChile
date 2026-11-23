@@ -3,6 +3,8 @@ const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearPostulacion } = require('../bd/formatos');
 const { notificarRol } = require('../bd/notificaciones');
+const { registrarEvento } = require('../bd/eventos');
+const { normalizarCiudad } = require('../conocimiento/ciudades');
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const {
   ErrorAlmacenamiento,
@@ -15,6 +17,7 @@ const {
 } = require('../almacenamiento/comun');
 const { limitarPorIp } = require('../middlewares/limite');
 const { encolar } = require('../ia/colaAnalisis');
+const { encolarPerfil } = require('../ia/colaPerfiles');
 const { enviarEnSegundoPlano } = require('../correo');
 const { correoConfirmacionPostulacion } = require('../correo/plantillas');
 
@@ -32,6 +35,7 @@ const limite = limitarPorIp({ maximo: 10, ventanaMs: 10 * 60 * 1000 });
 const limitePostular = limitarPorIp({ maximo: 10, ventanaMs: 10 * 60 * 1000 });
 
 const ESTADOS = ['Recibida', 'En evaluación', 'Descartada'];
+const EVENTO_DE_ESTADO = { Recibida: 'postulacion_reactivada', 'En evaluación': 'pasada_a_evaluacion', Descartada: 'postulacion_descartada' };
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 const TELEFONO_VALIDO = /^\+?[0-9]{8,15}$/;
 const texto = (valor) => (typeof valor === 'string' ? valor.trim() : '');
@@ -123,12 +127,19 @@ router.post('/', limitePostular, (req, res) => {
 
     const { lastInsertRowid } = db
       .prepare(
-        `INSERT INTO postulaciones (oferta_id, candidato_id, fecha_postulacion, estado, ciudad, cv_nombre)
-         VALUES (?, ?, ?, 'Recibida', ?, ?)`,
+        `INSERT INTO postulaciones (oferta_id, candidato_id, fecha_postulacion, estado, ciudad, cv_nombre, ciudad_normalizada)
+         VALUES (?, ?, ?, 'Recibida', ?, ?, ?)`,
       )
-      .run(oferta.id, candidatoId, new Date().toISOString().slice(0, 10), texto(datos.ciudad), texto(datos.cvNombre));
+      .run(
+        oferta.id, candidatoId, new Date().toISOString().slice(0, 10), texto(datos.ciudad), texto(datos.cvNombre),
+        normalizarCiudad(datos.ciudad).ciudad,
+      );
     db.exec('COMMIT;');
 
+    registrarEvento({
+      tipo: 'postulacion_recibida', entidad: 'postulacion', entidadId: lastInsertRowid, usuario: 'Portal',
+      detalle: `${texto(datos.nombre)} · ${oferta.titulo}`,
+    });
     notificarRol('analista', {
       tipo: 'postulacion',
       mensaje: `Nueva postulación: ${texto(datos.nombre)} a ${oferta.titulo}`,
@@ -183,6 +194,14 @@ router.patch('/:id', autenticar, requerirRol('analista'), (req, res) => {
     solicitudId,
     id,
   );
+  if (estado && estado !== actual.estado) {
+    const { nombre, titulo } = db
+      .prepare('SELECT c.nombre, o.titulo FROM postulaciones p JOIN candidatos c ON c.id = p.candidato_id JOIN ofertas o ON o.id = p.oferta_id WHERE p.id = ?')
+      .get(id);
+    registrarEvento({
+      tipo: EVENTO_DE_ESTADO[estado], entidad: 'postulacion', entidadId: id, usuario: req.usuario.nombre, detalle: `${nombre} · ${titulo}`,
+    });
+  }
   res.json({ ok: true, postulacion: formatearPostulacion(obtener(id)) });
 });
 
@@ -225,6 +244,8 @@ router.post(
     await almacenamiento.subirArchivo(carpeta, nombreArchivo('cv', req.query.nombre), contenido);
     // Análisis con IA en segundo plano, por turnos y con límites (ver src/ia/colaAnalisis.js).
     encolar(id);
+    // Perfil para la base de conocimiento de Marea (ver src/ia/colaPerfiles.js).
+    encolarPerfil({ candidatoId: postulacion.candidato_id, postulacionId: id });
     // Postulación completa: se confirma al postulante por correo (una sola vez).
     confirmarAlPostulante(id);
 

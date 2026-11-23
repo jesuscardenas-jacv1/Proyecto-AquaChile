@@ -1,15 +1,18 @@
 /**
  * Marea: agente de reclutamiento. Enrutador de intenciones con herramientas deterministas, no un chat libre.
  *
- *   1. Interpreta: con `accion` (chips y botones) se usa tal cual; con texto, el intérprete local de
- *      palabras clave (interprete.js) elige la intención. No se llama a ningún servicio de IA: es gratis.
+ *   1. Entiende (entender.js): con `accion` (chips y botones) se usa tal cual, sin IA. Con texto, Gemini elige
+ *      una herramienta de la lista del rol; sin clave, sobre el tope de gasto o si falla, lo hace el intérprete
+ *      local de palabras clave (interprete.js). Marea nunca deja de funcionar.
  *   2. Valida el rol del usuario contra la herramienta (RBAC en el backend, no solo en la pantalla).
  *   3. Ejecuta la herramienta y arma { texto, tarjetas, opciones, foco }.
  *
  * `foco` es la memoria corta que guarda el frontend: de quién se habla y si su RUT ya se confirmó.
  */
-const { interpretar } = require('./interprete');
+const { entender } = require('./entender');
 const { ahoraEnChile } = require('./horarios');
+const { AGRUPACIONES } = require('../conocimiento/consultas');
+const { TIPOS_EVENTO } = require('../bd/eventos');
 const { rutEnTexto } = require('./identidad');
 const { frase } = require('./frases');
 const { HERRAMIENTAS, opcionesDelRol, puedeUsar } = require('./herramientas');
@@ -49,6 +52,12 @@ function limpiarParametros(datos = {}) {
     desde: /^\d{4}-\d{2}-\d{2}$/.test(datos.desde) ? datos.desde : '',
     modalidad: texto(datos.modalidad, 30),
     tambienAgendar: datos.tambienAgendar === true,
+    ciudad: texto(datos.ciudad, 60),
+    habilidades: Array.isArray(datos.habilidades) ? datos.habilidades.map((h) => texto(h, 60)).filter(Boolean).slice(0, 5) : [],
+    estado: texto(datos.estado, 30),
+    textoLibre: texto(datos.textoLibre, 120),
+    agruparPor: AGRUPACIONES.includes(datos.agruparPor) ? datos.agruparPor : '',
+    tipoEvento: TIPOS_EVENTO[datos.tipoEvento] ? datos.tipoEvento : '',
   };
 }
 
@@ -84,9 +93,10 @@ async function procesarMensaje({ usuario, mensaje = '', foco: focoEntrada = null
     parametros = limpiarParametros({ rut: rutEnTexto(escrito) });
   } else {
     if (!escrito) return { texto: frase(usuario.id, 'ayuda'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
-    const { intencion, parametros: interpretados } = interpretar(escrito, ahoraEnChile(ahora).fecha);
-    if (!HERRAMIENTAS[intencion]) {
-      return { texto: frase(usuario.id, intencion === 'ayuda' ? 'ayuda' : 'noEntiende'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
+    const { intencion, parametros: interpretados } = await entender({ mensaje: escrito, usuario, hoy: ahoraEnChile(ahora).fecha });
+    // Solo se aceptan herramientas que no escriben: confirmar llega únicamente desde un botón.
+    if (!HERRAMIENTAS[intencion] || HERRAMIENTAS[intencion].soloAccion) {
+      return { texto: frase(usuario.id, { ayuda: 'ayuda', dato_sensible: 'datoSensible' }[intencion] ?? 'noEntiende'), tarjetas: [], opciones: opcionesDelRol(usuario.rol), foco };
     }
     tipo = intencion;
     parametros = limpiarParametros(interpretados);

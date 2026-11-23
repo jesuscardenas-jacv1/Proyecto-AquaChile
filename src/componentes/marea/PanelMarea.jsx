@@ -8,6 +8,9 @@ import TarjetaHoras from './TarjetaHoras';
 import TarjetaConfirmacion from './TarjetaConfirmacion';
 import TarjetaAnalisis from './TarjetaAnalisis';
 import TarjetaResumen from './TarjetaResumen';
+import TarjetaCandidatos from './TarjetaCandidatos';
+import TarjetaPerfil from './TarjetaPerfil';
+import TarjetaRegistro from './TarjetaRegistro';
 import CampanaMarea, { ListaAvisos } from './CampanaMarea';
 import {
   accionConFoco,
@@ -27,6 +30,9 @@ function Tarjeta({ tarjeta, alElegir, alUsarAviso, desactivado }) {
   if (tarjeta.tipo === 'confirmacion') return <TarjetaConfirmacion tarjeta={tarjeta} alElegir={alElegir} desactivado={desactivado} />;
   if (tarjeta.tipo === 'analisis') return <TarjetaAnalisis tarjeta={tarjeta} />;
   if (tarjeta.tipo === 'opciones') return <ListaAvisos avisos={tarjeta.avisos ?? []} alUsar={alUsarAviso} desactivado={desactivado} />;
+  if (tarjeta.tipo === 'candidatos') return <TarjetaCandidatos tarjeta={tarjeta} />;
+  if (tarjeta.tipo === 'perfil') return <TarjetaPerfil tarjeta={tarjeta} />;
+  if (tarjeta.tipo === 'conteo' || tarjeta.tipo === 'actividad') return <TarjetaRegistro tarjeta={tarjeta} />;
   return <TarjetaResumen tarjeta={tarjeta} />;
 }
 

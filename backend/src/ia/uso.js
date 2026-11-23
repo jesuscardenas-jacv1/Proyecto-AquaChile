@@ -2,6 +2,7 @@
  * Registro del consumo de IA (tabla uso_ia) para el panel del administrador.
  *
  * - Claude: tokens de entrada, salida y caché que informa la API en `response.usage`.
+ * - Gemini: tokens que informa la API en `usageMetadata` (los de razonamiento se cobran como salida).
  * - Azure Speech: segundos de audio transcritos.
  *
  * El costo es una ESTIMACIÓN con precios de lista (USD). La factura real está en la consola
@@ -13,6 +14,7 @@
  */
 const { AsyncLocalStorage } = require('node:async_hooks');
 const db = require('../bd/conexion');
+const { gastoGemini, topeGemini } = require('./presupuesto');
 
 const contexto = new AsyncLocalStorage();
 
@@ -23,6 +25,13 @@ const PRECIOS_CLAUDE = [
   { prefijo: 'claude-haiku', entrada: 0.1, salida: 0.5 },
   { prefijo: 'claude-fable', entrada: 4, salida: 20 },
 ];
+// USD por millón de tokens (ai.google.dev/gemini-api/docs/pricing, 23-11-2026). Gemini 3.8 Flash cuesta la
+// mitad hasta el 31-12-2026: se usa el precio normal para que el tope nunca se quede corto.
+const PRECIOS_GEMINI = [
+  { prefijo: 'gemini-3.5-flash-lite', entrada: 0.3, salida: 2.5 },
+  { prefijo: 'gemini-3.8-flash', entrada: 1.5, salida: 7.5 },
+];
+const PRECIO_GEMINI_OTRO = { entrada: 1.5, salida: 9 };
 // Azure Speech F0 (gratis) incluye 5 horas de audio al mes. En S0 se define AZURE_SPEECH_USD_HORA.
 const HORAS_GRATIS_VOZ = 5;
 const usdPorHoraVoz = () => Number(process.env.AZURE_SPEECH_USD_HORA) || 0;
@@ -36,11 +45,22 @@ function costoClaude({ modelo, entrada = 0, salida = 0, cacheEscritura = 0, cach
   return (tokensEquivalentes * precio.entrada + salida * precio.salida) / 1_000_000;
 }
 
+/** Costo estimado en USD de una llamada a Gemini. La entrada en caché cuesta el 10 %. */
+function costoGemini({ modelo = '', entrada = 0, salida = 0, cacheLectura = 0 }) {
+  const precio = PRECIOS_GEMINI.find((item) => modelo.startsWith(item.prefijo)) ?? PRECIO_GEMINI_OTRO;
+  return ((entrada + cacheLectura * 0.1) * precio.entrada + salida * precio.salida) / 1_000_000;
+}
+
 const costoVoz = (segundos = 0) => (segundos / 3600) * usdPorHoraVoz();
 
 /** Ejecuta `siguiente` con el usuario de la petición como contexto del registro. */
 function conContextoUso(req, res, siguiente) {
   contexto.run({ usuario: req.usuario?.nombre ?? '', rol: req.usuario?.rol ?? '' }, siguiente);
+}
+
+/** Ejecuta `fn` a nombre de un usuario (p. ej. un mensaje a Marea). */
+function comoUsuario(usuario, fn) {
+  return contexto.run({ usuario: usuario?.nombre ?? '', rol: usuario?.rol ?? '' }, fn);
 }
 
 /** Ejecuta `fn` como una tarea del sistema (p. ej. el análisis automático del CV), sin usuario. */
@@ -88,6 +108,23 @@ function registrarClaude({ tarea, respuesta }) {
     resultado: respuesta?.stop_reason === 'refusal' || respuesta?.stop_reason === 'max_tokens' ? respuesta.stop_reason : 'ok',
   };
   guardar({ ...fila, costo: costoClaude(fila) });
+}
+
+/** Registra una respuesta de Gemini (también las bloqueadas o incompletas: igual se cobran). */
+function registrarGemini({ tarea, modelo, respuesta }) {
+  const uso = respuesta?.usageMetadata ?? {};
+  const cacheLectura = uso.cachedContentTokenCount ?? 0;
+  const motivo = respuesta?.promptFeedback?.blockReason || respuesta?.candidates?.[0]?.finishReason || '';
+  const fila = {
+    proveedor: 'gemini',
+    tarea,
+    modelo,
+    entrada: Math.max(0, (uso.promptTokenCount ?? 0) - cacheLectura),
+    salida: (uso.candidatesTokenCount ?? 0) + (uso.thoughtsTokenCount ?? 0),
+    cacheLectura,
+    resultado: !motivo || motivo === 'STOP' ? 'ok' : motivo.toLowerCase(),
+  };
+  guardar({ ...fila, costo: costoGemini(fila) });
 }
 
 /** Registra una transcripción de Azure Speech. */
@@ -140,6 +177,7 @@ function resumenUso({ desde, hasta, ultimas = 50 }) {
     hasta,
     total: formatear(db.prepare(`SELECT ${columnas} FROM uso_ia ${filtro}`).get(...parametros)),
     claude: porProveedor.anthropic ?? formatear({}),
+    gemini: { ...(porProveedor.gemini ?? formatear({})), gastoAcumuladoUsd: redondear(gastoGemini()), topeUsd: topeGemini() },
     voz: {
       ...(porProveedor['azure-speech'] ?? formatear({})),
       minutosMes: redondear(segundosMes / 60, 1),
@@ -167,8 +205,8 @@ function resumenUso({ desde, hasta, ultimas = 50 }) {
         costoUsd: redondear(fila.costo_usd),
         resultado: fila.resultado,
       })),
-    precios: { claude: PRECIOS_CLAUDE, vozUsdHora: usdPorHoraVoz() },
+    precios: { claude: PRECIOS_CLAUDE, gemini: PRECIOS_GEMINI, vozUsdHora: usdPorHoraVoz() },
   };
 }
 
-module.exports = { comoSistema, conContextoUso, costoClaude, costoVoz, registrarClaude, registrarVoz, resumenUso, HORAS_GRATIS_VOZ };
+module.exports = { comoSistema, comoUsuario, conContextoUso, costoClaude, costoGemini, costoVoz, registrarClaude, registrarGemini, registrarVoz, resumenUso, HORAS_GRATIS_VOZ };
