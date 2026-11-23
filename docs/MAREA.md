@@ -39,6 +39,9 @@ el usuario pulsa **Confirmar**. Nunca muestra notas clínicas ni la pauta.
 
 ## ¿Se le puede poner IA a Marea más adelante?
 
+> **Plan en curso:** Marea con Gemini y una base de conocimiento de candidatos (CV + actividad del portal):
+> ver [`PLAN_MAREA_GEMINI.md`](PLAN_MAREA_GEMINI.md).
+
 Sí. Solo cambia el **paso 1 (entender)**: los pasos 2 y 3 quedan iguales, así que los permisos y las reglas no se tocan.
 
 1. En `index.js`, si hay `ANTHROPIC_API_KEY`, se le pide a Claude que clasifique el mensaje en lugar de `interpretar(...)`.
