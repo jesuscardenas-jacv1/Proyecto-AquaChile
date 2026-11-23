@@ -16,6 +16,7 @@ const {
   nombreCarpeta,
   validarArchivo,
 } = require('../almacenamiento/comun');
+const { encolarPerfil } = require('../ia/colaPerfiles');
 const { generarInformePdf, nombreArchivoInforme } = require('../almacenamiento/informePdf');
 
 /**
@@ -140,6 +141,11 @@ router.post(
       nombreArchivo(categoria, nombre),
       contenido,
     );
+    // Un CV subido a la solicitud (candidato sin portal) también alimenta la base de conocimiento.
+    if (categoria === 'cv') {
+      const candidatoId = db.prepare('SELECT candidato_id FROM solicitudes WHERE id = ?').get(id)?.candidato_id;
+      encolarPerfil({ candidatoId, solicitudId: id });
+    }
 
     res.status(201).json({ ok: true, carpeta, archivo: { ...archivo, puedeEliminar: true } });
   }),

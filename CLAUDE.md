@@ -127,8 +127,9 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   pruebas), guarda el texto como **Pauta** (confidencial) y la tarea `notasEntrevista` propone notas por competencia que
   pasan al borrador. **El audio nunca se guarda.** No depender de las transcripciones de Teams/Meet (piden licencias).
 - **Marea (agente de reclutamiento, `backend/src/agente/`, `src/componentes/marea/`):** barra flotante arriba al centro en
-  las pantallas internas (Ctrl K) que abre un panel con chat, tarjetas y avisos. **No usa IA ni claves (gratis):** un
-  intérprete de palabras clave (`interprete.js`) elige la intención y una herramienta determinista por intención
+  las pantallas internas (Ctrl K) que abre un panel con chat, tarjetas y avisos. **Entiende con Gemini si hay
+  `GEMINI_API_KEY`** (`entender.js`: una llamada por mensaje, sin RUT, correo ni teléfono); sin clave, sobre el tope de gasto o si
+  falla, un intérprete de palabras clave gratis (`interprete.js`). Se elige la intención y una herramienta determinista por intención
   (`herramientas.js`, con su RBAC en el backend) responde `{ texto, tarjetas, opciones, foco }` vía
   `POST /api/agente/mensaje`; los botones mandan `accion` directa. Solo escribe al pulsar «Confirmar» (agenda con
   `cambiarEtapa`, `backend/src/bd/planner.js`, el mismo flujo del Planner). Lee el % del análisis de CV ya guardado; no
@@ -137,6 +138,12 @@ equivalente moderno (mismos conceptos: suites, aserciones, mocks con `vi.fn`, co
   los que empiezan en 30 min o más; una hora que se cruza con otra entrevista no se ofrece; sin horas, el siguiente día
   hábil (hasta 15 días). Un nombre escrito por primera vez se confirma con el RUT (módulo 11, columna `candidatos.rut`;
   la semilla genera RUT ficticios); elegido desde un chip, un aviso o el foco, no.
+- **Base de conocimiento de Marea** (`backend/src/conocimiento/`, plan en `docs/PLAN_MAREA_GEMINI.md`): Gemini lee cada CV una vez
+  (`ia/perfil.js`, cola `ia/colaPerfiles.js`) y guarda el perfil normalizado en `perfiles_candidato`, `habilidades_candidato` y el
+  índice `busqueda_cv` (solo el extracto profesional, nunca el CV completo). Marea busca con SQL (`consultas.js`): la psicóloga solo
+  ve candidatos de sus solicitudes y la jefatura solo números. **Sin datos sensibles:** el esquema no los tiene, `perfiles.js` los
+  limpia y Marea rechaza buscar por ellos. Historial en `eventos` (`bd/eventos.js`, sin notas clínicas): toda ruta nueva que cambie
+  el proceso debe llamar a `registrarEvento`. Tope de gasto **acumulado** en `ia/presupuesto.js` (`GEMINI_TOPE_USD`).
 - **Despliegue:** GitHub Pages publica el frontend al hacer merge a `main` (`.github/workflows/pages.yml`), compilado
   contra el backend en Azure App Service (`https://aquachile-psicolaboral-api.azurewebsites.net/api`, plan B1).
   El backend también se publica solo al hacer merge a `main` (`.github/workflows/backend-azure.yml`: pruebas, empaquetado
@@ -147,7 +154,7 @@ src/paginas/        una vista por ruta (App.jsx define rutas y roles)
 src/componentes/    layout, comunes, candidatos, solicitudes, evaluacion, dashboard, planner, marea
 src/dominio/        lógica pura (consultas, indicadores, validaciones, planner)
 src/datos/          contextos (Auth, Datos), constantes, semilla
-backend/src/        servidor, rutas, middlewares, bd, almacenamiento, ia, reuniones, agente (Marea)
+backend/src/        servidor, rutas, middlewares, bd, almacenamiento, ia, reuniones, agente (Marea), conocimiento
 ```
 
 ## IA (Claude + Azure Speech) — referencia rápida
@@ -166,7 +173,8 @@ Mejora sobre el alcance (evolución futura del caso). La IA **solo sugiere**: na
 | Consumo | `backend/src/ia/uso.js` | Tabla `uso_ia` (tokens, segundos de audio, costo estimado, usuario); panel en `/administracion` (`GET /api/admin/uso-ia`) |
 | Rutas | `backend/src/rutas/ia.js` | `/api/ia/*`, límite 20 llamadas cada 10 min por IP; análisis de CV guardado en `analisis_cv` |
 | Frontend | `src/servicios/apiIa.js` | `useIaDisponible()` oculta las opciones si el servidor no tiene clave |
-| Marea | `backend/src/agente/` | **No usa Claude** (sin costo): intérprete de palabras clave + herramientas. Para darle IA, solo cambia el paso de interpretar (ver `docs/MAREA.md`; versión con Claude en el commit `4db230b`) |
+| Gemini | `backend/src/ia/gemini.js` | `generarJsonGemini` y `elegirHerramienta` con `generateContent` (no guarda estado). Solo para Marea: tareas `agenteMarea` y `perfilCandidato` del catálogo (`proveedor: 'gemini'`) |
+| Marea | `backend/src/agente/` | **No usa Claude.** Gemini opcional solo para entender el mensaje; las herramientas son deterministas (ver `docs/MAREA.md`) |
 
 **Qué puede cambiar el admin** (sección Configuración de IA en `/administracion`): las indicaciones de cada tarea, el modelo
 (Opus, Sonnet o Haiku 5.5, o el del servidor) y el esfuerzo (bajo, medio, alto). **Fijos:** rol, `REGLAS_COMUNES`, límites
@@ -185,8 +193,8 @@ de la tarea y esquema de salida. Cada cambio queda en el historial y se puede re
 
 **Costos:** precios de lista en `uso.js` (Opus USD 4 / 20 por millón de tokens de entrada / salida). Un análisis de CV
 cuesta ~USD 0,08. Azure Speech F0 incluye 5 h de audio al mes (en S0, definir `AZURE_SPEECH_USD_HORA`).
-**Variables:** `ANTHROPIC_API_KEY`, `IA_MODELO` (opcional), `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION=eastus2`.
-**Pruebas:** usar siempre `establecerClienteIa` / `establecerTranscriptor` / `establecerEmisorToken` (simulados, sin costo); nunca la API real en las pruebas.
+**Variables:** `ANTHROPIC_API_KEY`, `IA_MODELO` (opcional), `GEMINI_API_KEY`, `GEMINI_MODELO` y `GEMINI_TOPE_USD` (opcionales), `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION=eastus2`.
+**Pruebas:** usar siempre `establecerClienteIa` / `establecerClienteGemini` / `establecerTranscriptor` / `establecerEmisorToken` (simulados, sin costo); nunca la API real en las pruebas.
 En el panel del navegador de Claude Code el micrófono está bloqueado: la transcripción en vivo se prueba en Chrome o Edge.
 
 ## Comandos
@@ -205,7 +213,10 @@ npm --prefix backend run test:integracion      # API usada por el frontend integ
 npm --prefix backend run test:reuniones        # Google Calendar (Meet) y Teams con respuestas simuladas
 npm --prefix backend run test:ia               # ayudas de IA con un cliente simulado
 npm --prefix backend run test:correo           # correos con Resend (cliente simulado)
-npm --prefix backend run test:agente           # Marea (BD temporal; comprueba que nunca llama a la IA)
+npm --prefix backend run test:agente           # Marea (BD temporal; comprueba que nunca llama a Claude)
+npm --prefix backend run test:perfil           # base de conocimiento: catálogos, privacidad, búsquedas y permisos
+npm --prefix backend run test:gemini           # Gemini simulado: cliente, tope, cola y respaldo
+npm --prefix backend run perfiles:extraer      # lee con Gemini los CV que aún no tienen perfil
 ```
 
 Usuarios de prueba: ver `README.md` (contraseñas de demo, nunca reales).

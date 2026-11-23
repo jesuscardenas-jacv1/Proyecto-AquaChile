@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../bd/conexion');
 const { autenticar, requerirRol } = require('../middlewares/auth');
 const { formatearEvaluacion } = require('../bd/formatos');
+const { registrarEventoSolicitud } = require('../bd/eventos');
 const { normalizarCompetencias } = require('../bd/competencias');
 
 const router = express.Router();
@@ -123,6 +124,8 @@ router.post('/', autenticar, requerirRol('evaluador'), (req, res) => {
     `).run(solicitudId);
 
     db.exec('COMMIT;');
+    // Solo el resultado: las observaciones son clínicas y nunca van al historial.
+    registrarEventoSolicitud('evaluacion_registrada', solicitudId, req.usuario.nombre, resultado);
 
     const nueva = db.prepare('SELECT * FROM evaluaciones WHERE id = ?').get(resEval.lastInsertRowid);
 

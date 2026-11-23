@@ -102,6 +102,8 @@ if (require.main === module) {
       app.listen(PUERTO, () => {
         // Análisis automático del CV de las postulaciones nuevas (por turnos y con límites).
         require('./ia/colaAnalisis').iniciarCola();
+        // Perfiles de los candidatos para la base de conocimiento de Marea (Gemini, con tope de gasto).
+        require('./ia/colaPerfiles').iniciarColaPerfiles();
         console.log(`🚀 Servidor backend AquaChile iniciado en http://localhost:${PUERTO}`);
         console.log(`   - Endpoint salud:        http://localhost:${PUERTO}/api/salud`);
         console.log(`   - Autenticación:         http://localhost:${PUERTO}/api/auth/login`);

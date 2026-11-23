@@ -5,6 +5,9 @@ const { autenticar, requerirRol } = require('../middlewares/auth');
 const { sembrar } = require('../bd/semilla');
 const { resumenUso } = require('../ia/uso');
 const { modeloIa } = require('../ia/cliente');
+const { modeloGemini } = require('../ia/gemini');
+const { encolarPendientes } = require('../ia/colaPerfiles');
+const { resumenConocimiento } = require('../conocimiento/consultas');
 const {
   ErrorConfiguracion,
   guardarConfiguracion,
@@ -178,13 +181,24 @@ router.get('/uso-ia', ...soloAdmin, (req, res) => {
   return res.json({ ok: true, uso: resumenUso({ desde, hasta }) });
 });
 
+/** GET /api/admin/conocimiento — estado de la base de conocimiento de Marea (perfiles, cola y habilidades por sumar al catálogo). */
+router.get('/conocimiento', ...soloAdmin, (req, res) => {
+  res.json({ ok: true, conocimiento: resumenConocimiento() });
+});
+
+/** POST /api/admin/conocimiento/procesar — encola los CV del portal que aún no tienen perfil. */
+router.post('/conocimiento/procesar', ...soloAdmin, (req, res) => {
+  const encolados = encolarPendientes();
+  res.json({ ok: true, encolados, conocimiento: resumenConocimiento() });
+});
+
 /**
  * GET /api/admin/config-ia
  * Configuración de cada ayuda de IA: partes fijas (rol, reglas, límites, campos de salida),
  * partes editables (indicaciones, modelo, esfuerzo), valores originales e historial de cambios.
  */
 router.get('/config-ia', ...soloAdmin, (req, res) => {
-  res.json({ ok: true, configuracion: listarConfiguracion({ modeloServidor: modeloIa() }) });
+  res.json({ ok: true, configuracion: listarConfiguracion({ modeloServidor: modeloIa(), modeloServidorGemini: modeloGemini() }) });
 });
 
 const responderConfiguracion = (accion) => (req, res, next) => {

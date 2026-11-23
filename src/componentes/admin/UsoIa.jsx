@@ -62,7 +62,7 @@ function TablaAgrupada({ titulo, filas, renderClave = (clave) => clave }) {
 }
 
 /**
- * Consumo de IA para el administrador: tokens de Claude, minutos de Azure Speech y costo
+ * Consumo de IA para el administrador: tokens de Claude y Gemini, minutos de Azure Speech y costo
  * estimado con precios de lista. La factura real está en la consola de cada proveedor.
  */
 export default function UsoIa({ api = apiAdmin }) {
@@ -97,7 +97,7 @@ export default function UsoIa({ api = apiAdmin }) {
             <i className="bi bi-stars me-1" aria-hidden="true" />
             Uso de IA
           </h2>
-          <small className="text-secondary">Tokens de Claude, audio transcrito con Azure Speech y costo estimado.</small>
+          <small className="text-secondary">Tokens de Claude y Gemini, audio transcrito con Azure Speech y costo estimado.</small>
         </div>
         <div className="d-flex flex-wrap gap-2 align-items-end">
           <div>
@@ -157,6 +157,28 @@ export default function UsoIa({ api = apiAdmin }) {
               </div>
             </div>
 
+            {uso.gemini ? (
+              <div className="border rounded p-2">
+                <div className="d-flex flex-wrap justify-content-between gap-2 small mb-1">
+                  <span>
+                    Gemini (Marea): {formatearUsd(uso.gemini.gastoAcumuladoUsd)} de {formatearUsd(uso.gemini.topeUsd)} del tope
+                  </span>
+                  <span className="text-secondary">{uso.gemini.llamadas} llamadas en el período</span>
+                </div>
+                <div
+                  className="progress"
+                  role="progressbar"
+                  aria-label="Tope de gasto de Gemini usado"
+                  aria-valuenow={porcentajeCuota(uso.gemini.gastoAcumuladoUsd, uso.gemini.topeUsd)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  style={{ height: 6 }}
+                >
+                  <div className="progress-bar" style={{ width: `${porcentajeCuota(uso.gemini.gastoAcumuladoUsd, uso.gemini.topeUsd)}%` }} />
+                </div>
+              </div>
+            ) : null}
+
             <div className="row g-3">
               <TablaAgrupada titulo="Por ayuda de IA" filas={uso.porTarea} renderClave={nombreTarea} />
               <TablaAgrupada titulo="Por usuario" filas={uso.porUsuario} />
@@ -203,7 +225,7 @@ export default function UsoIa({ api = apiAdmin }) {
 
             <p className="small text-secondary mb-0">
               Costo estimado con precios de lista (Claude Opus: USD 4 por millón de tokens de entrada y USD 20 por millón de salida).
-              La factura real está en la consola de Anthropic y en Azure Cost Management. El plan gratis de Azure Speech incluye
+              Gemini 3.5 Flash-Lite: USD 0,30 y USD 2,50. La factura real está en la consola de Anthropic, en Google AI Studio y en Azure Cost Management. El plan gratis de Azure Speech incluye
               5 horas de audio al mes.
             </p>
           </>

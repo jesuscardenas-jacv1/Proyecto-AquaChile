@@ -1,6 +1,14 @@
 # Plan · Marea con Gemini y base de conocimiento
 
-> Estado: **plan aprobado para codificar** (21-11-2026). Nada de esto está programado todavía.
+> Estado: **fases 1 a 5 programadas** (23-11-2026). Falta la fase 0 (clave de Gemini en el servidor) y la 6 es opcional.
+> Cambios respecto del plan, decididos al programar:
+> - **Tope de gasto acumulado, no mensual:** el crédito es un monto único; con un tope por mes se podía pasar de USD 70.
+> - **El índice de búsqueda guarda solo el extracto profesional**, no el CV completo: con el texto entero se podría
+>   buscar por edad o estado civil. Además, Marea rechaza búsquedas por datos sensibles, con y sin IA.
+> - **`generateContent`** y no la API Interactions, que guarda las conversaciones en Google por defecto.
+> - Modelo **`gemini-3.5-flash-lite`** (USD 0,30 / 2,50 por millón). Los `gemini-2.5-flash` se retiran el 1-12-2026.
+> - Máximo de CV leídos por día (`PERFILES_MAX_DIA`), porque el portal es público.
+> - Roles de `buscar_candidatos` (tabla 5.3): como se proponía. CV subidos a mano a la solicitud: también se leen.
 > Objetivo principal: **una base de conocimiento sólida** construida desde los **currículos** y desde **todo lo que
 > pasa en el portal**, para que Marea responda preguntas como
 > *"¿Quiénes son de Puerto Montt y saben Power BI?"*.

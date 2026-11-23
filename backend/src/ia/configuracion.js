@@ -3,7 +3,7 @@
  * Solo se guarda lo que el administrador cambió; lo demás sale del catálogo (ver catalogo.js).
  */
 const db = require('../bd/conexion');
-const { ESFUERZOS, MODELOS, REGLAS_COMUNES, TAREAS } = require('./catalogo');
+const { ESFUERZOS, MODELOS, MODELOS_GEMINI, REGLAS_COMUNES, TAREAS, modelosDe } = require('./catalogo');
 
 const LARGO_MINIMO = 20;
 const LARGO_MAXIMO = 4000;
@@ -59,7 +59,7 @@ function guardarConfiguracion(tarea, cuerpo = {}, usuario = '') {
   if (indicaciones.length > LARGO_MAXIMO) {
     throw new ErrorConfiguracion(`Las indicaciones no pueden superar ${LARGO_MAXIMO} caracteres.`);
   }
-  if (modelo && !MODELOS.some((opcion) => opcion.id === modelo)) throw new ErrorConfiguracion('Modelo no permitido.');
+  if (modelo && !modelosDe(tarea).some((opcion) => opcion.id === modelo)) throw new ErrorConfiguracion('Modelo no permitido.');
   if (!ESFUERZOS.some((opcion) => opcion.id === esfuerzo)) throw new ErrorConfiguracion('Nivel de esfuerzo no permitido.');
 
   const datos = { indicaciones, modelo, esfuerzo };
@@ -108,15 +108,18 @@ function camposDelEsquema(esquema) {
 }
 
 /** Todo lo que ve el administrador: partes fijas, partes editables, valores originales e historial. */
-function listarConfiguracion({ modeloServidor }) {
+function listarConfiguracion({ modeloServidor, modeloServidorGemini = '' }) {
   return {
     reglasComunes: REGLAS_COMUNES,
     modeloServidor,
+    modeloServidorGemini,
     modelos: MODELOS,
+    modelosGemini: MODELOS_GEMINI,
     esfuerzos: ESFUERZOS,
     largoMaximo: LARGO_MAXIMO,
     tareas: Object.entries(TAREAS).map(([id, tarea]) => ({
       id,
+      proveedor: tarea.proveedor ?? 'anthropic',
       nombre: tarea.nombre,
       usadoPor: tarea.usadoPor,
       entrada: tarea.entrada,

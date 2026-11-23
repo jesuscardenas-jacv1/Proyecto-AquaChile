@@ -8,6 +8,8 @@
  */
 const { normalizar, rutEnTexto } = require('./identidad');
 const { sumarDias } = require('./horarios');
+const { ciudadEnTexto } = require('../conocimiento/ciudades');
+const { habilidadesEnTexto } = require('../conocimiento/habilidades');
 
 /** Reglas en orden de prioridad: la primera que calza decide la intención. */
 const REGLAS = [
@@ -50,6 +52,40 @@ function fechaEnTexto(texto, hoy) {
   return dia >= 1 && dia <= 31 && mes >= 1 && mes <= 12 ? `${anio}-${dosDigitos(mes)}-${dosDigitos(dia)}` : '';
 }
 
+// --- Base de conocimiento: preguntas por personas, perfiles, conteos y actividad ---------------
+const PREGUNTA_PERSONAS = /\b(quien(es)?|candidat\w+|postulantes?|personas?|gente|alguien|perfiles|trabajador\w*)\b/;
+const OTRA_INTENCION = /\bagend|\breagend|\bhora\b|\branking\b|\bordena\w*|\bmejores\b|\bguia\b|\boferta\b|\banaliz|\bsolicitud(es)?\b/;
+const AGRUPAR = [
+  ['ciudad', /\bpor (ciudad|comuna)(es|s)?\b/],
+  ['habilidad', /\bpor habilidad(es)?\b/],
+  ['cargo', /\bpor cargos?\b/],
+  ['estado', /\bpor estados?\b/],
+];
+
+/** "esta semana", "últimos 7 días", "este mes", "hoy", "ayer" → fecha desde (yyyy-mm-dd, o ''). */
+function desdeEnTexto(texto, hoy) {
+  const dias = /\bultimos? (\d{1,3}) dias\b/.exec(texto);
+  if (dias) return sumarDias(hoy, -Number(dias[1]));
+  if (/\b(esta semana|ultima semana)\b/.test(texto)) return sumarDias(hoy, -7);
+  if (/\beste mes\b/.test(texto)) return `${hoy.slice(0, 7)}-01`;
+  if (/\bayer\b/.test(texto)) return sumarDias(hoy, -1);
+  return /\bhoy\b/.test(texto) ? hoy : '';
+}
+
+/** Intención sobre la base de conocimiento, o null si el mensaje es de otra cosa. */
+function intencionConocimiento(texto, { ciudad, habilidades }) {
+  if (OTRA_INTENCION.test(texto)) return null;
+  if (/\bactividad\b|\bque (ha )?(paso|pasado)\b|\bhistorial\b|\bmovimientos\b/.test(texto)) return 'actividad_reciente';
+  if (/\bcuant[oa]s\b|\bestadistic\w*/.test(texto) || AGRUPAR.some(([, regla]) => regla.test(texto))) {
+    return PREGUNTA_PERSONAS.test(texto) || ciudad || habilidades.length || /\bestadistic/.test(texto) ? 'estadisticas' : null;
+  }
+  if (PREGUNTA_PERSONAS.test(texto) && (ciudad || habilidades.length)) return 'buscar_candidatos';
+  if (/\b(sepan?|saben?|manejen?|manejan?|dominen?|dominan?)\b/.test(texto) && habilidades.length) return 'buscar_candidatos';
+  if (/\b(busca|buscar|encuentra|muestra\w*) (a )?(candidat\w+|personas|postulantes|gente)\b/.test(texto)) return 'buscar_candidatos';
+  if (/\bperfil\b|\bquien es\b|\bhablame de\b|\bque sabe\b/.test(texto)) return 'perfil_candidato';
+  return null;
+}
+
 /**
  * @param {string} mensaje lo que escribió el usuario
  * @param {string} hoy fecha de hoy en Chile (yyyy-mm-dd), para "hoy" y "mañana"
@@ -58,7 +94,9 @@ function interpretar(mensaje, hoy) {
   const rut = rutEnTexto(mensaje);
   // Sin el RUT, para que sus números no se lean como fecha u hora.
   const texto = normalizar(mensaje.replace(rut, ' '));
-  const intencion = REGLAS.find(([, regla]) => regla.test(texto))?.[0] ?? 'fuera_de_alcance';
+  const ciudad = ciudadEnTexto(mensaje);
+  const habilidades = habilidadesEnTexto(mensaje);
+  const intencion = intencionConocimiento(texto, { ciudad, habilidades }) ?? REGLAS.find(([, regla]) => regla.test(texto))?.[0] ?? 'fuera_de_alcance';
   const solicitud = /\b(?:solicitud|s)\s*#?\s*(\d{1,6})\b|#(\d{1,6})\b/.exec(texto);
 
   return {
@@ -70,6 +108,10 @@ function interpretar(mensaje, hoy) {
       solicitudId: solicitud ? Number(solicitud[1] ?? solicitud[2]) : null,
       fecha: fechaEnTexto(texto, hoy),
       hora: horaEnTexto(texto),
+      ciudad,
+      habilidades,
+      desde: ['actividad_reciente', 'buscar_candidatos', 'estadisticas'].includes(intencion) ? desdeEnTexto(texto, hoy) : '',
+      agruparPor: AGRUPAR.find(([, regla]) => regla.test(texto))?.[0] ?? '',
       modalidad: MODALIDADES.find(([, regla]) => regla.test(texto))?.[0] ?? '',
       // "analiza y agenda a…": el análisis completo agrega las horas libres.
       tambienAgendar: intencion === 'analizar_candidato' && /\bagend\w*/.test(texto),
@@ -77,4 +119,4 @@ function interpretar(mensaje, hoy) {
   };
 }
 
-module.exports = { fechaEnTexto, horaEnTexto, interpretar };
+module.exports = { desdeEnTexto, fechaEnTexto, horaEnTexto, interpretar };

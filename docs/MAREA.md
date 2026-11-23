@@ -1,6 +1,7 @@
 # Marea · guía rápida para el equipo
 
-Marea es el agente de reclutamiento de la app. Funciona **sin IA y sin costo**: no usa claves ni servicios pagados.
+Marea es el agente de reclutamiento de la app. Funciona **sin IA y sin costo**; si el servidor tiene `GEMINI_API_KEY`,
+además entiende frases libres con Gemini, con un tope de gasto. Si Gemini falla o llega al tope, vuelve sola a lo de siempre.
 
 ## Cómo funciona (3 pasos)
 
@@ -8,7 +9,8 @@ Marea es el agente de reclutamiento de la app. Funciona **sin IA y sin costo**: 
 mensaje o botón → 1. entender → 2. revisar rol → 3. herramienta → respuesta (texto + tarjetas + opciones)
 ```
 
-1. **Entender** (`backend/src/agente/interprete.js`): reglas de palabras clave. "Agenda a Valentina mañana a las 9"
+1. **Entender** (`backend/src/agente/entender.js`): con Gemini, elige una herramienta de la lista cerrada del rol
+   (`declaraciones.js`); sin Gemini, `interprete.js` usa reglas de palabras clave. "Agenda a Valentina mañana a las 9"
    da la intención `agendar`, la fecha y la hora. Los botones (chips) mandan la acción lista y se saltan este paso.
 2. **Revisar rol** (`herramientas.js`, `HERRAMIENTAS`): cada herramienta dice qué roles pueden usarla.
    Se valida en el backend, no solo en la pantalla.
@@ -17,7 +19,10 @@ mensaje o botón → 1. entender → 2. revisar rol → 3. herramienta → respu
 | Archivo | Para qué |
 |---|---|
 | `agente/index.js` | Orquesta los 3 pasos |
+| `agente/entender.js` | Decide entre Gemini y el intérprete local (máximo una llamada por mensaje) |
 | `agente/interprete.js` | Entiende el mensaje (palabras clave) |
+| `agente/declaraciones.js` | Herramientas que se ofrecen a Gemini, por rol |
+| `agente/conocimiento.js` | Buscar candidatos, perfil, actividad y conteos |
 | `agente/herramientas.js` | Una función por intención + permisos |
 | `agente/horarios.js` | Horas libres (bloques de 45 min, lunes a viernes) |
 | `agente/identidad.js` | Buscar personas y validar el RUT |
@@ -27,7 +32,12 @@ mensaje o botón → 1. entender → 2. revisar rol → 3. herramienta → respu
 **Reglas que no se cambian:** Marea sugiere y no decide (nunca "contratar" ni "descartar"). Solo guarda algo cuando
 el usuario pulsa **Confirmar**. Nunca muestra notas clínicas ni la pauta.
 
-**Pruebas:** `npm --prefix backend run test:agente`.
+**Base de conocimiento** (`backend/src/conocimiento/`): perfiles sacados de los CV, catálogos de ciudades y habilidades
+y consultas SQL con permisos. Preguntas de ejemplo: "¿quiénes son de Puerto Montt y saben Power BI?", "candidatos con
+licencia clase B", "¿cuántos postulantes hay por ciudad?", "perfil de Ignacia Pérez", "¿qué pasó esta semana?".
+La psicóloga solo ve a los candidatos de sus solicitudes y la jefatura solo números. No se busca por datos sensibles.
+
+**Pruebas:** `npm --prefix backend run test:agente`, `test:perfil` y `test:gemini` (Gemini siempre simulado).
 
 ## Agregar algo nuevo
 
@@ -37,12 +47,12 @@ el usuario pulsa **Confirmar**. Nunca muestra notas clínicas ni la pauta.
 - **Una función nueva:** crea la función en `herramientas.js`, regístrala en `HERRAMIENTAS` con sus roles y agrega su
   regla en `interprete.js`.
 
-## ¿Se le puede poner IA a Marea más adelante?
+## Marea con IA
 
-> **Plan en curso:** Marea con Gemini y una base de conocimiento de candidatos (CV + actividad del portal):
-> ver [`PLAN_MAREA_GEMINI.md`](PLAN_MAREA_GEMINI.md).
+> Con Gemini y base de conocimiento: ver [`PLAN_MAREA_GEMINI.md`](PLAN_MAREA_GEMINI.md). Para activarla, define
+> `GEMINI_API_KEY` en el servidor (ver `backend/.env.example`).
 
-Sí. Solo cambia el **paso 1 (entender)**: los pasos 2 y 3 quedan iguales, así que los permisos y las reglas no se tocan.
+Antes se probó con Claude. Solo cambia el **paso 1 (entender)**: los pasos 2 y 3 quedan iguales, así que los permisos y las reglas no se tocan.
 
 1. En `index.js`, si hay `ANTHROPIC_API_KEY`, se le pide a Claude que clasifique el mensaje en lugar de `interpretar(...)`.
    Si no hay clave o la IA falla, se usa el intérprete local.
@@ -62,7 +72,7 @@ Son piezas del proyecto que **ya existen** y Marea solo las usa:
 | Análisis de CV con % de cumplimiento (también automático al postular) | `backend/src/ia/` (`analizarCv`, `cumplimiento.js`, `colaAnalisis.js`) | Sí (Claude) | Sí, si hay `ANTHROPIC_API_KEY` (~USD 0,08 por CV) |
 | Documentos en Google Drive | `backend/src/almacenamiento/` | No | No (cuota gratis de Google) |
 | Reuniones con Google Meet (Google Calendar) | `backend/src/reuniones/` | No | No (cuota gratis de Google) |
-| **Marea** | `backend/src/agente/` | **No** | **No** |
+| **Marea** | `backend/src/agente/` | Opcional (Gemini, para entender mensajes y leer CV) | Solo con `GEMINI_API_KEY`, con tope |
 
 - Marea **lee** el análisis de CV ya guardado (tabla `analisis_cv`) y muestra su %. No vuelve a analizar.
 - Al agendar con modalidad "Google Meet", Marea usa el mismo flujo del Planner (`backend/src/bd/planner.js`), que

@@ -11,6 +11,7 @@
  *   postulaciones → ofertas, candidatos y solicitudes (al pasar a evaluación)
  */
 const db = require('./conexion');
+const { normalizarCiudad } = require('../conocimiento/ciudades');
 
 /** Los 4 roles del caso académico (sección 4.3). */
 const ROLES = ['admin', 'analista', 'evaluador', 'jefatura'];
@@ -312,7 +313,90 @@ function migrar() {
   agregarColumna('entrevistas', 'segundos_reportados', 'REAL NOT NULL DEFAULT 0');
   // RUT del candidato: Marea lo usa para confirmar de quién se habla antes de agendar.
   agregarColumna('candidatos', 'rut', "TEXT NOT NULL DEFAULT ''");
+  migrarConocimiento();
   console.log('✅ Migración completada: tablas creadas exitosamente.');
+}
+
+/**
+ * Base de conocimiento de Marea (ver docs/PLAN_MAREA_GEMINI.md): perfil de cada candidato extraído
+ * de su CV, sus habilidades, un índice de texto y el historial de la plataforma.
+ * Sin datos sensibles ni clínicos: esas columnas no existen.
+ */
+function migrarConocimiento() {
+  db.exec(`
+    -- Un perfil por candidato; se reemplaza si sube un CV nuevo.
+    CREATE TABLE IF NOT EXISTS perfiles_candidato (
+      candidato_id      INTEGER PRIMARY KEY REFERENCES candidatos(id) ON DELETE CASCADE,
+      postulacion_id    INTEGER REFERENCES postulaciones(id) ON DELETE SET NULL,
+      ciudad            TEXT NOT NULL DEFAULT '',
+      region            TEXT NOT NULL DEFAULT '',
+      resumen           TEXT NOT NULL DEFAULT '',
+      formacion         TEXT NOT NULL DEFAULT '[]',
+      experiencia       TEXT NOT NULL DEFAULT '[]',
+      anios_experiencia REAL,
+      idiomas           TEXT NOT NULL DEFAULT '[]',
+      modelo            TEXT NOT NULL DEFAULT '',
+      creado_en         TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Una fila por habilidad: así "Power BI" se filtra con SQL exacto.
+    CREATE TABLE IF NOT EXISTS habilidades_candidato (
+      candidato_id INTEGER NOT NULL REFERENCES candidatos(id) ON DELETE CASCADE,
+      habilidad    TEXT NOT NULL,
+      categoria    TEXT NOT NULL,
+      evidencia    TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (candidato_id, habilidad)
+    );
+    CREATE INDEX IF NOT EXISTS idx_habilidades ON habilidades_candidato (habilidad);
+
+    -- Búsqueda libre sobre el extracto profesional (no sobre el CV completo, que trae datos sensibles).
+    -- El rowid es el id del candidato.
+    CREATE VIRTUAL TABLE IF NOT EXISTS busqueda_cv USING fts5(texto, tokenize = 'unicode61 remove_diacritics 2');
+
+    -- Cola de extracción de perfiles (src/ia/colaPerfiles.js). Persistente, una fila por candidato.
+    CREATE TABLE IF NOT EXISTS cola_perfiles (
+      candidato_id    INTEGER PRIMARY KEY REFERENCES candidatos(id) ON DELETE CASCADE,
+      postulacion_id  INTEGER REFERENCES postulaciones(id) ON DELETE SET NULL,
+      solicitud_id    INTEGER REFERENCES solicitudes(id) ON DELETE SET NULL,
+      estado          TEXT    NOT NULL DEFAULT 'pendiente'
+                      CHECK (estado IN ('pendiente', 'procesando', 'listo', 'error', 'omitido')),
+      turno           INTEGER NOT NULL DEFAULT 0,
+      intentos        INTEGER NOT NULL DEFAULT 0,
+      ultimo_error    TEXT    NOT NULL DEFAULT '',
+      proximo_intento TEXT    NOT NULL DEFAULT (datetime('now')),
+      terminado_en    TEXT
+    );
+
+    -- Historial de la plataforma: qué pasó, quién y cuándo (nunca contenido clínico).
+    CREATE TABLE IF NOT EXISTS eventos (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo       TEXT    NOT NULL,
+      entidad    TEXT    NOT NULL CHECK (entidad IN ('postulacion', 'solicitud', 'candidato', 'oferta')),
+      entidad_id INTEGER NOT NULL,
+      usuario    TEXT    NOT NULL DEFAULT '',
+      detalle    TEXT    NOT NULL DEFAULT '',
+      creado_en  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_eventos_fecha ON eventos (creado_en);
+    CREATE INDEX IF NOT EXISTS idx_eventos_entidad ON eventos (entidad, entidad_id);
+
+    -- Al borrar a una persona no quedan rastros en el índice ni en el historial.
+    CREATE TRIGGER IF NOT EXISTS borrar_busqueda_cv AFTER DELETE ON perfiles_candidato
+      BEGIN DELETE FROM busqueda_cv WHERE rowid = OLD.candidato_id; END;
+    CREATE TRIGGER IF NOT EXISTS borrar_eventos_candidato AFTER DELETE ON candidatos
+      BEGIN DELETE FROM eventos WHERE entidad = 'candidato' AND entidad_id = OLD.id; END;
+    CREATE TRIGGER IF NOT EXISTS borrar_eventos_postulacion AFTER DELETE ON postulaciones
+      BEGIN DELETE FROM eventos WHERE entidad = 'postulacion' AND entidad_id = OLD.id; END;
+    CREATE TRIGGER IF NOT EXISTS borrar_eventos_solicitud AFTER DELETE ON solicitudes
+      BEGIN DELETE FROM eventos WHERE entidad = 'solicitud' AND entidad_id = OLD.id; END;
+  `);
+
+  // Ciudad declarada en el portal, normalizada ("pto montt" → "Puerto Montt"); la original no se toca.
+  agregarColumna('postulaciones', 'ciudad_normalizada', "TEXT NOT NULL DEFAULT ''");
+  const actualizar = db.prepare('UPDATE postulaciones SET ciudad_normalizada = ? WHERE id = ?');
+  db.prepare("SELECT id, ciudad FROM postulaciones WHERE ciudad <> '' AND ciudad_normalizada = ''")
+    .all()
+    .forEach((fila) => actualizar.run(normalizarCiudad(fila.ciudad).ciudad, fila.id));
 }
 
 if (require.main === module) {

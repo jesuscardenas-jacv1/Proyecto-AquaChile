@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../bd/conexion');
+const { registrarEvento } = require('../bd/eventos');
 const { notificarRol } = require('../bd/notificaciones');
 const { enviarEnSegundoPlano } = require('../correo');
 const { correoConfirmacionPostulacion } = require('../correo/plantillas');
@@ -86,6 +87,7 @@ router.post('/', autenticar, requerirRol('analista'), (req, res) => {
     );
 
   const candidato = formatearCandidato(obtener(resultado.lastInsertRowid));
+  registrarEvento({ tipo: 'candidato_registrado', entidad: 'candidato', entidadId: candidato.id, usuario: req.usuario.nombre, detalle: `${candidato.nombre} · ${candidato.cargo}` });
   // Los demás analistas se enteran al instante de que hay un candidato nuevo.
   notificarRol(
     'analista',

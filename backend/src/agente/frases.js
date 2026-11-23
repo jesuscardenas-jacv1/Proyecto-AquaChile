@@ -41,6 +41,13 @@ const FRASES = {
   oferta: ['Te dejo un borrador para {cargo}. Revísalo antes de publicarlo:', 'Borrador de la oferta de {cargo}, listo para revisar:'],
   listado: ['Estas son tus solicitudes más recientes:', 'Te muestro las últimas solicitudes:'],
   avisos: ['Tienes {total} avisos nuevos:', 'Llegaron {total} avisos:'],
+  datoSensible: ['No busco por datos personales como edad, género o nacionalidad. Puedo ayudarte con esto:', 'Ese dato no se usa para seleccionar personas. Prueba con una ciudad, una habilidad o un cargo:'],
+  candidatos: ['Encontré', 'Calzan'],
+  sinCandidatos: ['No encontré a nadie que cumpla todo', 'Nadie calza con esa búsqueda'],
+  perfil: ['Este es el perfil de {nombre}, según su CV:', 'Esto dice el CV de {nombre}:'],
+  sinPerfil: ['Aún no tengo leído el CV de {nombre}.', '{nombre} todavía no tiene su perfil en la base de conocimiento.'],
+  actividad: ['Esto es lo último que pasó:', 'Así viene la actividad reciente:'],
+  sinActividad: ['No hay actividad registrada en ese período.', 'Sin movimientos para mostrar.'],
   sinAvisos: ['No tienes avisos nuevos.', 'Todo al día: no hay avisos nuevos.'],
   fueraDeRol: [
     '{funcion} no está entre tus permisos. Te muestro lo que sí puedo hacer por ti:',

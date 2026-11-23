@@ -7,6 +7,7 @@ const { correoAsignacion, correoSolicitudNueva } = require('../correo/plantillas
 const { obtenerAlmacenamiento } = require('../almacenamiento');
 const { claveCarpeta, nombreCarpeta } = require('../almacenamiento/comun');
 const { cancelarReunion } = require('../reuniones');
+const { registrarEventoSolicitud } = require('../bd/eventos');
 const { ESTADO_DE_ETAPA, ErrorPlanner, cambiarEtapa } = require('../bd/planner');
 
 const router = express.Router();
@@ -186,6 +187,7 @@ router.post('/', autenticar, requerirRol('analista'), async (req, res, next) => 
       );
 
     const id = Number(resultado.lastInsertRowid);
+    registrarEventoSolicitud('solicitud_creada', id, req.usuario.nombre);
     const { carpeta, avisoCarpeta } = await crearCarpetaSolicitud(id);
 
     // Con responsable, el aviso es para ella; sin responsable, para todas las psicólogas.
@@ -242,6 +244,7 @@ router.patch('/:id/estado', autenticar, requerirRol('analista', 'evaluador'), (r
   ).run(responsable, id);
 
   if (responsable && responsable !== actual.profesional_responsable) {
+    registrarEventoSolicitud('solicitud_asignada', id, req.usuario.nombre, responsable);
     const datosCorreo = datosCorreoSolicitud(obtener(id));
     notificarPsicologa(
       responsable,
@@ -334,7 +337,7 @@ router.patch('/:id', autenticar, requerirRol('analista', 'evaluador'), (req, res
  */
 router.patch('/:id/etapa', autenticar, requerirRol('evaluador'), async (req, res, next) => {
   try {
-    const { solicitud, avisoReunion } = await cambiarEtapa(Number(req.params.id), req.body ?? {});
+    const { solicitud, avisoReunion } = await cambiarEtapa(Number(req.params.id), req.body ?? {}, req.usuario.nombre);
     res.json({ ok: true, mensaje: 'Etapa actualizada.', solicitud, avisoReunion });
   } catch (error) {
     if (error instanceof ErrorPlanner) return res.status(error.status).json({ error: error.message });
@@ -377,6 +380,9 @@ router.post('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), asy
        WHERE id = ?`,
     ).run(etapa, motivo, comentario, new Date().toISOString().slice(0, 10), req.usuario.nombre ?? '', id);
 
+    // Solo el motivo del catálogo: el comentario es libre y no va al historial.
+    registrarEventoSolicitud('solicitud_cerrada', id, req.usuario.nombre, motivo);
+
     // Cancelar la reunión es opcional: la entrevista puede reabrirse con el mismo enlace.
     let avisoReunion = null;
     if (req.body?.cancelarReunion === true && actual.evento_reunion_id) {
@@ -417,6 +423,7 @@ router.delete('/:id/cierre', autenticar, requerirRol('analista', 'evaluador'), (
      WHERE id = ?`,
   ).run(ESTADO_DE_ETAPA[etapa], etapa, id);
 
+  registrarEventoSolicitud('solicitud_reabierta', id, req.usuario.nombre);
   res.json({ ok: true, mensaje: 'Solicitud reabierta.', solicitud: formatearSolicitud(obtener(id)) });
 });
 

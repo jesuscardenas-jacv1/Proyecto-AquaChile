@@ -6,7 +6,7 @@ const { emitir } = require('../tiempoReal');
 
 /**
  * Marea, el agente de reclutamiento (ver src/agente). Cada herramienta valida el rol del usuario;
- * aquí solo se exige sesión. No usa servicios de IA ni claves: funciona siempre que haya backend.
+ * aquí solo se exige sesión. Gemini es opcional (entender.js): funciona siempre que haya backend.
  */
 const router = express.Router();
 router.use(autenticar);

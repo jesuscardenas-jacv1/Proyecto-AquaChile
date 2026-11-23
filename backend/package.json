@@ -20,7 +20,10 @@
     "test:cola": "node --test src/ia/colaAnalisis.test.js",
     "test:reuniones": "node --test src/reuniones/reuniones.test.js",
     "test:correo": "node --test src/correo/correo.test.js",
-    "test:agente": "node --test src/agente/agente.test.js"
+    "test:agente": "node --test src/agente/agente.test.js",
+    "test:perfil": "node --test src/conocimiento/conocimiento.test.js",
+    "test:gemini": "node --test src/ia/gemini.test.js",
+    "perfiles:extraer": "node --env-file-if-exists=.env scripts/extraer-perfiles.js"
   },
   "keywords": [
     "aquachile",
